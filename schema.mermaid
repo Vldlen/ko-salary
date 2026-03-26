@@ -1,0 +1,98 @@
+erDiagram
+    companies ||--o{ positions : "has"
+    companies ||--o{ users : "employs"
+    companies ||--o{ periods : "has"
+    positions ||--o{ motivation_schemas : "has"
+    positions ||--o{ users : "assigned to"
+    users ||--o{ deals : "creates"
+    users ||--o{ meetings : "tracks"
+    users ||--o{ salary_results : "receives"
+    users ||--o{ one_time_payments : "has"
+    periods ||--o{ deals : "contains"
+    periods ||--o{ meetings : "contains"
+    periods ||--o{ salary_results : "calculated for"
+    periods ||--o{ one_time_payments : "contains"
+
+    companies {
+        uuid id PK
+        text name
+    }
+
+    positions {
+        uuid id PK
+        text name
+        uuid company_id FK
+    }
+
+    motivation_schemas {
+        uuid id PK
+        uuid position_id FK
+        text name
+        int base_salary
+        date valid_from
+        date valid_to
+        jsonb config
+    }
+
+    users {
+        uuid id PK
+        text email
+        text full_name
+        enum role
+        uuid company_id FK
+        uuid position_id FK
+        bool is_active
+    }
+
+    periods {
+        uuid id PK
+        uuid company_id FK
+        int year
+        int month
+        enum status
+    }
+
+    deals {
+        uuid id PK
+        uuid user_id FK
+        uuid period_id FK
+        text client_name
+        decimal revenue
+        decimal mrr
+        int units
+        enum status
+        decimal equipment_margin
+        text notes
+    }
+
+    meetings {
+        uuid id PK
+        uuid user_id FK
+        uuid period_id FK
+        date date
+        int scheduled
+        int new_completed
+        int repeat_completed
+        int rescheduled
+    }
+
+    salary_results {
+        uuid id PK
+        uuid user_id FK
+        uuid period_id FK
+        decimal base_salary
+        decimal kpi_quality
+        decimal kpi_quantity
+        decimal margin_bonus
+        decimal total
+        jsonb breakdown
+    }
+
+    one_time_payments {
+        uuid id PK
+        uuid user_id FK
+        uuid period_id FK
+        decimal amount
+        enum type
+        text description
+    }

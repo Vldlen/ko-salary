@@ -1,0 +1,147 @@
+export type UserRole = 'admin' | 'director' | 'rop' | 'manager'
+export type PeriodStatus = 'draft' | 'active' | 'closed'
+export type DealStatus = 'prospect' | 'negotiation' | 'waiting_payment' | 'paid' | 'cancelled'
+export type PaymentType = 'bonus' | 'deduction'
+
+export interface Company {
+  id: string
+  name: string
+  created_at: string
+}
+
+export interface Position {
+  id: string
+  name: string
+  company_id: string
+  created_at: string
+}
+
+export interface MotivationConfig {
+  revenue_plan: number
+  units_plan: number
+  meetings_plan: number
+  kpi_quality: {
+    enabled: boolean
+    description: string
+    max_amount: number
+  }
+  kpi_quantity: {
+    enabled: boolean
+    description: string
+    max_amount: number
+  }
+  margin_bonus: {
+    enabled: boolean
+    description: string
+    percent: number
+  }
+}
+
+export interface MotivationSchema {
+  id: string
+  position_id: string
+  name: string
+  base_salary: number
+  valid_from: string
+  valid_to: string | null
+  config: MotivationConfig
+  created_at: string
+}
+
+export interface User {
+  id: string
+  email: string
+  full_name: string
+  role: UserRole
+  company_id: string | null
+  position_id: string | null
+  is_active: boolean
+  created_at: string
+  // joined
+  company?: Company
+  position?: Position
+}
+
+export interface Period {
+  id: string
+  company_id: string
+  year: number
+  month: number
+  status: PeriodStatus
+  created_at: string
+}
+
+export interface Deal {
+  id: string
+  user_id: string
+  period_id: string
+  client_name: string
+  revenue: number
+  mrr: number
+  units: number
+  status: DealStatus
+  equipment_margin: number
+  is_forecast: boolean
+  forecast_revenue: number | null
+  forecast_close_date: string | null
+  notes: string | null
+  amo_link: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Meeting {
+  id: string
+  user_id: string
+  period_id: string
+  date: string
+  scheduled: number
+  new_completed: number
+  repeat_completed: number
+  mentor: number
+  next_day: number
+  rescheduled: number
+  created_at: string
+}
+
+export interface SalaryResult {
+  id: string
+  user_id: string
+  period_id: string
+  base_salary: number
+  kpi_quality: number
+  kpi_quantity: number
+  margin_bonus: number
+  extra_bonus: number
+  deduction: number
+  total: number
+  forecast_total: number
+  breakdown: Record<string, unknown>
+  calculated_at: string
+}
+
+export interface OneTimePayment {
+  id: string
+  user_id: string
+  period_id: string
+  amount: number
+  type: PaymentType
+  description: string
+  created_at: string
+}
+
+// Aggregated views
+export interface ManagerSummary {
+  user: User
+  period: Period
+  deals_count: number
+  total_revenue: number
+  total_mrr: number
+  total_units: number
+  forecast_revenue: number
+  meetings_total: number
+  meetings_new: number
+  meetings_repeat: number
+  salary: SalaryResult | null
+  schema: MotivationSchema | null
+}
