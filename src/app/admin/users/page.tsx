@@ -61,14 +61,22 @@ export default function AdminUsersPage() {
     setSaving(true)
     setError('')
     try {
-      await createUserProfile(supabase, {
-        email: form.email,
-        full_name: form.full_name,
-        password: form.password,
-        role: form.role,
-        company_id: form.company_id,
-        position_id: form.position_id,
+      const res = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: form.email,
+          full_name: form.full_name,
+          password: form.password,
+          role: form.role,
+          company_id: form.company_id,
+          position_id: form.position_id,
+        }),
       })
+      const result = await res.json()
+      if (!res.ok) {
+        throw new Error(result.error || 'Ошибка при создании пользователя')
+      }
       // Refresh users list
       const usersData = await getUsers(supabase)
       setUsers(usersData)
