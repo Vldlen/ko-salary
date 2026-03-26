@@ -344,23 +344,33 @@ export default function DealsPage() {
 
           {/* Deals Table */}
           <div className="mb-8 overflow-hidden rounded-2xl border border-brand-100 bg-white">
-            <table className="w-full">
+            <table className="w-full table-fixed">
+              <colgroup>
+                <col className="w-[18%]" />
+                <col className="w-[12%]" />
+                <col className="w-[12%]" />
+                <col className="w-[7%]" />
+                <col className="w-[22%]" />
+                <col className="w-[11%]" />
+                <col className="w-[9%]" />
+                <col className="w-[9%]" />
+              </colgroup>
               <thead>
                 <tr className="border-b border-brand-100 bg-brand-50">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Клиент</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Выручка</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">MRR</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Точки</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Оборудование</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Статус</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Дата</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold text-brand-900">Действия</th>
+                  <th className="px-4 py-4 text-left text-sm font-semibold text-brand-900">Клиент</th>
+                  <th className="px-4 py-4 text-left text-sm font-semibold text-brand-900">Выручка</th>
+                  <th className="px-4 py-4 text-left text-sm font-semibold text-brand-900">MRR</th>
+                  <th className="px-4 py-4 text-left text-sm font-semibold text-brand-900">Точки</th>
+                  <th className="px-4 py-4 text-left text-sm font-semibold text-brand-900">Оборудование</th>
+                  <th className="px-4 py-4 text-left text-sm font-semibold text-brand-900">Статус</th>
+                  <th className="px-4 py-4 text-left text-sm font-semibold text-brand-900">Дата</th>
+                  <th className="px-4 py-4 text-right text-sm font-semibold text-brand-900">Действия</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredDeals.length > 0 ? filteredDeals.map((deal) => (
                   <tr key={deal.id} className="border-b border-brand-100 hover:bg-brand-50 transition-colors">
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full font-semibold text-white bg-brand-500">
                           {deal.client_name?.charAt(0)?.toUpperCase() || '?'}
@@ -371,10 +381,10 @@ export default function DealsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium text-brand-900">{Number(deal.revenue) > 0 ? formatMoney(Number(deal.revenue)) : '—'}</td>
-                    <td className="px-6 py-4 text-sm font-medium text-brand-900">{Number(deal.mrr) > 0 ? formatMoney(Number(deal.mrr)) : '—'}</td>
-                    <td className="px-6 py-4 text-sm font-medium text-brand-900">{deal.units}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4 text-sm font-medium text-brand-900">{Number(deal.revenue) > 0 ? formatMoney(Number(deal.revenue)) : '—'}</td>
+                    <td className="px-4 py-4 text-sm font-medium text-brand-900">{Number(deal.mrr) > 0 ? formatMoney(Number(deal.mrr)) : '—'}</td>
+                    <td className="px-4 py-4 text-sm font-medium text-brand-900">{deal.units}</td>
+                    <td className="px-4 py-4">
                       {Number(deal.equipment_sell_price) > 0 ? (
                         <div className="text-xs leading-relaxed">
                           <p className="text-brand-400">Продажа: <span className="text-brand-900 font-medium">{formatMoney(Number(deal.equipment_sell_price))}</span></p>
@@ -383,13 +393,13 @@ export default function DealsPage() {
                         </div>
                       ) : <span className="text-sm text-brand-500">—</span>}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
                       <span className={cn('inline-block rounded-full px-3 py-1 text-xs font-semibold', getDealStatusColor(deal.status))}>
                         {getDealStatusLabel(deal.status)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-brand-500">{formatDate(deal.created_at)}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4 text-sm text-brand-500">{formatDate(deal.created_at)}</td>
+                    <td className="px-4 py-4">
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={() => openEdit(deal)}
                           className="rounded-lg p-2 text-brand-500 hover:bg-brand-50 transition-colors"
