@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronDown, Plus, Loader2, X, Pencil, Trash2, Check } from 'lucide-react'
+import { ChevronDown, Plus, Loader2, X, Pencil, Trash2, Check, Calendar } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import { formatMoney, getDealStatusLabel, getDealStatusColor, cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
@@ -54,6 +54,10 @@ export default function DealsPage() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  // Payment date popup state
+  const [paidPopup, setPaidPopup] = useState<{ dealId: string; rect: DOMRect } | null>(null)
+  const [paidDate, setPaidDate] = useState(new Date().toISOString().slice(0, 10))
 
   useEffect(() => {
     async function load() {
@@ -137,6 +141,35 @@ export default function DealsPage() {
       setDeals(dealsData)
     } catch (err: any) {
       alert(err.message || 'Ошибка удаления')
+    }
+  }
+
+  async function handleStatusChange(dealId: string, newStatus: string, e?: React.MouseEvent) {
+    if (newStatus === 'paid') {
+      // Show date popup
+      const rect = (e?.currentTarget as HTMLElement)?.getBoundingClientRect()
+      setPaidPopup({ dealId, rect: rect || new DOMRect() })
+      setPaidDate(new Date().toISOString().slice(0, 10))
+      return
+    }
+    try {
+      await updateDeal(supabase, dealId, { status: newStatus, paid_at: null })
+      const dealsData = await getDeals(supabase, user.id, period.id, selectedStatus)
+      setDeals(dealsData)
+    } catch (err: any) {
+      alert(err.message || 'Ошибка смены статуса')
+    }
+  }
+
+  async function confirmPaid() {
+    if (!paidPopup) return
+    try {
+      await updateDeal(supabase, paidPopup.dealId, { status: 'paid', paid_at: paidDate })
+      const dealsData = await getDeals(supabase, user.id, period.id, selectedStatus)
+      setDeals(dealsData)
+      setPaidPopup(null)
+    } catch (err: any) {
+      alert(err.message || 'Ошибка')
     }
   }
 
@@ -384,9 +417,25 @@ export default function DealsPage() {
                       ) : <span className="text-sm text-brand-500">—</span>}
                     </td>
                     <td className="px-4 py-4">
-                      <span className={cn('inline-block rounded-full px-3 py-1 text-xs font-semibold', getDealStatusColor(deal.status))}>
-                        {getDealStatusLabel(deal.status)}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        {STATUS_OPTIONS.map((opt) => (
+                          <button key={opt.value}
+                            onClick={(e) => deal.status !== opt.value && handleStatusChange(deal.id, opt.value, e)}
+                            className={cn(
+                              'rounded-full px-3 py-1 text-xs font-semibold transition-all text-left whitespace-nowrap',
+                              deal.status === opt.value
+                                ? getDealStatusColor(opt.value)
+                                : 'text-brand-300 hover:text-brand-500 hover:bg-brand-50'
+                            )}>
+                            {opt.label}
+                            {opt.value === 'paid' && deal.status === 'paid' && deal.paid_at && (
+                              <span className="ml-1 text-xs font-normal text-green-500">
+                                {formatDate(deal.paid_at)}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     </td>
                     <td className="px-4 py-4 text-sm text-brand-500">{formatDate(deal.created_at)}</td>
                     <td className="px-4 py-4">
@@ -422,6 +471,34 @@ export default function DealsPage() {
             </button>
           )}
         </div>
+
+        {/* Payment date popup */}
+        {paidPopup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/20" onClick={() => setPaidPopup(null)} />
+            <div className="relative rounded-2xl border border-brand-100 bg-white p-6 shadow-xl w-80">
+              <h3 className="text-base font-bold text-brand-900 mb-1">Дата оплаты</h3>
+              <p className="text-xs text-brand-500 mb-4">Укажите дату поступления оплаты</p>
+              <input
+                type="date"
+                value={paidDate}
+                onChange={(e) => setPaidDate(e.target.value)}
+                className="w-full rounded-xl border border-brand-100 px-4 py-3 text-sm focus:border-brand-400 focus:outline-none mb-4"
+              />
+              <div className="flex gap-3">
+                <button onClick={() => setPaidPopup(null)}
+                  className="flex-1 rounded-xl border border-brand-100 px-4 py-2.5 text-sm font-medium text-brand-500 hover:bg-brand-50 transition-colors">
+                  Отмена
+                </button>
+                <button onClick={confirmPaid}
+                  className="flex-1 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-600 transition-colors flex items-center justify-center gap-2">
+                  <Check size={16} />
+                  Оплачено
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )
