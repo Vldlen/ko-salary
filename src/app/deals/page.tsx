@@ -2,20 +2,34 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronDown, Plus, Loader2 } from 'lucide-react'
+import { ChevronDown, Plus, Loader2, X, Pencil, Trash2, Check } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import { formatMoney, getDealStatusLabel, getDealStatusColor, cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
-import { getCurrentUser, getActivePeriod, getDeals } from '@/lib/supabase/queries'
+import { getCurrentUser, getActivePeriod, getDeals, createDeal, updateDeal } from '@/lib/supabase/queries'
 
 const STATUS_FILTERS = [
   { key: 'all', label: 'Все' },
-  { key: 'prospect', label: 'Перспектива' },
-  { key: 'negotiation', label: 'Переговоры' },
-  { key: 'waiting_payment', label: 'Ждём оплату' },
+  { key: 'no_invoice', label: 'Нет счёта' },
+  { key: 'waiting_payment', label: 'Жду оплату' },
   { key: 'paid', label: 'Оплачено' },
-  { key: 'cancelled', label: 'Отменено' },
 ]
+
+const STATUS_OPTIONS = [
+  { value: 'no_invoice', label: 'Нет счёта' },
+  { value: 'waiting_payment', label: 'Жду оплату' },
+  { value: 'paid', label: 'Оплачено' },
+]
+
+const EMPTY_FORM = {
+  client_name: '',
+  revenue: '',
+  mrr: '',
+  units: '1',
+  equipment_margin: '',
+  status: 'no_invoice',
+  notes: '',
+}
 
 export default function DealsPage() {
   const supabase = useSupabase()
@@ -25,6 +39,13 @@ export default function DealsPage() {
   const [period, setPeriod] = useState<any>(null)
   const [deals, setDeals] = useState<any[]>([])
   const [selectedStatus, setSelectedStatus] = useState('all')
+
+  // Form state
+  const [showForm, setShowForm] = useState(false)
+  const [editingDeal, setEditingDeal] = useState<any>(null)
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -58,6 +79,78 @@ export default function DealsPage() {
     reload()
   }, [selectedStatus, user, period, supabase])
 
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      const dealData = {
+        client_name: form.client_name,
+        revenue: Number(form.revenue) || 0,
+        mrr: Number(form.mrr) || 0,
+        units: Number(form.units) || 1,
+        equipment_margin: Number(form.equipment_margin) || 0,
+        status: form.status,
+        notes: form.notes || '',
+      }
+
+      if (editingDeal) {
+        await updateDeal(supabase, editingDeal.id, dealData)
+      } else {
+        await createDeal(supabase, {
+          ...dealData,
+          user_id: user.id,
+          period_id: period.id,
+        })
+      }
+
+      // Refresh
+      const dealsData = await getDeals(supabase, user.id, period.id, selectedStatus)
+      setDeals(dealsData)
+      setShowForm(false)
+      setEditingDeal(null)
+      setForm(EMPTY_FORM)
+    } catch (err: any) {
+      setError(err.message || 'Ошибка при сохранении')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete(dealId: string) {
+    if (!confirm('Удалить сделку?')) return
+    try {
+      const { error } = await supabase.from('deals').delete().eq('id', dealId)
+      if (error) throw error
+      const dealsData = await getDeals(supabase, user.id, period.id, selectedStatus)
+      setDeals(dealsData)
+    } catch (err: any) {
+      alert(err.message || 'Ошибка удаления')
+    }
+  }
+
+  function openEdit(deal: any) {
+    setEditingDeal(deal)
+    setForm({
+      client_name: deal.client_name,
+      revenue: String(Number(deal.revenue)),
+      mrr: String(Number(deal.mrr)),
+      units: String(deal.units),
+      equipment_margin: String(Number(deal.equipment_margin)),
+      status: deal.status,
+      notes: deal.notes || '',
+    })
+    setShowForm(true)
+    setError('')
+  }
+
+  function openNew() {
+    setEditingDeal(null)
+    setForm(EMPTY_FORM)
+    setShowForm(true)
+    setError('')
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-brand-50">
@@ -70,7 +163,7 @@ export default function DealsPage() {
   const totalRevenue = filteredDeals.reduce((sum, deal) => sum + Number(deal.revenue), 0)
   const totalUnits = filteredDeals.reduce((sum, deal) => sum + deal.units, 0)
   const dealsCount = filteredDeals.length
-  const averageCheck = dealsCount > 0 ? Math.round(filteredDeals.reduce((sum, deal) => sum + Number(deal.forecast_revenue || deal.revenue), 0) / dealsCount) : 0
+  const averageCheck = dealsCount > 0 ? Math.round(totalRevenue / dealsCount) : 0
 
   const formatDate = (dateString: string) => {
     if (!dateString) return ''
@@ -94,13 +187,14 @@ export default function DealsPage() {
             </div>
           </div>
 
+          {/* Stats */}
           <div className="mb-8 grid grid-cols-4 gap-4">
             <div className="rounded-2xl border border-brand-100 bg-white p-6">
               <p className="text-sm font-medium text-brand-500">Выручка</p>
               <p className="font-heading text-2xl font-bold text-brand-900 mt-2">{formatMoney(totalRevenue)}</p>
             </div>
             <div className="rounded-2xl border border-brand-100 bg-white p-6">
-              <p className="text-sm font-medium text-brand-500">Количество точек</p>
+              <p className="text-sm font-medium text-brand-500">Точки</p>
               <p className="font-heading text-2xl font-bold text-brand-900 mt-2">{totalUnits}</p>
             </div>
             <div className="rounded-2xl border border-brand-100 bg-white p-6">
@@ -113,6 +207,7 @@ export default function DealsPage() {
             </div>
           </div>
 
+          {/* Filters */}
           <div className="mb-8 flex items-center gap-2 overflow-x-auto rounded-2xl border border-brand-100 bg-white p-2">
             {STATUS_FILTERS.map((filter) => (
               <button key={filter.key} onClick={() => setSelectedStatus(filter.key)}
@@ -124,6 +219,92 @@ export default function DealsPage() {
             ))}
           </div>
 
+          {/* New/Edit Deal Form */}
+          {showForm && (
+            <div className="mb-8 rounded-2xl border border-brand-100 bg-white p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-brand-900">
+                  {editingDeal ? 'Редактировать сделку' : 'Новая сделка'}
+                </h2>
+                <button onClick={() => { setShowForm(false); setEditingDeal(null); setForm(EMPTY_FORM) }}
+                  className="rounded-lg p-2 text-brand-500 hover:bg-brand-50">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {error && (
+                <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">{error}</div>
+              )}
+
+              <form onSubmit={handleSave}>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-brand-900 mb-1">Клиент *</label>
+                    <input type="text" required value={form.client_name}
+                      onChange={(e) => setForm({ ...form, client_name: e.target.value })}
+                      className="w-full rounded-xl border border-brand-100 px-4 py-3 text-sm focus:border-brand-400 focus:outline-none"
+                      placeholder="Название компании" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-brand-900 mb-1">Статус</label>
+                    <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}
+                      className="w-full rounded-xl border border-brand-100 px-4 py-3 text-sm focus:border-brand-400 focus:outline-none bg-white">
+                      {STATUS_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-brand-900 mb-1">Выручка</label>
+                    <input type="number" value={form.revenue}
+                      onChange={(e) => setForm({ ...form, revenue: e.target.value })}
+                      className="w-full rounded-xl border border-brand-100 px-4 py-3 text-sm focus:border-brand-400 focus:outline-none"
+                      placeholder="0" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-brand-900 mb-1">MRR</label>
+                    <input type="number" value={form.mrr}
+                      onChange={(e) => setForm({ ...form, mrr: e.target.value })}
+                      className="w-full rounded-xl border border-brand-100 px-4 py-3 text-sm focus:border-brand-400 focus:outline-none"
+                      placeholder="0" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-brand-900 mb-1">Точки</label>
+                    <input type="number" value={form.units}
+                      onChange={(e) => setForm({ ...form, units: e.target.value })}
+                      className="w-full rounded-xl border border-brand-100 px-4 py-3 text-sm focus:border-brand-400 focus:outline-none"
+                      placeholder="1" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-brand-900 mb-1">Маржа</label>
+                    <input type="number" value={form.equipment_margin}
+                      onChange={(e) => setForm({ ...form, equipment_margin: e.target.value })}
+                      className="w-full rounded-xl border border-brand-100 px-4 py-3 text-sm focus:border-brand-400 focus:outline-none"
+                      placeholder="0" />
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-brand-900 mb-1">Заметки</label>
+                  <input type="text" value={form.notes}
+                    onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                    className="w-full rounded-xl border border-brand-100 px-4 py-3 text-sm focus:border-brand-400 focus:outline-none"
+                    placeholder="Комментарий к сделке..." />
+                </div>
+
+                <button type="submit" disabled={saving}
+                  className="flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 transition-colors">
+                  {saving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                  {editingDeal ? 'Сохранить' : 'Создать сделку'}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* Deals Table */}
           <div className="mb-8 overflow-hidden rounded-2xl border border-brand-100 bg-white">
             <table className="w-full">
               <thead>
@@ -134,8 +315,8 @@ export default function DealsPage() {
                   <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Точки</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Маржа</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Статус</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Прогноз</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Дата</th>
+                  <th className="px-6 py-4 text-right text-sm font-semibold text-brand-900">Действия</th>
                 </tr>
               </thead>
               <tbody>
@@ -146,7 +327,10 @@ export default function DealsPage() {
                         <div className="flex h-10 w-10 items-center justify-center rounded-full font-semibold text-white bg-brand-500">
                           {deal.client_name?.charAt(0)?.toUpperCase() || '?'}
                         </div>
-                        <span className="text-sm font-medium text-brand-900">{deal.client_name}</span>
+                        <div>
+                          <span className="text-sm font-medium text-brand-900">{deal.client_name}</span>
+                          {deal.notes && <p className="text-xs text-brand-500 mt-0.5">{deal.notes}</p>}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-brand-900">{Number(deal.revenue) > 0 ? formatMoney(Number(deal.revenue)) : '—'}</td>
@@ -158,13 +342,21 @@ export default function DealsPage() {
                         {getDealStatusLabel(deal.status)}
                       </span>
                     </td>
+                    <td className="px-6 py-4 text-sm text-brand-500">{formatDate(deal.created_at)}</td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-brand-900">{formatMoney(Number(deal.forecast_revenue || deal.revenue))}</span>
-                        {deal.is_forecast && <span className="inline-block h-2 w-2 rounded-full bg-accent" />}
+                      <div className="flex items-center justify-end gap-2">
+                        <button onClick={() => openEdit(deal)}
+                          className="rounded-lg p-2 text-brand-500 hover:bg-brand-50 transition-colors"
+                          title="Редактировать">
+                          <Pencil size={16} />
+                        </button>
+                        <button onClick={() => handleDelete(deal.id)}
+                          className="rounded-lg p-2 text-red-400 hover:bg-red-50 transition-colors"
+                          title="Удалить">
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-brand-500">{formatDate(deal.created_at)}</td>
                   </tr>
                 )) : (
                   <tr>
@@ -175,10 +367,14 @@ export default function DealsPage() {
             </table>
           </div>
 
-          <button className="flex items-center gap-2 rounded-2xl border-2 border-brand-500 bg-white px-6 py-3 font-medium text-brand-500 transition-colors hover:bg-brand-50">
-            <Plus size={20} />
-            Новая сделка
-          </button>
+          {/* Add button */}
+          {!showForm && (
+            <button onClick={openNew}
+              className="flex items-center gap-2 rounded-2xl bg-brand-500 px-6 py-3 font-medium text-white transition-colors hover:bg-brand-600">
+              <Plus size={20} />
+              Новая сделка
+            </button>
+          )}
         </div>
       </main>
     </div>

@@ -66,7 +66,7 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string,
   const schema = schemas?.[0]
 
   // Calculate stats from deals
-  const paidDeals = deals.filter((d: any) => d.status === 'paid' || d.status === 'waiting_payment')
+  const paidDeals = deals.filter((d: any) => d.status === 'paid')
   const revenueFact = paidDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0)
   const revenueForecast = deals.reduce((s: number, d: any) => s + Number(d.forecast_revenue || d.revenue), 0)
   const unitsFact = paidDeals.reduce((s: number, d: any) => s + d.units, 0)
@@ -245,7 +245,7 @@ export async function getTeamProgress(supabase: SupabaseClient, companyId: strin
     const meetings = meetingsRes.data || []
     const config = user.position?.motivation_schemas?.[0]?.config || {}
 
-    const paidDeals = deals.filter((d: any) => d.status === 'paid' || d.status === 'waiting_payment')
+    const paidDeals = deals.filter((d: any) => d.status === 'paid')
     const revenueFact = paidDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0)
     const unitsFact = paidDeals.reduce((s: number, d: any) => s + d.units, 0)
     const meetingsFact = meetings.reduce((s: number, m: any) => s + m.new_completed + m.repeat_completed, 0)
