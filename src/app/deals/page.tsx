@@ -343,18 +343,8 @@ export default function DealsPage() {
           )}
 
           {/* Deals Table */}
-          <div className="mb-8 overflow-hidden rounded-2xl border border-brand-100 bg-white">
-            <table className="w-full table-fixed">
-              <colgroup>
-                <col className="w-[18%]" />
-                <col className="w-[12%]" />
-                <col className="w-[12%]" />
-                <col className="w-[7%]" />
-                <col className="w-[22%]" />
-                <col className="w-[11%]" />
-                <col className="w-[9%]" />
-                <col className="w-[9%]" />
-              </colgroup>
+          <div className="mb-8 overflow-x-auto rounded-2xl border border-brand-100 bg-white">
+            <table className="w-full">
               <thead>
                 <tr className="border-b border-brand-100 bg-brand-50">
                   <th className="px-4 py-4 text-left text-sm font-semibold text-brand-900">Клиент</th>
