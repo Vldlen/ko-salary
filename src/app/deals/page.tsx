@@ -26,9 +26,17 @@ const EMPTY_FORM = {
   revenue: '',
   mrr: '',
   units: '1',
-  equipment_margin: '',
+  equipment_sell_price: '',
+  equipment_buy_price: '',
   status: 'no_invoice',
   notes: '',
+}
+
+function calcMargin(sellPrice: string, buyPrice: string): number {
+  const sell = Number(sellPrice) || 0
+  const buy = Number(buyPrice) || 0
+  if (sell <= 0) return 0
+  return Math.round(sell * 0.9 - buy)
 }
 
 export default function DealsPage() {
@@ -84,12 +92,15 @@ export default function DealsPage() {
     setSaving(true)
     setError('')
     try {
+      const margin = calcMargin(form.equipment_sell_price, form.equipment_buy_price)
       const dealData = {
         client_name: form.client_name,
         revenue: Number(form.revenue) || 0,
         mrr: Number(form.mrr) || 0,
         units: Number(form.units) || 1,
-        equipment_margin: Number(form.equipment_margin) || 0,
+        equipment_sell_price: Number(form.equipment_sell_price) || 0,
+        equipment_buy_price: Number(form.equipment_buy_price) || 0,
+        equipment_margin: margin,
         status: form.status,
         notes: form.notes || '',
       }
@@ -136,7 +147,8 @@ export default function DealsPage() {
       revenue: String(Number(deal.revenue)),
       mrr: String(Number(deal.mrr)),
       units: String(deal.units),
-      equipment_margin: String(Number(deal.equipment_margin)),
+      equipment_sell_price: String(Number(deal.equipment_sell_price || 0)),
+      equipment_buy_price: String(Number(deal.equipment_buy_price || 0)),
       status: deal.status,
       notes: deal.notes || '',
     })
@@ -162,6 +174,7 @@ export default function DealsPage() {
   const filteredDeals = deals
   const totalRevenue = filteredDeals.reduce((sum, deal) => sum + Number(deal.revenue), 0)
   const totalUnits = filteredDeals.reduce((sum, deal) => sum + deal.units, 0)
+  const totalMargin = filteredDeals.reduce((sum, deal) => sum + Number(deal.equipment_margin || 0), 0)
   const dealsCount = filteredDeals.length
   const averageCheck = dealsCount > 0 ? Math.round(totalRevenue / dealsCount) : 0
 
@@ -202,8 +215,8 @@ export default function DealsPage() {
               <p className="font-heading text-2xl font-bold text-brand-900 mt-2">{dealsCount}</p>
             </div>
             <div className="rounded-2xl border border-brand-100 bg-white p-6">
-              <p className="text-sm font-medium text-brand-500">Средний чек</p>
-              <p className="font-heading text-2xl font-bold text-brand-900 mt-2">{formatMoney(averageCheck)}</p>
+              <p className="text-sm font-medium text-brand-500">Маржа обор.</p>
+              <p className={cn("font-heading text-2xl font-bold mt-2", totalMargin > 0 ? 'text-green-600' : 'text-brand-900')}>{formatMoney(totalMargin)}</p>
             </div>
           </div>
 
@@ -256,7 +269,7 @@ export default function DealsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-4 mb-4">
+                <div className="grid grid-cols-3 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-brand-900 mb-1">Выручка</label>
                     <input type="number" value={form.revenue}
@@ -278,12 +291,37 @@ export default function DealsPage() {
                       className="w-full rounded-xl border border-brand-100 px-4 py-3 text-sm focus:border-brand-400 focus:outline-none"
                       placeholder="1" />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-brand-900 mb-1">Маржа</label>
-                    <input type="number" value={form.equipment_margin}
-                      onChange={(e) => setForm({ ...form, equipment_margin: e.target.value })}
-                      className="w-full rounded-xl border border-brand-100 px-4 py-3 text-sm focus:border-brand-400 focus:outline-none"
-                      placeholder="0" />
+                </div>
+
+                {/* Equipment block */}
+                <div className="mb-4 rounded-xl border border-brand-100 bg-brand-50 p-4">
+                  <p className="text-sm font-semibold text-brand-900 mb-3">Оборудование</p>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-brand-500 mb-1">Цена продажи</label>
+                      <input type="number" value={form.equipment_sell_price}
+                        onChange={(e) => setForm({ ...form, equipment_sell_price: e.target.value })}
+                        className="w-full rounded-xl border border-brand-100 bg-white px-4 py-3 text-sm focus:border-brand-400 focus:outline-none"
+                        placeholder="0" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-brand-500 mb-1">Цена закупки</label>
+                      <input type="number" value={form.equipment_buy_price}
+                        onChange={(e) => setForm({ ...form, equipment_buy_price: e.target.value })}
+                        className="w-full rounded-xl border border-brand-100 bg-white px-4 py-3 text-sm focus:border-brand-400 focus:outline-none"
+                        placeholder="0" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-brand-500 mb-1">Маржа (авто)</label>
+                      <div className={cn(
+                        "w-full rounded-xl border border-brand-100 bg-white px-4 py-3 text-sm font-semibold",
+                        calcMargin(form.equipment_sell_price, form.equipment_buy_price) > 0 ? 'text-green-600' :
+                        calcMargin(form.equipment_sell_price, form.equipment_buy_price) < 0 ? 'text-red-600' : 'text-brand-500'
+                      )}>
+                        {formatMoney(calcMargin(form.equipment_sell_price, form.equipment_buy_price))}
+                      </div>
+                      <p className="text-xs text-brand-400 mt-1">продажа − 10% НДС − закупка</p>
+                    </div>
                   </div>
                 </div>
 
@@ -313,7 +351,7 @@ export default function DealsPage() {
                   <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Выручка</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">MRR</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Точки</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Маржа</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Оборудование</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Статус</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-brand-900">Дата</th>
                   <th className="px-6 py-4 text-right text-sm font-semibold text-brand-900">Действия</th>
@@ -336,7 +374,18 @@ export default function DealsPage() {
                     <td className="px-6 py-4 text-sm font-medium text-brand-900">{Number(deal.revenue) > 0 ? formatMoney(Number(deal.revenue)) : '—'}</td>
                     <td className="px-6 py-4 text-sm font-medium text-brand-900">{Number(deal.mrr) > 0 ? formatMoney(Number(deal.mrr)) : '—'}</td>
                     <td className="px-6 py-4 text-sm font-medium text-brand-900">{deal.units}</td>
-                    <td className="px-6 py-4 text-sm font-medium text-brand-900">{Number(deal.equipment_margin) > 0 ? formatMoney(Number(deal.equipment_margin)) : '—'}</td>
+                    <td className="px-6 py-4">
+                      {Number(deal.equipment_sell_price) > 0 ? (
+                        <div>
+                          <span className={cn('text-sm font-semibold', Number(deal.equipment_margin) > 0 ? 'text-green-600' : Number(deal.equipment_margin) < 0 ? 'text-red-600' : 'text-brand-900')}>
+                            {formatMoney(Number(deal.equipment_margin))}
+                          </span>
+                          <p className="text-xs text-brand-400 mt-0.5">
+                            {formatMoney(Number(deal.equipment_sell_price))} → {formatMoney(Number(deal.equipment_buy_price))}
+                          </p>
+                        </div>
+                      ) : <span className="text-sm text-brand-500">—</span>}
+                    </td>
                     <td className="px-6 py-4">
                       <span className={cn('inline-block rounded-full px-3 py-1 text-xs font-semibold', getDealStatusColor(deal.status))}>
                         {getDealStatusLabel(deal.status)}
