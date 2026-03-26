@@ -376,13 +376,10 @@ export default function DealsPage() {
                     <td className="px-6 py-4 text-sm font-medium text-brand-900">{deal.units}</td>
                     <td className="px-6 py-4">
                       {Number(deal.equipment_sell_price) > 0 ? (
-                        <div>
-                          <span className={cn('text-sm font-semibold', Number(deal.equipment_margin) > 0 ? 'text-green-600' : Number(deal.equipment_margin) < 0 ? 'text-red-600' : 'text-brand-900')}>
-                            {formatMoney(Number(deal.equipment_margin))}
-                          </span>
-                          <p className="text-xs text-brand-400 mt-0.5">
-                            {formatMoney(Number(deal.equipment_sell_price))} → {formatMoney(Number(deal.equipment_buy_price))}
-                          </p>
+                        <div className="text-xs leading-relaxed">
+                          <p className="text-brand-400">Продажа: <span className="text-brand-900 font-medium">{formatMoney(Number(deal.equipment_sell_price))}</span></p>
+                          <p className="text-brand-400">Закупка: <span className="text-brand-900 font-medium">{formatMoney(Number(deal.equipment_buy_price))}</span></p>
+                          <p className="text-brand-400">Маржа: <span className={cn('font-semibold', Number(deal.equipment_margin) > 0 ? 'text-green-600' : Number(deal.equipment_margin) < 0 ? 'text-red-600' : 'text-brand-900')}>{formatMoney(Number(deal.equipment_margin))}</span></p>
                         </div>
                       ) : <span className="text-sm text-brand-500">—</span>}
                     </td>
