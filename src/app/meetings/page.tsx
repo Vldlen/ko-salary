@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Loader2, ChevronDown } from 'lucide-react'
+import { Plus, Loader2, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
-import { cn } from '@/lib/utils'
+import { cn, formatMoney } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
-import { getCurrentUser, getActivePeriod, getMeetings, upsertMeeting } from '@/lib/supabase/queries'
+import { getCurrentUser, getActivePeriod, getMeetings, upsertMeeting, getDeals } from '@/lib/supabase/queries'
 
 interface MeetingRow {
   id?: string
@@ -21,69 +21,39 @@ interface MeetingRow {
   rescheduled: number
 }
 
-const FIELDS = ['scheduled', 'new_completed', 'repeat_completed', 'mentor', 'next_day', 'rescheduled'] as const
-type MeetingField = typeof FIELDS[number]
+type MeetingField = 'scheduled' | 'new_completed' | 'repeat_completed' | 'mentor' | 'next_day' | 'rescheduled'
 
-function formatDateRu(dateStr: string): string {
-  const date = new Date(dateStr + 'T00:00:00')
-  const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
-  const dayName = days[date.getDay()]
-  const day = date.getDate()
-  return `${dayName}, ${day}`
-}
+const ROW_CONFIG: { key: string; label: string; field?: MeetingField; type?: string }[] = [
+  { key: 'scheduled', label: 'Кол-во назначенных встреч на утро', field: 'scheduled' },
+  { key: 'new_completed', label: 'Кол-во проведенных встреч новых', field: 'new_completed' },
+  { key: 'repeat_completed', label: 'Кол-во проведенных встреч повторных', field: 'repeat_completed' },
+  { key: 'mentor', label: 'Кол-во встреч, как менторы', field: 'mentor' },
+  { key: 'next_day', label: 'Кол-во встреч на завтра', field: 'next_day' },
+  { key: 'rescheduled', label: 'Кол-во встреч перенесенных', field: 'rescheduled' },
+  { key: 'invoiced', label: 'Выставленные счета сумма', type: 'deals' },
+  { key: 'paid', label: 'Оплаченные счета сумма', type: 'deals' },
+]
 
-function getMonday(dateStr: string): string {
+function formatDateHeader(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  const monday = new Date(d.setDate(diff))
-  return monday.toISOString().slice(0, 10)
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const yyyy = d.getFullYear()
+  return `${dd}.${mm}.${yyyy}`
 }
 
-function groupByWeek(data: MeetingRow[]): Map<string, MeetingRow[]> {
-  const weeks = new Map<string, MeetingRow[]>()
-  const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
-  for (const row of sorted) {
-    const monday = getMonday(row.date)
-    if (!weeks.has(monday)) weeks.set(monday, [])
-    weeks.get(monday)!.push(row)
-  }
-  return weeks
-}
-
-function weekSum(rows: MeetingRow[], field: MeetingField): number {
-  return rows.reduce((sum, row) => sum + (row[field] || 0), 0)
-}
-
-function getNextWorkday(meetings: MeetingRow[]): string {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  // Find the latest date in existing meetings
-  const existingDates = new Set(meetings.map(m => m.date))
-
-  // Start from today or the day after the latest meeting
-  let candidate = new Date(today)
-  if (meetings.length > 0) {
-    const sorted = [...meetings].sort((a, b) => b.date.localeCompare(a.date))
-    const lastDate = new Date(sorted[0].date + 'T00:00:00')
-    if (lastDate >= today) {
-      candidate = new Date(lastDate)
-      candidate.setDate(candidate.getDate() + 1)
+function getDaysInMonth(year: number, month: number): string[] {
+  const days: string[] = []
+  const daysInMonth = new Date(year, month, 0).getDate()
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    const dayOfWeek = new Date(dateStr + 'T00:00:00').getDay()
+    // Include all days, skip weekends visually
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      days.push(dateStr)
     }
   }
-
-  // Skip weekends and existing dates
-  for (let i = 0; i < 30; i++) {
-    const dayOfWeek = candidate.getDay()
-    const dateStr = candidate.toISOString().slice(0, 10)
-    if (dayOfWeek !== 0 && dayOfWeek !== 6 && !existingDates.has(dateStr)) {
-      return dateStr
-    }
-    candidate.setDate(candidate.getDate() + 1)
-  }
-
-  return candidate.toISOString().slice(0, 10)
+  return days
 }
 
 export default function MeetingsPage() {
@@ -93,6 +63,7 @@ export default function MeetingsPage() {
   const [user, setUser] = useState<any>(null)
   const [period, setPeriod] = useState<any>(null)
   const [meetings, setMeetings] = useState<MeetingRow[]>([])
+  const [deals, setDeals] = useState<any[]>([])
   const [editingCell, setEditingCell] = useState<{ date: string; field: MeetingField } | null>(null)
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
@@ -108,8 +79,12 @@ export default function MeetingsPage() {
         if (!activePeriod) { setLoading(false); return }
         setPeriod(activePeriod)
 
-        const meetingsData = await getMeetings(supabase, currentUser.id, activePeriod.id)
+        const [meetingsData, dealsData] = await Promise.all([
+          getMeetings(supabase, currentUser.id, activePeriod.id),
+          getDeals(supabase, currentUser.id, activePeriod.id),
+        ])
         setMeetings(meetingsData || [])
+        setDeals(dealsData || [])
       } catch (err) {
         console.error('Meetings load error:', err)
       } finally {
@@ -118,6 +93,25 @@ export default function MeetingsPage() {
     }
     load()
   }, [supabase, router])
+
+  const getMeetingValue = useCallback((date: string, field: MeetingField): number => {
+    const meeting = meetings.find(m => m.date === date)
+    return meeting ? (meeting[field] || 0) : 0
+  }, [meetings])
+
+  const getDealsSum = useCallback((date: string, type: 'invoiced' | 'paid'): number => {
+    if (type === 'invoiced') {
+      return deals
+        .filter((d: any) => d.status === 'waiting_payment' && d.created_at?.slice(0, 10) === date)
+        .reduce((sum: number, d: any) => sum + Number(d.revenue || 0), 0)
+    }
+    if (type === 'paid') {
+      return deals
+        .filter((d: any) => d.status === 'paid' && (d.paid_at?.slice(0, 10) === date || (!d.paid_at && d.updated_at?.slice(0, 10) === date)))
+        .reduce((sum: number, d: any) => sum + Number(d.revenue || 0), 0)
+    }
+    return 0
+  }, [deals])
 
   const handleCellClick = useCallback((date: string, field: MeetingField, currentValue: number) => {
     setEditingCell({ date, field })
@@ -145,8 +139,6 @@ export default function MeetingsPage() {
       }
 
       await upsertMeeting(supabase, meetingData)
-
-      // Refresh data
       const meetingsData = await getMeetings(supabase, user.id, period.id)
       setMeetings(meetingsData || [])
     } catch (err) {
@@ -162,33 +154,6 @@ export default function MeetingsPage() {
     if (e.key === 'Escape') setEditingCell(null)
   }, [handleCellSave])
 
-  const handleAddDay = useCallback(async () => {
-    if (!user || !period) return
-    const nextDate = getNextWorkday(meetings)
-
-    setSaving(true)
-    try {
-      await upsertMeeting(supabase, {
-        user_id: user.id,
-        period_id: period.id,
-        date: nextDate,
-        scheduled: 0,
-        new_completed: 0,
-        repeat_completed: 0,
-        mentor: 0,
-        next_day: 0,
-        rescheduled: 0,
-      })
-
-      const meetingsData = await getMeetings(supabase, user.id, period.id)
-      setMeetings(meetingsData || [])
-    } catch (err) {
-      console.error('Add day error:', err)
-    } finally {
-      setSaving(false)
-    }
-  }, [user, period, meetings, supabase])
-
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-brand-50">
@@ -197,12 +162,9 @@ export default function MeetingsPage() {
     )
   }
 
-  const weeks = groupByWeek(meetings)
-  const totalScheduled = meetings.reduce((s, m) => s + (m.scheduled || 0), 0)
-  const totalNew = meetings.reduce((s, m) => s + (m.new_completed || 0), 0)
-  const totalRepeat = meetings.reduce((s, m) => s + (m.repeat_completed || 0), 0)
-  const totalCompleted = totalNew + totalRepeat
-  const completionPercent = totalScheduled > 0 ? Math.round((totalCompleted / totalScheduled) * 100) : 0
+  const year = period?.year || 2026
+  const month = period?.month || 3
+  const allDays = getDaysInMonth(year, month)
 
   const monthName = period
     ? `${['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'][period.month - 1]} ${period.year}`
@@ -220,160 +182,92 @@ export default function MeetingsPage() {
               <h1 className="font-heading text-3xl font-bold text-brand-900">Встречи</h1>
               <p className="text-brand-500 mt-1">{monthName}</p>
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-brand-100 bg-white px-4 py-2">
-              <span className="text-sm font-medium text-brand-900">{monthName}</span>
-              <ChevronDown size={18} className="text-brand-400" />
-            </div>
           </div>
 
-          {/* Summary Cards */}
-          <div className="grid grid-cols-4 gap-6 mb-8">
-            <div className="rounded-2xl border border-brand-100 p-6 bg-white shadow-sm">
-              <p className="text-brand-500 text-sm font-medium mb-2">Запланировано</p>
-              <p className="font-heading text-3xl font-bold text-brand-900">{totalScheduled}</p>
-            </div>
-            <div className="rounded-2xl border border-brand-100 p-6 bg-white shadow-sm">
-              <p className="text-brand-500 text-sm font-medium mb-2">Новые</p>
-              <p className="font-heading text-3xl font-bold text-brand-900">{totalNew}</p>
-            </div>
-            <div className="rounded-2xl border border-brand-100 p-6 bg-white shadow-sm">
-              <p className="text-brand-500 text-sm font-medium mb-2">Повторные</p>
-              <p className="font-heading text-3xl font-bold text-brand-900">{totalRepeat}</p>
-            </div>
-            <div className="rounded-2xl border border-brand-100 p-6 bg-gradient-to-br from-accent-50 to-white shadow-sm">
-              <p className="text-brand-500 text-sm font-medium mb-2">Выполнение плана</p>
-              <p className="font-heading text-3xl font-bold text-accent">{completionPercent}%</p>
-            </div>
-          </div>
-
-          {/* Meetings Table */}
+          {/* Transposed Table: rows = metrics, columns = dates */}
           <div className="rounded-2xl border border-brand-100 bg-white shadow-sm overflow-x-auto">
-            <table className="w-full text-sm table-fixed">
-              <colgroup>
-                <col className="w-[120px]" />
-                <col className="w-[1fr]" />
-                <col className="w-[1fr]" />
-                <col className="w-[1fr]" />
-                <col className="w-[1fr]" />
-                <col className="w-[1fr]" />
-                <col className="w-[1fr]" />
-                <col className="w-[1fr]" />
-              </colgroup>
+            <table className="text-sm border-collapse">
+              {/* Header row with dates */}
               <thead>
-                <tr className="border-b border-brand-100 bg-brand-50">
-                  <th className="text-left py-4 px-4 font-semibold text-brand-900">Дата</th>
-                  <th className="text-center py-4 px-3 font-semibold text-brand-900">Заплан.</th>
-                  <th className="text-center py-4 px-3 font-semibold text-brand-900">Новые</th>
-                  <th className="text-center py-4 px-3 font-semibold text-brand-900">Повторн.</th>
-                  <th className="text-center py-4 px-3 font-semibold text-brand-900">Наставн.</th>
-                  <th className="text-center py-4 px-3 font-semibold text-brand-900">След. день</th>
-                  <th className="text-center py-4 px-3 font-semibold text-brand-900">Перенес.</th>
-                  <th className="text-center py-4 px-3 font-semibold text-brand-900">Итого</th>
+                <tr className="bg-brand-50">
+                  <th className="sticky left-0 z-10 bg-brand-50 text-left py-3 px-4 font-bold text-brand-900 min-w-[280px] border-b border-r border-brand-100">
+                    Дата
+                  </th>
+                  {allDays.map((date) => (
+                    <th key={date} className="text-center py-3 px-2 font-bold text-brand-900 min-w-[90px] border-b border-brand-100 whitespace-nowrap">
+                      {formatDateHeader(date)}
+                    </th>
+                  ))}
                 </tr>
               </thead>
+
               <tbody>
-                {meetings.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-brand-500">
-                      Нет данных о встречах. Нажмите «Добавить день» чтобы начать.
-                    </td>
-                  </tr>
-                ) : (
-                  Array.from(weeks.entries()).map(([monday, weekRows], weekIdx) => {
-                    const weekNumber = weekIdx + 1
-                    return (
-                      <tbody key={monday}>
-                        {weekRows.map((row) => {
-                          const total = (row.new_completed || 0) + (row.repeat_completed || 0) + (row.mentor || 0)
-                          return (
-                            <tr key={row.date} className="border-b border-brand-100 hover:bg-brand-50 transition-colors">
-                              <td className="py-3 px-4 text-brand-900 font-medium">{formatDateRu(row.date)}</td>
-                              {FIELDS.map((field) => {
-                                const isEditing = editingCell?.date === row.date && editingCell?.field === field
-                                const value = row[field] || 0
-                                return (
-                                  <td key={field} className="py-3 px-3 text-center">
-                                    {isEditing ? (
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        value={editValue}
-                                        onChange={(e) => setEditValue(e.target.value)}
-                                        onBlur={handleCellSave}
-                                        onKeyDown={handleCellKeyDown}
-                                        autoFocus
-                                        className="w-16 mx-auto rounded-lg border border-brand-400 px-2 py-1 text-center text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
-                                      />
-                                    ) : (
-                                      <span
-                                        onClick={() => handleCellClick(row.date, field, value)}
-                                        className={cn(
-                                          'inline-block w-full py-1 rounded-lg text-sm font-medium transition-colors cursor-pointer',
-                                          'hover:bg-brand-100',
-                                          value > 0 ? 'text-brand-900' : 'text-brand-300'
-                                        )}
-                                      >
-                                        {value}
-                                      </span>
-                                    )}
-                                  </td>
-                                )
-                              })}
-                              <td className="py-3 px-3 text-center font-semibold text-brand-900">{total}</td>
-                            </tr>
-                          )
-                        })}
+                {ROW_CONFIG.map((row, rowIdx) => {
+                  const isDealsRow = row.type === 'deals'
+                  const isLast = rowIdx === ROW_CONFIG.length - 1
 
-                        {/* Week summary */}
-                        <tr className="bg-brand-50 border-b-2 border-brand-200">
-                          <td className="py-3 px-4 font-semibold text-brand-900">Неделя {weekNumber}</td>
-                          {FIELDS.map((field) => (
-                            <td key={field} className="py-3 px-3 text-center font-semibold text-brand-900">
-                              {weekSum(weekRows, field)}
-                            </td>
-                          ))}
-                          <td className="py-3 px-3 text-center font-semibold text-brand-900">
-                            {weekRows.reduce((s, r) => s + (r.new_completed || 0) + (r.repeat_completed || 0) + (r.mentor || 0), 0)}
-                          </td>
-                        </tr>
-                      </tbody>
-                    )
-                  })
-                )}
-
-                {/* Grand total */}
-                {meetings.length > 0 && (
-                  <tr className="bg-brand-100 border-t-2 border-brand-200">
-                    <td className="py-4 px-4 font-bold text-brand-900">Итого</td>
-                    {FIELDS.map((field) => (
-                      <td key={field} className="py-4 px-3 text-center font-bold text-brand-900">
-                        {meetings.reduce((s, m) => s + (m[field] || 0), 0)}
+                  return (
+                    <tr
+                      key={row.key}
+                      className={cn(
+                        'hover:bg-brand-50 transition-colors',
+                        !isLast && 'border-b border-brand-100',
+                        isDealsRow && 'bg-green-50/30'
+                      )}
+                    >
+                      {/* Row label - sticky */}
+                      <td className="sticky left-0 z-10 bg-white py-3 px-4 font-medium text-brand-900 border-r border-brand-100 whitespace-nowrap">
+                        {row.label}
                       </td>
-                    ))}
-                    <td className="py-4 px-3 text-center font-bold text-brand-900">{totalCompleted}</td>
-                  </tr>
-                )}
+
+                      {/* Data cells for each date */}
+                      {allDays.map((date) => {
+                        if (isDealsRow) {
+                          const val = getDealsSum(date, row.key as 'invoiced' | 'paid')
+                          return (
+                            <td key={date} className="py-3 px-2 text-center text-brand-900">
+                              {val > 0 ? formatMoney(val) : ''}
+                            </td>
+                          )
+                        }
+
+                        const field = row.field!
+                        const value = getMeetingValue(date, field)
+                        const isEditing = editingCell?.date === date && editingCell?.field === field
+
+                        return (
+                          <td key={date} className="py-2 px-2 text-center">
+                            {isEditing ? (
+                              <input
+                                type="number"
+                                min="0"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={handleCellSave}
+                                onKeyDown={handleCellKeyDown}
+                                autoFocus
+                                className="w-14 mx-auto rounded border border-brand-400 px-1 py-1 text-center text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+                              />
+                            ) : (
+                              <span
+                                onClick={() => handleCellClick(date, field, value)}
+                                className={cn(
+                                  'inline-block w-full py-1 rounded cursor-pointer transition-colors',
+                                  'hover:bg-brand-100',
+                                  value > 0 ? 'text-brand-900 font-medium' : 'text-brand-300'
+                                )}
+                              >
+                                {value || ''}
+                              </span>
+                            )}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
-          </div>
-
-          {/* Add Day Button */}
-          <div className="mt-8">
-            <button
-              onClick={handleAddDay}
-              disabled={saving}
-              className={cn(
-                'flex items-center gap-2 px-6 py-3',
-                'rounded-2xl bg-brand-500 text-white',
-                'font-semibold text-sm',
-                'hover:bg-brand-600 transition-colors',
-                'shadow-sm hover:shadow-md',
-                'disabled:opacity-50'
-              )}
-            >
-              {saving ? <Loader2 size={20} className="animate-spin" /> : <Plus size={20} />}
-              Добавить день
-            </button>
           </div>
         </div>
       </main>
