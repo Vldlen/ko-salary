@@ -248,17 +248,27 @@ export default function MeetingsPage() {
 
           {/* Meetings Table */}
           <div className="rounded-2xl border border-brand-100 bg-white shadow-sm overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-fixed">
+              <colgroup>
+                <col className="w-[120px]" />
+                <col className="w-[1fr]" />
+                <col className="w-[1fr]" />
+                <col className="w-[1fr]" />
+                <col className="w-[1fr]" />
+                <col className="w-[1fr]" />
+                <col className="w-[1fr]" />
+                <col className="w-[1fr]" />
+              </colgroup>
               <thead>
                 <tr className="border-b border-brand-100 bg-brand-50">
-                  <th className="text-left py-4 px-4 font-semibold text-brand-900 min-w-[100px]">Дата</th>
-                  <th className="text-center py-4 px-4 font-semibold text-brand-900">Запланировано</th>
-                  <th className="text-center py-4 px-4 font-semibold text-brand-900">Новые</th>
-                  <th className="text-center py-4 px-4 font-semibold text-brand-900">Повторные</th>
-                  <th className="text-center py-4 px-4 font-semibold text-brand-900">Наставничество</th>
-                  <th className="text-center py-4 px-4 font-semibold text-brand-900">След. день</th>
-                  <th className="text-center py-4 px-4 font-semibold text-brand-900">Перенесены</th>
-                  <th className="text-center py-4 px-4 font-semibold text-brand-900">Итого</th>
+                  <th className="text-left py-4 px-4 font-semibold text-brand-900">Дата</th>
+                  <th className="text-center py-4 px-3 font-semibold text-brand-900">Заплан.</th>
+                  <th className="text-center py-4 px-3 font-semibold text-brand-900">Новые</th>
+                  <th className="text-center py-4 px-3 font-semibold text-brand-900">Повторн.</th>
+                  <th className="text-center py-4 px-3 font-semibold text-brand-900">Наставн.</th>
+                  <th className="text-center py-4 px-3 font-semibold text-brand-900">След. день</th>
+                  <th className="text-center py-4 px-3 font-semibold text-brand-900">Перенес.</th>
+                  <th className="text-center py-4 px-3 font-semibold text-brand-900">Итого</th>
                 </tr>
               </thead>
               <tbody>
@@ -282,7 +292,7 @@ export default function MeetingsPage() {
                                 const isEditing = editingCell?.date === row.date && editingCell?.field === field
                                 const value = row[field] || 0
                                 return (
-                                  <td key={field} className="py-3 px-4 text-center">
+                                  <td key={field} className="py-3 px-3 text-center">
                                     {isEditing ? (
                                       <input
                                         type="number"
@@ -292,24 +302,24 @@ export default function MeetingsPage() {
                                         onBlur={handleCellSave}
                                         onKeyDown={handleCellKeyDown}
                                         autoFocus
-                                        className="w-14 rounded-lg border border-brand-400 px-2 py-1 text-center text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+                                        className="w-16 mx-auto rounded-lg border border-brand-400 px-2 py-1 text-center text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
                                       />
                                     ) : (
-                                      <button
+                                      <span
                                         onClick={() => handleCellClick(row.date, field, value)}
                                         className={cn(
-                                          'w-10 h-8 rounded-lg text-sm font-medium transition-colors',
-                                          'hover:bg-brand-100 cursor-pointer',
+                                          'inline-block w-full py-1 rounded-lg text-sm font-medium transition-colors cursor-pointer',
+                                          'hover:bg-brand-100',
                                           value > 0 ? 'text-brand-900' : 'text-brand-300'
                                         )}
                                       >
                                         {value}
-                                      </button>
+                                      </span>
                                     )}
                                   </td>
                                 )
                               })}
-                              <td className="py-3 px-4 text-center font-semibold text-brand-900">{total}</td>
+                              <td className="py-3 px-3 text-center font-semibold text-brand-900">{total}</td>
                             </tr>
                           )
                         })}
@@ -318,11 +328,11 @@ export default function MeetingsPage() {
                         <tr className="bg-brand-50 border-b-2 border-brand-200">
                           <td className="py-3 px-4 font-semibold text-brand-900">Неделя {weekNumber}</td>
                           {FIELDS.map((field) => (
-                            <td key={field} className="py-3 px-4 text-center font-semibold text-brand-900">
+                            <td key={field} className="py-3 px-3 text-center font-semibold text-brand-900">
                               {weekSum(weekRows, field)}
                             </td>
                           ))}
-                          <td className="py-3 px-4 text-center font-semibold text-brand-900">
+                          <td className="py-3 px-3 text-center font-semibold text-brand-900">
                             {weekRows.reduce((s, r) => s + (r.new_completed || 0) + (r.repeat_completed || 0) + (r.mentor || 0), 0)}
                           </td>
                         </tr>
@@ -336,11 +346,11 @@ export default function MeetingsPage() {
                   <tr className="bg-brand-100 border-t-2 border-brand-200">
                     <td className="py-4 px-4 font-bold text-brand-900">Итого</td>
                     {FIELDS.map((field) => (
-                      <td key={field} className="py-4 px-4 text-center font-bold text-brand-900">
+                      <td key={field} className="py-4 px-3 text-center font-bold text-brand-900">
                         {meetings.reduce((s, m) => s + (m[field] || 0), 0)}
                       </td>
                     ))}
-                    <td className="py-4 px-4 text-center font-bold text-brand-900">{totalCompleted}</td>
+                    <td className="py-4 px-3 text-center font-bold text-brand-900">{totalCompleted}</td>
                   </tr>
                 )}
               </tbody>
