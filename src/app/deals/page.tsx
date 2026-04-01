@@ -29,6 +29,7 @@ const EMPTY_FORM = {
   equipment_sell_price: '',
   equipment_buy_price: '',
   status: 'no_invoice',
+  planned_payment_date: '',
   notes: '',
 }
 
@@ -106,6 +107,7 @@ export default function DealsPage() {
         equipment_buy_price: Number(form.equipment_buy_price) || 0,
         equipment_margin: margin,
         status: form.status,
+        planned_payment_date: form.planned_payment_date || null,
         notes: form.notes || '',
       }
 
@@ -183,6 +185,7 @@ export default function DealsPage() {
       equipment_sell_price: String(Number(deal.equipment_sell_price || 0)),
       equipment_buy_price: String(Number(deal.equipment_buy_price || 0)),
       status: deal.status,
+      planned_payment_date: deal.planned_payment_date || '',
       notes: deal.notes || '',
     })
     setShowForm(true)
@@ -355,6 +358,15 @@ export default function DealsPage() {
                       </div>
                       <p className="text-xs text-brand-400 mt-1">продажа − 10% НДС − закупка</p>
                     </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-brand-900 mb-1">Планируемая дата оплаты</label>
+                    <input type="date" value={form.planned_payment_date}
+                      onChange={(e) => setForm({ ...form, planned_payment_date: e.target.value })}
+                      className="w-full rounded-xl border border-brand-100 px-4 py-3 text-sm focus:border-brand-400 focus:outline-none" />
                   </div>
                 </div>
 
