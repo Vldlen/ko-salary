@@ -12,6 +12,12 @@ export async function getCurrentUser(supabase: SupabaseClient) {
     .eq('id', authUser.id)
     .single()
 
+  // Блокируем вход для неактивных и уволенных
+  if (data && (!data.is_active || data.fired_at)) {
+    await supabase.auth.signOut()
+    return null
+  }
+
   return data
 }
 

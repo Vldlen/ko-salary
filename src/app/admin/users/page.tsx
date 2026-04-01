@@ -99,13 +99,33 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function toggleActive(userId: string, currentActive: boolean) {
+  async function blockUser(userId: string) {
     try {
-      await updateUserProfile(supabase, userId, { is_active: !currentActive })
-      setUsers(users.map(u => u.id === userId ? { ...u, is_active: !currentActive } : u))
-    } catch (err: any) {
-      alert('Ошибка: ' + err.message)
-    }
+      await updateUserProfile(supabase, userId, { is_active: false })
+      setUsers(users.map(u => u.id === userId ? { ...u, is_active: false } : u))
+    } catch (err: any) { alert('Ошибка: ' + err.message) }
+  }
+
+  async function unblockUser(userId: string) {
+    try {
+      await updateUserProfile(supabase, userId, { is_active: true, fired_at: null })
+      setUsers(users.map(u => u.id === userId ? { ...u, is_active: true, fired_at: null } : u))
+    } catch (err: any) { alert('Ошибка: ' + err.message) }
+  }
+
+  async function fireUser(userId: string) {
+    if (!confirm('Уволить сотрудника? Данные сохранятся, но доступ будет закрыт.')) return
+    try {
+      const fired_at = new Date().toISOString()
+      await updateUserProfile(supabase, userId, { is_active: false, fired_at })
+      setUsers(users.map(u => u.id === userId ? { ...u, is_active: false, fired_at } : u))
+    } catch (err: any) { alert('Ошибка: ' + err.message) }
+  }
+
+  function getUserStatus(u: any): { label: string; color: string } {
+    if (u.fired_at) return { label: 'Уволен', color: 'bg-red-500/20 text-red-300' }
+    if (!u.is_active) return { label: 'Заблокирован', color: 'bg-orange-500/20 text-orange-300' }
+    return { label: 'Активен', color: 'bg-green-500/20 text-green-300' }
   }
 
   function copyToClipboard(text: string, id: string) {
@@ -304,24 +324,52 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-6 py-4 text-sm text-white/70">{u.company?.name || '—'}</td>
                     <td className="px-6 py-4">
-                      <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full',
-                        u.is_active ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
-                      )}>
-                        {u.is_active ? 'Активен' : 'Отключён'}
-                      </span>
+                      {(() => {
+                        const status = getUserStatus(u)
+                        return (
+                          <div>
+                            <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full', status.color)}>
+                              {status.label}
+                            </span>
+                            {u.fired_at && (
+                              <p className="text-[10px] text-white/30 mt-1">
+                                {new Date(u.fired_at).toLocaleDateString('ru-RU')}
+                              </p>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => toggleActive(u.id, u.is_active)}
-                        className={cn('text-xs font-medium px-3 py-1.5 rounded-lg transition',
-                          u.is_active
-                            ? 'text-red-400 hover:bg-red-500/10'
-                            : 'text-green-400 hover:bg-green-500/10'
+                      <div className="flex items-center justify-end gap-1">
+                        {u.is_active && !u.fired_at && (
+                          <>
+                            <button
+                              onClick={() => blockUser(u.id)}
+                              className="text-xs font-medium px-2.5 py-1.5 rounded-lg transition text-orange-400 hover:bg-orange-500/10"
+                              title="Заблокировать"
+                            >
+                              <Ban className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => fireUser(u.id)}
+                              className="text-xs font-medium px-2.5 py-1.5 rounded-lg transition text-red-400 hover:bg-red-500/10"
+                              title="Уволить"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </>
                         )}
-                      >
-                        {u.is_active ? <Ban className="w-4 h-4 inline mr-1" /> : <Check className="w-4 h-4 inline mr-1" />}
-                        {u.is_active ? 'Откл.' : 'Вкл.'}
-                      </button>
+                        {(!u.is_active || u.fired_at) && (
+                          <button
+                            onClick={() => unblockUser(u.id)}
+                            className="text-xs font-medium px-2.5 py-1.5 rounded-lg transition text-green-400 hover:bg-green-500/10"
+                            title="Разблокировать"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

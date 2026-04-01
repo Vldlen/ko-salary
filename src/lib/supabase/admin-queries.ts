@@ -61,6 +61,7 @@ export async function updateUserProfile(supabase: SupabaseClient, userId: string
   role?: string
   position_id?: string
   is_active?: boolean
+  fired_at?: string | null
 }) {
   const { data, error } = await supabase
     .from('users')
