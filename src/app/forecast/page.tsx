@@ -45,7 +45,7 @@ export default function ForecastPage() {
 
         // For non-managers, enrich deals with user names
         if (!isManager && data.length > 0) {
-          const userIds = [...new Set(data.map((d: any) => d.user_id))]
+          const userIds = Array.from(new Set(data.map((d: any) => d.user_id)))
           const { data: usersData } = await supabase
             .from('users')
             .select('id, full_name')
