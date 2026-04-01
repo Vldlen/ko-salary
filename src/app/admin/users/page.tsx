@@ -264,6 +264,16 @@ export default function AdminUsersPage() {
 
                 <div className="space-y-3">
                   <div className="bg-white/5 rounded-xl p-3">
+                    <p className="text-xs text-white/40 mb-1">Ссылка</p>
+                    <div className="flex items-center justify-between">
+                      <code className="text-sm font-mono text-emerald-400 truncate">{typeof window !== 'undefined' ? window.location.origin : ''}</code>
+                      <button onClick={() => copyToClipboard(typeof window !== 'undefined' ? window.location.origin : '', 'modal-url')}
+                        className="text-white/40 hover:text-white p-1 transition shrink-0">
+                        {copiedId === 'modal-url' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-3">
                     <p className="text-xs text-white/40 mb-1">Логин</p>
                     <div className="flex items-center justify-between">
                       <code className="text-lg font-mono text-blue-400">{createdCreds.login}</code>
@@ -286,7 +296,8 @@ export default function AdminUsersPage() {
                 </div>
 
                 <button onClick={() => {
-                  copyToClipboard(`Логин: ${createdCreds.login}\nПароль: ${createdCreds.password}`, 'modal-all')
+                  const url = typeof window !== 'undefined' ? window.location.origin : ''
+                  copyToClipboard(`${url}\nЛогин: ${createdCreds.login}\nПароль: ${createdCreds.password}`, 'modal-all')
                 }}
                   className="w-full mt-4 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 font-medium text-sm px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2">
                   {copiedId === 'modal-all' ? <><Check className="w-4 h-4" /> Скопировано!</> : <><Copy className="w-4 h-4" /> Скопировать всё</>}
