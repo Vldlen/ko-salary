@@ -2,8 +2,9 @@
 
 import { memo, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useSupabase } from '@/lib/supabase/hooks'
 import type { UserRole } from '@/types/database'
 import {
   LayoutDashboard, Handshake, CalendarDays, Wallet,
@@ -37,7 +38,14 @@ const adminLinks = [
 
 function Sidebar({ role, userName, companyName }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const supabase = useSupabase()
   const [open, setOpen] = useState(false)
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   const links = [
     ...managerLinks,
@@ -102,7 +110,7 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
               role === 'rop' ? 'РОП' : 'Менеджер'
             }</p>
           </div>
-          <button className="p-1.5 text-white/30 hover:text-red-400 transition">
+          <button onClick={handleLogout} className="p-1.5 text-white/30 hover:text-red-400 transition" title="Выйти">
             <LogOut className="w-4 h-4" />
           </button>
         </div>
