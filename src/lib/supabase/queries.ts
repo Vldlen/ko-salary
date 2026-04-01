@@ -15,11 +15,10 @@ export async function getCurrentUser(supabase: SupabaseClient) {
   return data
 }
 
-export async function getActivePeriod(supabase: SupabaseClient, companyId: string) {
+export async function getActivePeriod(supabase: SupabaseClient, _companyId?: string) {
   const { data } = await supabase
     .from('periods')
     .select('*')
-    .eq('company_id', companyId)
     .eq('status', 'active')
     .order('year', { ascending: false })
     .order('month', { ascending: false })
