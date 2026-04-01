@@ -134,29 +134,38 @@ export async function getPeriods(supabase: SupabaseClient, companyId?: string) {
   return data || []
 }
 
-export async function createPeriod(supabase: SupabaseClient, periodData: {
-  company_id: string
+export async function createPeriodForAll(supabase: SupabaseClient, periodData: {
   year: number
   month: number
   status?: string
 }) {
+  // Get all companies and create period for each
+  const { data: companies } = await supabase.from('companies').select('id')
+  if (!companies || companies.length === 0) throw new Error('Нет компаний')
+
+  const rows = companies.map(c => ({
+    company_id: c.id,
+    year: periodData.year,
+    month: periodData.month,
+    status: periodData.status || 'draft',
+  }))
+
   const { data, error } = await supabase
     .from('periods')
-    .insert({ ...periodData, status: periodData.status || 'draft' })
+    .insert(rows)
     .select()
-    .single()
 
   if (error) throw error
   return data
 }
 
-export async function updatePeriodStatus(supabase: SupabaseClient, periodId: string, status: string) {
+export async function updatePeriodStatusByMonth(supabase: SupabaseClient, year: number, month: number, status: string) {
   const { data, error } = await supabase
     .from('periods')
     .update({ status })
-    .eq('id', periodId)
+    .eq('year', year)
+    .eq('month', month)
     .select()
-    .single()
 
   if (error) throw error
   return data
