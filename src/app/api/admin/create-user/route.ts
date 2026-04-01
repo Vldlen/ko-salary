@@ -9,8 +9,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { full_name, role, company_id, position_id } = body
 
-    if (!full_name || !role || !company_id || !position_id) {
-      return NextResponse.json({ error: 'Все поля обязательны' }, { status: 400 })
+    if (!full_name || !role) {
+      return NextResponse.json({ error: 'ФИО и роль обязательны' }, { status: 400 })
+    }
+    if (['manager', 'rop'].includes(role) && (!company_id || !position_id)) {
+      return NextResponse.json({ error: 'Для менеджера и РОПа нужна компания и должность' }, { status: 400 })
     }
 
     // 1. Verify the requesting user is admin/director
@@ -94,8 +97,8 @@ export async function POST(request: NextRequest) {
         password_plain: password,
         full_name,
         role,
-        company_id,
-        position_id,
+        company_id: company_id || null,
+        position_id: position_id || null,
       })
       .select()
       .single()
