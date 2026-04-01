@@ -36,9 +36,9 @@ export function getDealStatusLabel(status: string): string {
 
 export function getDealStatusColor(status: string): string {
   const colors: Record<string, string> = {
-    no_invoice: 'bg-gray-100 text-gray-700',
-    waiting_payment: 'bg-orange-100 text-orange-700',
-    paid: 'bg-green-100 text-green-700',
+    no_invoice: 'bg-white/10 text-white/60',
+    waiting_payment: 'bg-orange-500/20 text-orange-400',
+    paid: 'bg-emerald-500/20 text-emerald-400',
   }
-  return colors[status] || 'bg-gray-100 text-gray-700'
+  return colors[status] || 'bg-white/10 text-white/60'
 }

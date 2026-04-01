@@ -13,25 +13,25 @@ interface StatCardProps {
 
 export default function StatCard({ title, value, subtitle, icon: Icon, trend, variant = 'default', className }: StatCardProps) {
   const iconBg = {
-    default: 'bg-brand-50 text-brand-500',
-    accent: 'bg-accent-light text-accent',
-    success: 'bg-green-50 text-green-600',
+    default: 'bg-blue-500/20 text-blue-400',
+    accent: 'bg-orange-500/20 text-orange-400',
+    success: 'bg-emerald-500/20 text-emerald-400',
   }
 
   return (
     <div className={cn(
-      'glass rounded-2xl p-5 hover:shadow-md transition-shadow',
+      'glass rounded-2xl p-5 hover:bg-white/[0.08] transition-all',
       className
     )}>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-gray-500">{title}</p>
-          <p className="text-2xl font-bold text-brand-900 mt-1">{value}</p>
-          {subtitle && <p className="text-sm text-gray-400 mt-0.5">{subtitle}</p>}
+          <p className="text-sm text-white/50">{title}</p>
+          <p className="text-2xl font-bold text-white mt-1">{value}</p>
+          {subtitle && <p className="text-sm text-white/40 mt-0.5">{subtitle}</p>}
           {trend && (
             <p className={cn(
               'text-sm font-medium mt-1',
-              trend.positive ? 'text-green-600' : 'text-red-500'
+              trend.positive ? 'text-emerald-400' : 'text-red-400'
             )}>
               {trend.positive ? '\u2191' : '\u2193'} {trend.value}
             </p>

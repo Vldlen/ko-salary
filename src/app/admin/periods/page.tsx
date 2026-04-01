@@ -90,7 +90,7 @@ export default function AdminPeriodsPage() {
   }
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-brand-400" /></div>
+    return <div className="flex min-h-screen items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-400" /></div>
   }
 
   return (
@@ -101,11 +101,11 @@ export default function AdminPeriodsPage() {
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <CalendarRange className="w-7 h-7 text-brand-400" />
-              <h1 className="text-2xl font-heading font-bold text-brand-900">Периоды</h1>
+              <CalendarRange className="w-7 h-7 text-blue-400" />
+              <h1 className="text-2xl font-heading font-bold text-white">Периоды</h1>
             </div>
             <button onClick={() => setShowForm(!showForm)}
-              className="flex items-center gap-2 bg-brand-400 hover:bg-brand-500 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition">
+              className="flex items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition">
               {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
               {showForm ? 'Отмена' : 'Новый период'}
             </button>
@@ -115,23 +115,23 @@ export default function AdminPeriodsPage() {
             <form onSubmit={handleCreate} className="glass rounded-2xl p-6 mb-6">
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Год</label>
+                  <label className="block text-sm font-medium text-white/70 mb-1">Год</label>
                   <input type="number" required value={form.year} onChange={e => setForm({ ...form, year: Number(e.target.value) })}
-                    className="w-full px-3 py-2.5 bg-brand-50 border border-brand-100 rounded-xl text-sm outline-none" />
+                    className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Месяц</label>
+                  <label className="block text-sm font-medium text-white/70 mb-1">Месяц</label>
                   <select required value={form.month} onChange={e => setForm({ ...form, month: Number(e.target.value) })}
-                    className="w-full px-3 py-2.5 bg-brand-50 border border-brand-100 rounded-xl text-sm outline-none">
+                    className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none">
                     {Array.from({ length: 12 }, (_, i) => (
                       <option key={i + 1} value={i + 1}>{getMonthName(i + 1)}</option>
                     ))}
                   </select>
                 </div>
               </div>
-              <p className="text-xs text-brand-400 mb-3">Период создаётся сразу для всех подразделений</p>
+              <p className="text-xs text-blue-400 mb-3">Период создаётся сразу для всех подразделений</p>
               <button type="submit" disabled={saving}
-                className="bg-brand-400 hover:bg-brand-500 text-white px-6 py-2.5 rounded-xl font-medium text-sm transition disabled:opacity-50">
+                className="bg-blue-400 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl font-medium text-sm transition disabled:opacity-50">
                 {saving ? 'Создаём...' : 'Создать период'}
               </button>
             </form>
@@ -140,24 +140,24 @@ export default function AdminPeriodsPage() {
           <div className="glass rounded-2xl overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-brand-100 bg-brand-50">
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase">Период</th>
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase">Статус</th>
-                  <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase">Действия</th>
+                <tr className="border-b border-white/10 bg-white/5">
+                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-white/50 uppercase">Период</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-white/50 uppercase">Статус</th>
+                  <th className="px-6 py-3.5 text-right text-xs font-semibold text-white/50 uppercase">Действия</th>
                 </tr>
               </thead>
               <tbody>
                 {periods.map((gp) => {
                   const st = STATUSES.find(s => s.value === gp.status) || STATUSES[0]
                   return (
-                    <tr key={`${gp.year}-${gp.month}`} className="border-b border-brand-50 hover:bg-brand-50/50 transition">
-                      <td className="px-6 py-4 text-sm font-medium text-brand-900">{getMonthName(gp.month)} {gp.year}</td>
+                    <tr key={`${gp.year}-${gp.month}`} className="border-b border-white/5 hover:bg-white/5 transition">
+                      <td className="px-6 py-4 text-sm font-medium text-white">{getMonthName(gp.month)} {gp.year}</td>
                       <td className="px-6 py-4">
                         <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full', st.cls)}>{st.label}</span>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <select value={gp.status} onChange={e => changeStatus(gp, e.target.value)}
-                          className="text-xs bg-brand-50 border border-brand-100 rounded-lg px-2 py-1.5 outline-none">
+                          className="text-xs bg-white/10 border border-white/10 rounded-lg px-2 py-1.5 text-white outline-none">
                           {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                         </select>
                       </td>
@@ -165,7 +165,7 @@ export default function AdminPeriodsPage() {
                   )
                 })}
                 {periods.length === 0 && (
-                  <tr><td colSpan={3} className="px-6 py-8 text-center text-gray-400">Нет периодов</td></tr>
+                  <tr><td colSpan={3} className="px-6 py-8 text-center text-white/40">Нет периодов</td></tr>
                 )}
               </tbody>
             </table>

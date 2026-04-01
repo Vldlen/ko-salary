@@ -190,7 +190,7 @@ export default function MeetingsPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
       </div>
     )
   }
@@ -221,23 +221,23 @@ export default function MeetingsPage() {
       <main className="flex-1 overflow-auto">
         <div className="p-6">
           <div className="mb-6">
-            <h1 className="font-heading text-2xl font-bold text-brand-900">Встречи</h1>
-            <p className="text-brand-500 text-sm mt-1">{monthName}</p>
+            <h1 className="font-heading text-2xl font-bold text-white">Встречи</h1>
+            <p className="text-blue-400 text-sm mt-1">{monthName}</p>
           </div>
 
           {/* Summary cards */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="rounded-xl glass p-4">
-              <p className="text-xs text-brand-500 mb-1">Назначено</p>
-              <p className="text-2xl font-bold text-brand-900">{totalScheduled}</p>
+              <p className="text-xs text-blue-400 mb-1">Назначено</p>
+              <p className="text-2xl font-bold text-white">{totalScheduled}</p>
             </div>
             <div className="rounded-xl glass p-4">
-              <p className="text-xs text-brand-500 mb-1">Проведено</p>
+              <p className="text-xs text-blue-400 mb-1">Проведено</p>
               <p className="text-2xl font-bold text-emerald-600">{totalCompleted}</p>
-              <p className="text-[10px] text-brand-400 mt-0.5">новых + повторных</p>
+              <p className="text-[10px] text-blue-400 mt-0.5">новых + повторных</p>
             </div>
             <div className="rounded-xl glass p-4">
-              <p className="text-xs text-brand-500 mb-1">Перенесено</p>
+              <p className="text-xs text-blue-400 mb-1">Перенесено</p>
               <p className="text-2xl font-bold text-amber-600">{totalRescheduled}</p>
             </div>
           </div>
@@ -246,7 +246,7 @@ export default function MeetingsPage() {
             <table className="text-xs border-collapse w-max">
               <thead>
                 <tr>
-                  <th className="sticky left-0 z-20 bg-brand-800 text-white text-left py-2 px-3 font-semibold min-w-[200px] border-r border-brand-700">
+                  <th className="sticky left-0 z-20 bg-white/10 text-white text-left py-2 px-3 font-semibold min-w-[200px] border-r border-white/20">
                     Показатель
                   </th>
                   {allDays.map((date) => {
@@ -255,8 +255,8 @@ export default function MeetingsPage() {
                       <th
                         key={date}
                         className={cn(
-                          'text-center py-1.5 px-1 font-semibold min-w-[52px] border-r border-brand-700 last:border-r-0',
-                          isToday ? 'bg-blue-600 text-white' : 'bg-brand-800 text-white'
+                          'text-center py-1.5 px-1 font-semibold min-w-[52px] border-r border-white/20 last:border-r-0',
+                          isToday ? 'bg-blue-600 text-white' : 'bg-white/10 text-white'
                         )}
                       >
                         <div className="text-[10px] opacity-70">{getDayName(date)}</div>
@@ -264,7 +264,7 @@ export default function MeetingsPage() {
                       </th>
                     )
                   })}
-                  <th className="bg-brand-900 text-white text-center py-1.5 px-2 font-semibold min-w-[60px]">
+                  <th className="bg-white/15 text-white text-center py-1.5 px-2 font-semibold min-w-[60px]">
                     Итого
                   </th>
                 </tr>
@@ -279,13 +279,13 @@ export default function MeetingsPage() {
                     <tr
                       key={row.key}
                       className={cn(
-                        'border-b border-brand-100 last:border-b-0',
-                        isMoney ? 'bg-emerald-50' : isEven ? 'bg-white' : 'bg-brand-50/50'
+                        'border-b border-white/10 last:border-b-0',
+                        isMoney ? 'bg-emerald-500/10' : isEven ? 'bg-white/5' : 'bg-white/2'
                       )}
                     >
                       <td className={cn(
-                        'sticky left-0 z-10 py-2 px-3 font-medium text-brand-800 border-r border-brand-100 whitespace-nowrap text-xs',
-                        isMoney ? 'bg-emerald-50' : isEven ? 'bg-white' : 'bg-brand-50'
+                        'sticky left-0 z-10 py-2 px-3 font-medium text-white/80 border-r border-white/10 whitespace-nowrap text-xs',
+                        isMoney ? 'bg-emerald-500/10' : isEven ? 'bg-white/5' : 'bg-white/2'
                       )}>
                         {row.label}
                       </td>
@@ -298,8 +298,8 @@ export default function MeetingsPage() {
 
                         return (
                           <td key={date} className={cn(
-                            'py-0.5 px-0.5 text-center border-r border-brand-100 last:border-r-0',
-                            isToday && 'bg-blue-50'
+                            'py-0.5 px-0.5 text-center border-r border-white/10 last:border-r-0',
+                            isToday && 'bg-blue-500/10'
                           )}>
                             <input
                               ref={(el) => { inputRefs.current[key] = el }}
@@ -312,10 +312,10 @@ export default function MeetingsPage() {
                               onFocus={(e) => e.target.select()}
                               className={cn(
                                 'w-full h-7 text-center text-xs rounded-sm border-0 outline-none transition-colors',
-                                'focus:ring-2 focus:ring-blue-400 focus:bg-white focus:shadow-sm',
-                                'hover:bg-brand-100',
-                                isSaving ? 'bg-yellow-50 text-yellow-700' : 'bg-transparent',
-                                cellValues[key] ? (isMoney ? 'text-emerald-700 font-medium' : 'text-brand-900 font-medium') : 'text-brand-300'
+                                'focus:ring-2 focus:ring-blue-400 focus:bg-white/10 focus:shadow-sm',
+                                'hover:bg-white/10',
+                                isSaving ? 'bg-yellow-500/20 text-yellow-200' : 'bg-transparent',
+                                cellValues[key] ? (isMoney ? 'text-emerald-400 font-medium' : 'text-white font-medium') : 'text-white/30'
                               )}
                               placeholder="·"
                             />
@@ -324,8 +324,8 @@ export default function MeetingsPage() {
                       })}
 
                       <td className={cn(
-                        'py-1.5 px-2 text-center font-bold text-xs border-l-2 border-brand-200',
-                        isMoney ? 'text-emerald-700' : 'text-brand-900'
+                        'py-1.5 px-2 text-center font-bold text-xs border-l-2 border-white/20',
+                        isMoney ? 'text-emerald-400' : 'text-white'
                       )}>
                         {(() => {
                           const total = allDays.reduce((s, d) => s + (parseInt(cellValues[cellKey(d, row.key)]) || 0), 0)

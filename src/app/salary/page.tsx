@@ -46,7 +46,7 @@ export default function SalaryPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
       </div>
     )
   }
@@ -70,56 +70,56 @@ export default function SalaryPage() {
 
       <main className="flex-1 p-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-heading font-bold text-brand-900 mb-6">Расчёт зарплаты</h1>
+          <h1 className="text-2xl font-heading font-bold text-white mb-6">Расчёт зарплаты</h1>
 
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="glass rounded-2xl p-6 flex flex-col items-center justify-center">
-              <Wallet className="w-6 h-6 text-brand-300 mb-2" />
-              <p className="text-sm text-gray-400 mb-1">Текущая зарплата</p>
-              <p className="text-3xl font-bold text-brand-500">{formatMoney(Number(s.total))}</p>
+              <Wallet className="w-6 h-6 text-blue-400 mb-2" />
+              <p className="text-sm text-white/40 mb-1">Текущая зарплата</p>
+              <p className="text-3xl font-bold text-blue-400">{formatMoney(Number(s.total))}</p>
             </div>
-            <div className="bg-orange-50 rounded-2xl border border-orange-200 p-6 flex flex-col items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-orange-300 mb-2" />
-              <p className="text-sm text-orange-600 mb-1">Прогноз</p>
-              <p className="text-3xl font-bold text-accent">{formatMoney(Number(s.forecast_total))}</p>
+            <div className="bg-orange-500/15 rounded-2xl border border-orange-500/30 p-6 flex flex-col items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-orange-400 mb-2" />
+              <p className="text-sm text-orange-400 mb-1">Прогноз</p>
+              <p className="text-3xl font-bold text-orange-400">{formatMoney(Number(s.forecast_total))}</p>
               {diff > 0 && <p className="text-sm text-green-600 mt-1">+{formatMoney(diff)} ({diffPct}%)</p>}
             </div>
           </div>
 
           <div className="glass rounded-2xl p-6 mb-6">
-            <h2 className="text-lg font-heading font-semibold text-brand-900 mb-4">Детализация</h2>
+            <h2 className="text-lg font-heading font-semibold text-white mb-4">Детализация</h2>
             {items.map(item => (
               <div key={item.label} className="mb-4">
                 <div className="flex justify-between mb-1">
-                  <span className="text-sm text-gray-500">{item.label}</span>
-                  <span className={cn('text-sm font-semibold', item.negative ? 'text-red-600' : 'text-brand-900')}>
+                  <span className="text-sm text-white/50">{item.label}</span>
+                  <span className={cn('text-sm font-semibold', item.negative ? 'text-red-600' : 'text-white')}>
                     {item.negative ? '−' : ''}{formatMoney(item.value)}
                   </span>
                 </div>
                 {item.max > 0 && !item.negative && (
-                  <div className="h-1.5 rounded-full bg-brand-100">
-                    <div className="h-1.5 rounded-full bg-brand-400" style={{ width: `${Math.min(100, (item.value / item.max) * 100)}%` }} />
+                  <div className="h-1.5 rounded-full bg-white/10">
+                    <div className="h-1.5 rounded-full bg-blue-400" style={{ width: `${Math.min(100, (item.value / item.max) * 100)}%` }} />
                   </div>
                 )}
               </div>
             ))}
-            <div className="flex justify-between pt-4 mt-2 border-t-2 border-brand-100">
-              <span className="font-bold text-brand-900">Итого к выплате</span>
-              <span className="text-2xl font-bold text-brand-500">{formatMoney(Number(s.total))}</span>
+            <div className="flex justify-between pt-4 mt-2 border-t-2 border-white/10">
+              <span className="font-bold text-white">Итого к выплате</span>
+              <span className="text-2xl font-bold text-blue-400">{formatMoney(Number(s.total))}</span>
             </div>
           </div>
 
           {history.length > 0 && (
             <div className="glass rounded-2xl p-6">
-              <h2 className="text-lg font-heading font-semibold text-brand-900 mb-4">История</h2>
+              <h2 className="text-lg font-heading font-semibold text-white mb-4">История</h2>
               <div className="flex gap-3">
                 {history.map((h: any) => (
-                  <div key={h.id} className={cn('flex-1 rounded-xl p-4 text-center', h.period_id === period?.id ? 'bg-orange-50' : 'bg-brand-50')}>
-                    <p className={cn('text-xs', h.period_id === period?.id ? 'text-orange-600' : 'text-gray-400')}>
+                  <div key={h.id} className={cn('flex-1 rounded-xl p-4 text-center', h.period_id === period?.id ? 'bg-orange-500/15' : 'bg-white/5')}>
+                    <p className={cn('text-xs', h.period_id === period?.id ? 'text-orange-400' : 'text-white/40')}>
                       {h.period ? getMonthName(h.period.month) : '—'}
                       {h.period_id === period?.id && ' (текущий)'}
                     </p>
-                    <p className={cn('text-lg font-bold mt-1', h.period_id === period?.id ? 'text-accent' : 'text-brand-900')}>
+                    <p className={cn('text-lg font-bold mt-1', h.period_id === period?.id ? 'text-orange-400' : 'text-white')}>
                       {formatMoney(Number(h.total))}
                     </p>
                   </div>

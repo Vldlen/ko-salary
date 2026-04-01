@@ -68,7 +68,7 @@ export default function ForecastPage() {
   }, [supabase, router])
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-brand-400" /></div>
+    return <div className="flex min-h-screen items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-400" /></div>
   }
 
   const monthName = period
@@ -105,28 +105,28 @@ export default function ForecastPage() {
         <div className="p-6">
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-1">
-              <TrendingUp className="w-6 h-6 text-brand-400" />
-              <h1 className="font-heading text-2xl font-bold text-brand-900">Прогноз продаж</h1>
+              <TrendingUp className="w-6 h-6 text-blue-400" />
+              <h1 className="font-heading text-2xl font-bold text-white">Прогноз продаж</h1>
             </div>
-            <p className="text-brand-500 text-sm">{monthName} • Неоплаченные сделки текущего периода</p>
+            <p className="text-blue-400 text-sm">{monthName} • Неоплаченные сделки текущего периода</p>
           </div>
 
           {/* Summary cards */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="rounded-xl glass p-4">
-              <p className="text-xs text-brand-500 mb-1">Прогноз (неоплаченные)</p>
-              <p className="text-2xl font-bold text-brand-900">{formatMoney(forecastRevenue)}</p>
-              <p className="text-[10px] text-brand-400 mt-0.5">{forecastUnits} юнитов • {forecastDeals.length} сделок</p>
+              <p className="text-xs text-blue-400 mb-1">Прогноз (неоплаченные)</p>
+              <p className="text-2xl font-bold text-white">{formatMoney(forecastRevenue)}</p>
+              <p className="text-[10px] text-blue-400 mt-0.5">{forecastUnits} юнитов • {forecastDeals.length} сделок</p>
             </div>
             <div className="rounded-xl glass p-4">
-              <p className="text-xs text-brand-500 mb-1">Уже оплачено</p>
+              <p className="text-xs text-blue-400 mb-1">Уже оплачено</p>
               <p className="text-2xl font-bold text-emerald-600">{formatMoney(paidRevenue)}</p>
-              <p className="text-[10px] text-brand-400 mt-0.5">{paidUnits} юнитов • {paidDeals.length} сделок</p>
+              <p className="text-[10px] text-blue-400 mt-0.5">{paidUnits} юнитов • {paidDeals.length} сделок</p>
             </div>
             <div className="rounded-xl glass p-4">
-              <p className="text-xs text-brand-500 mb-1">Итого если всё закроется</p>
+              <p className="text-xs text-blue-400 mb-1">Итого если всё закроется</p>
               <p className="text-2xl font-bold text-blue-600">{formatMoney(totalRevenue)}</p>
-              <p className="text-[10px] text-brand-400 mt-0.5">
+              <p className="text-[10px] text-blue-400 mt-0.5">
                 {totalRevenue > 0 ? Math.round((paidRevenue / totalRevenue) * 100) : 0}% уже оплачено
               </p>
             </div>
@@ -141,19 +141,19 @@ export default function ForecastPage() {
               <div key={group.status} className="mb-4">
                 <button
                   onClick={() => toggleGroup(group.status)}
-                  className="w-full flex items-center gap-3 py-3 px-4 glass rounded-xl hover:bg-brand-50 transition"
+                  className="w-full flex items-center gap-3 py-3 px-4 glass rounded-xl hover:bg-white/5 transition"
                 >
                   {isExpanded
-                    ? <ChevronDown className="w-4 h-4 text-brand-400" />
-                    : <ChevronRight className="w-4 h-4 text-brand-400" />
+                    ? <ChevronDown className="w-4 h-4 text-blue-400" />
+                    : <ChevronRight className="w-4 h-4 text-blue-400" />
                   }
                   <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full', group.color)}>
                     {group.label}
                   </span>
-                  <span className="text-sm font-medium text-brand-900">
+                  <span className="text-sm font-medium text-white">
                     {formatMoney(group.revenue)}
                   </span>
-                  <span className="text-sm text-brand-400">
+                  <span className="text-sm text-blue-400">
                     {group.deals.length} сделок • {group.units} юнитов
                   </span>
                 </button>
@@ -162,32 +162,32 @@ export default function ForecastPage() {
                   <div className="mt-2 glass rounded-xl overflow-hidden">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-brand-100 bg-brand-50">
-                          {showUserColumn && <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Менеджер</th>}
-                          <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Клиент</th>
-                          <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">Выручка</th>
-                          <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">MRR</th>
-                          <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase">Юниты</th>
-                          <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">Маржа обор.</th>
-                          <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase">План. оплата</th>
-                          <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Заметки</th>
+                        <tr className="border-b border-white/10 bg-white/5">
+                          {showUserColumn && <th className="px-4 py-2.5 text-left text-xs font-semibold text-white/50 uppercase">Менеджер</th>}
+                          <th className="px-4 py-2.5 text-left text-xs font-semibold text-white/50 uppercase">Клиент</th>
+                          <th className="px-4 py-2.5 text-right text-xs font-semibold text-white/50 uppercase">Выручка</th>
+                          <th className="px-4 py-2.5 text-right text-xs font-semibold text-white/50 uppercase">MRR</th>
+                          <th className="px-4 py-2.5 text-center text-xs font-semibold text-white/50 uppercase">Юниты</th>
+                          <th className="px-4 py-2.5 text-right text-xs font-semibold text-white/50 uppercase">Маржа обор.</th>
+                          <th className="px-4 py-2.5 text-center text-xs font-semibold text-white/50 uppercase">План. оплата</th>
+                          <th className="px-4 py-2.5 text-left text-xs font-semibold text-white/50 uppercase">Заметки</th>
                         </tr>
                       </thead>
                       <tbody>
                         {group.deals.map((deal: any) => (
-                          <tr key={deal.id} className="border-b border-brand-50 hover:bg-brand-50/50 transition">
+                          <tr key={deal.id} className="border-b border-white/5 hover:bg-white/5 transition">
                             {showUserColumn && (
-                              <td className="px-4 py-3 text-brand-800 font-medium">{deal.user_name || '—'}</td>
+                              <td className="px-4 py-3 text-white/80 font-medium">{deal.user_name || '—'}</td>
                             )}
-                            <td className="px-4 py-3 text-brand-900 font-medium">{deal.client_name}</td>
-                            <td className="px-4 py-3 text-right text-brand-900 font-medium">{formatMoney(deal.revenue)}</td>
-                            <td className="px-4 py-3 text-right text-brand-500">{deal.mrr ? formatMoney(deal.mrr) : '—'}</td>
-                            <td className="px-4 py-3 text-center text-brand-700">{deal.units}</td>
-                            <td className="px-4 py-3 text-right text-brand-500">
+                            <td className="px-4 py-3 text-white font-medium">{deal.client_name}</td>
+                            <td className="px-4 py-3 text-right text-white font-medium">{formatMoney(deal.revenue)}</td>
+                            <td className="px-4 py-3 text-right text-blue-400">{deal.mrr ? formatMoney(deal.mrr) : '—'}</td>
+                            <td className="px-4 py-3 text-center text-white/80">{deal.units}</td>
+                            <td className="px-4 py-3 text-right text-blue-400">
                               {deal.equipment_margin > 0 ? formatMoney(deal.equipment_margin) : '—'}
                             </td>
-                            <td className="px-4 py-3 text-center text-brand-500">{formatDate(deal.planned_payment_date)}</td>
-                            <td className="px-4 py-3 text-brand-400 text-xs truncate max-w-[200px]">{deal.notes || ''}</td>
+                            <td className="px-4 py-3 text-center text-blue-400">{formatDate(deal.planned_payment_date)}</td>
+                            <td className="px-4 py-3 text-blue-400 text-xs truncate max-w-[200px]">{deal.notes || ''}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -199,7 +199,7 @@ export default function ForecastPage() {
           })}
 
           {forecastDeals.length === 0 && (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-white/40">
               Нет неоплаченных сделок в текущем периоде
             </div>
           )}

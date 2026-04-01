@@ -61,7 +61,7 @@ export default function TeamPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
       </div>
     )
   }
@@ -84,8 +84,8 @@ export default function TeamPage() {
         <div className="p-6 max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <Users className="w-6 h-6 text-brand-400" />
-              <h1 className="text-2xl font-heading font-bold text-brand-900">Команда</h1>
+              <Users className="w-6 h-6 text-blue-400" />
+              <h1 className="text-2xl font-heading font-bold text-white">Команда</h1>
             </div>
           </div>
 
@@ -95,7 +95,7 @@ export default function TeamPage() {
               onClick={() => setCompanyFilter('all')}
               className={cn(
                 'px-4 py-2 rounded-xl text-sm font-medium transition-colors',
-                companyFilter === 'all' ? 'bg-brand-500 text-white' : 'bg-white text-brand-500 border border-brand-100 hover:bg-brand-50'
+                companyFilter === 'all' ? 'bg-blue-500 text-white' : 'bg-white/10 text-blue-400 border border-white/10 hover:bg-white/15'
               )}
             >
               Все ({team.length})
@@ -108,7 +108,7 @@ export default function TeamPage() {
                   onClick={() => setCompanyFilter(c.id)}
                   className={cn(
                     'px-4 py-2 rounded-xl text-sm font-medium transition-colors',
-                    companyFilter === c.id ? 'bg-brand-500 text-white' : 'bg-white text-brand-500 border border-brand-100 hover:bg-brand-50'
+                    companyFilter === c.id ? 'bg-blue-500 text-white' : 'bg-white/10 text-blue-400 border border-white/10 hover:bg-white/15'
                   )}
                 >
                   {c.name} ({count})
@@ -120,30 +120,30 @@ export default function TeamPage() {
           {/* Summary cards */}
           <div className="grid grid-cols-4 gap-4 mb-6">
             <div className="rounded-xl glass p-4">
-              <p className="text-xs text-brand-500 mb-1">Факт выручки</p>
-              <p className="text-2xl font-bold text-brand-900">{formatMoney(totalRev)}</p>
-              <p className="text-[10px] text-brand-400 mt-0.5">план: {formatMoney(totalPlan)}</p>
+              <p className="text-xs text-blue-400 mb-1">Факт выручки</p>
+              <p className="text-2xl font-bold text-white">{formatMoney(totalRev)}</p>
+              <p className="text-[10px] text-blue-400 mt-0.5">план: {formatMoney(totalPlan)}</p>
             </div>
             <div className="rounded-xl glass p-4">
-              <p className="text-xs text-brand-500 mb-1">Прогноз</p>
+              <p className="text-xs text-blue-400 mb-1">Прогноз</p>
               <p className="text-2xl font-bold text-blue-600">{formatMoney(totalRev + totalForecast)}</p>
-              <p className="text-[10px] text-brand-400 mt-0.5">факт + неоплаченные</p>
+              <p className="text-[10px] text-blue-400 mt-0.5">факт + неоплаченные</p>
             </div>
             <div className="rounded-xl glass p-4">
-              <p className="text-xs text-brand-500 mb-1">Точки</p>
-              <p className="text-2xl font-bold text-brand-900">{totalUnits} / {totalUp}</p>
-              <p className="text-[10px] text-brand-400 mt-0.5">{totalUp > 0 ? Math.round(totalUnits / totalUp * 100) : 0}%</p>
+              <p className="text-xs text-blue-400 mb-1">Точки</p>
+              <p className="text-2xl font-bold text-white">{totalUnits} / {totalUp}</p>
+              <p className="text-[10px] text-blue-400 mt-0.5">{totalUp > 0 ? Math.round(totalUnits / totalUp * 100) : 0}%</p>
             </div>
             <div className="rounded-xl glass p-4">
-              <p className="text-xs text-brand-500 mb-1">Встречи</p>
-              <p className="text-2xl font-bold text-brand-900">{totalMeet} / {totalMp}</p>
-              <p className="text-[10px] text-brand-400 mt-0.5">{totalMp > 0 ? Math.round(totalMeet / totalMp * 100) : 0}%</p>
+              <p className="text-xs text-blue-400 mb-1">Встречи</p>
+              <p className="text-2xl font-bold text-white">{totalMeet} / {totalMp}</p>
+              <p className="text-[10px] text-blue-400 mt-0.5">{totalMp > 0 ? Math.round(totalMeet / totalMp * 100) : 0}%</p>
             </div>
           </div>
 
           {/* Overall progress */}
           <div className="glass rounded-xl p-5 mb-6">
-            <h2 className="text-sm font-semibold text-brand-900 mb-3">Общий прогресс</h2>
+            <h2 className="text-sm font-semibold text-white mb-3">Общий прогресс</h2>
             <div className="space-y-3">
               <ProgressBar label="Выручка" value={totalRev} max={totalPlan} percent={avgRevPct} formatValue={formatMoney} />
               <ProgressBar label="Точки" value={totalUnits} max={totalUp} percent={totalUp > 0 ? Math.round(totalUnits / totalUp * 100) : 0} />
@@ -167,12 +167,12 @@ export default function TeamPage() {
                 <div key={m.id} className="glass rounded-xl p-5">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold text-sm">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm">
                         {m.name?.charAt(0) || '?'}
                       </div>
                       <div>
-                        <p className="font-semibold text-brand-900 text-sm">{m.name}</p>
-                        <p className="text-xs text-brand-400">{m.position} • {m.company_name}</p>
+                        <p className="font-semibold text-white text-sm">{m.name}</p>
+                        <p className="text-xs text-blue-400">{m.position} • {m.company_name}</p>
                       </div>
                     </div>
                     <span className={cn('text-xs font-semibold px-2 py-1 rounded-full', status.cls)}>
@@ -187,18 +187,18 @@ export default function TeamPage() {
                   </div>
 
                   {/* Extra info row */}
-                  <div className="flex items-center gap-4 pt-3 border-t border-brand-100 text-xs text-brand-500">
+                  <div className="flex items-center gap-4 pt-3 border-t border-white/10 text-xs text-blue-400">
                     {m.revenue_forecast > 0 && (
                       <span>Прогноз: <span className="text-blue-600 font-medium">+{formatMoney(m.revenue_forecast)}</span></span>
                     )}
                     {m.invoiced_sum > 0 && (
-                      <span>Выставлено: <span className="text-brand-700 font-medium">{formatMoney(m.invoiced_sum)}</span></span>
+                      <span>Выставлено: <span className="text-white/80 font-medium">{formatMoney(m.invoiced_sum)}</span></span>
                     )}
                     {m.paid_sum > 0 && (
                       <span>Оплачено: <span className="text-emerald-600 font-medium">{formatMoney(m.paid_sum)}</span></span>
                     )}
                     {m.revenue_forecast === 0 && m.invoiced_sum === 0 && m.paid_sum === 0 && (
-                      <span className="text-brand-300">Нет дополнительных данных</span>
+                      <span className="text-white/30">Нет дополнительных данных</span>
                     )}
                   </div>
                 </div>
@@ -207,7 +207,7 @@ export default function TeamPage() {
           </div>
 
           {filtered.length === 0 && (
-            <div className="text-center text-gray-400 py-12">Нет сотрудников</div>
+            <div className="text-center text-white/40 py-12">Нет сотрудников</div>
           )}
         </div>
       </main>
