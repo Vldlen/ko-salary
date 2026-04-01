@@ -214,28 +214,26 @@ export async function getSalaryHistory(supabase: SupabaseClient, userId: string,
 
 // ======== Team (for ROP/Director) ========
 
-export async function getTeamProgress(supabase: SupabaseClient, companyId: string, periodId: string) {
-  // Get all users in the company
+export async function getTeamProgress(supabase: SupabaseClient, _companyId: string, periodId: string) {
+  // Get all active users across all companies
   const { data: users } = await supabase
     .from('users')
-    .select('id, full_name, role, position:positions(name, motivation_schemas(config))')
-    .eq('company_id', companyId)
+    .select('id, full_name, role, company:companies(id, name), position:positions(name, motivation_schemas(config))')
     .eq('is_active', true)
     .in('role', ['manager', 'rop'])
 
   if (!users) return []
 
-  // Get deals and meetings for all team members
   const teamData = await Promise.all(users.map(async (user: any) => {
     const [dealsRes, meetingsRes] = await Promise.all([
       supabase
         .from('deals')
-        .select('revenue, units, status, equipment_margin, forecast_revenue')
+        .select('revenue, units, status, equipment_margin')
         .eq('user_id', user.id)
         .eq('period_id', periodId),
       supabase
         .from('meetings')
-        .select('new_completed, repeat_completed')
+        .select('new_completed, repeat_completed, invoiced_sum, paid_sum')
         .eq('user_id', user.id)
         .eq('period_id', periodId),
     ])
@@ -245,22 +243,38 @@ export async function getTeamProgress(supabase: SupabaseClient, companyId: strin
     const config = user.position?.motivation_schemas?.[0]?.config || {}
 
     const paidDeals = deals.filter((d: any) => d.status === 'paid')
+    const unpaidDeals = deals.filter((d: any) => d.status !== 'paid' && d.status !== 'cancelled')
     const revenueFact = paidDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0)
+    const revenueForecast = unpaidDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0)
     const unitsFact = paidDeals.reduce((s: number, d: any) => s + d.units, 0)
-    const meetingsFact = meetings.reduce((s: number, m: any) => s + m.new_completed + m.repeat_completed, 0)
+    const meetingsFact = meetings.reduce((s: number, m: any) => s + (m.new_completed || 0) + (m.repeat_completed || 0), 0)
+    const invoicedSum = meetings.reduce((s: number, m: any) => s + (m.invoiced_sum || 0), 0)
+    const paidSum = meetings.reduce((s: number, m: any) => s + (m.paid_sum || 0), 0)
 
     return {
       id: user.id,
       name: user.full_name,
       position: user.position?.name || '',
+      company_id: user.company?.id || '',
+      company_name: user.company?.name || '',
       revenue_fact: revenueFact,
+      revenue_forecast: revenueForecast,
       revenue_plan: config.revenue_plan || 0,
       units_fact: unitsFact,
       units_plan: config.units_plan || 0,
       meetings_fact: meetingsFact,
       meetings_plan: config.meetings_plan || 0,
+      invoiced_sum: invoicedSum,
+      paid_sum: paidSum,
     }
   }))
+
+  // Sort by revenue plan completion % descending
+  teamData.sort((a, b) => {
+    const aPct = a.revenue_plan > 0 ? a.revenue_fact / a.revenue_plan : 0
+    const bPct = b.revenue_plan > 0 ? b.revenue_fact / b.revenue_plan : 0
+    return bPct - aPct
+  })
 
   return teamData
 }

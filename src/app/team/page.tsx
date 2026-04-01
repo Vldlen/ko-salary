@@ -1,14 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Users } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
-import StatCard from '@/components/StatCard'
 import ProgressBar from '@/components/ProgressBar'
 import { formatMoney, cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { getCurrentUser, getActivePeriod, getTeamProgress } from '@/lib/supabase/queries'
+
+type CompanyFilter = 'all' | string
 
 export default function TeamPage() {
   const supabase = useSupabase()
@@ -16,6 +17,7 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [team, setTeam] = useState<any[]>([])
+  const [companyFilter, setCompanyFilter] = useState<CompanyFilter>('all')
 
   useEffect(() => {
     async function load() {
@@ -24,13 +26,12 @@ export default function TeamPage() {
         if (!currentUser) { router.push('/login'); return }
         setUser(currentUser)
 
-        // Only ROP/Director/Admin can view team
         if (!['rop', 'director', 'admin'].includes(currentUser.role)) {
           router.push('/dashboard')
           return
         }
 
-        const activePeriod = await getActivePeriod(supabase, currentUser.company_id)
+        const activePeriod = await getActivePeriod(supabase)
         if (!activePeriod) { setLoading(false); return }
 
         const teamData = await getTeamProgress(supabase, currentUser.company_id, activePeriod.id)
@@ -44,6 +45,19 @@ export default function TeamPage() {
     load()
   }, [supabase, router])
 
+  // Extract unique companies for filter tabs
+  const companies = useMemo(() => {
+    const map = new Map<string, string>()
+    team.forEach(m => { if (m.company_id && m.company_name) map.set(m.company_id, m.company_name) })
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
+  }, [team])
+
+  // Filtered team
+  const filtered = useMemo(() => {
+    if (companyFilter === 'all') return team
+    return team.filter(m => m.company_id === companyFilter)
+  }, [team, companyFilter])
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-brand-50">
@@ -52,42 +66,94 @@ export default function TeamPage() {
     )
   }
 
-  const totalRev = team.reduce((s, m) => s + m.revenue_fact, 0)
-  const totalPlan = team.reduce((s, m) => s + m.revenue_plan, 0)
+  // Aggregates
+  const totalRev = filtered.reduce((s, m) => s + m.revenue_fact, 0)
+  const totalForecast = filtered.reduce((s, m) => s + m.revenue_forecast, 0)
+  const totalPlan = filtered.reduce((s, m) => s + m.revenue_plan, 0)
   const avgRevPct = totalPlan > 0 ? Math.round((totalRev / totalPlan) * 100) : 0
-  const totalUnits = team.reduce((s, m) => s + m.units_fact, 0)
-  const totalUp = team.reduce((s, m) => s + m.units_plan, 0)
-  const totalMeet = team.reduce((s, m) => s + m.meetings_fact, 0)
-  const totalMp = team.reduce((s, m) => s + m.meetings_plan, 0)
+  const totalUnits = filtered.reduce((s, m) => s + m.units_fact, 0)
+  const totalUp = filtered.reduce((s, m) => s + m.units_plan, 0)
+  const totalMeet = filtered.reduce((s, m) => s + m.meetings_fact, 0)
+  const totalMp = filtered.reduce((s, m) => s + m.meetings_plan, 0)
 
   return (
     <div className="flex min-h-screen bg-brand-50">
       <Sidebar role={user?.role || 'rop'} userName={user?.full_name || ''} companyName={user?.company?.name || 'ИННО'} />
 
-      <main className="flex-1 p-8">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-2xl font-heading font-bold text-brand-900 mb-6">Командный результат</h1>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <StatCard title="Общая выручка" value={formatMoney(totalRev)} subtitle={`план: ${formatMoney(totalPlan)}`} icon={Users} />
-            <StatCard title="Выполнение плана" value={`${avgRevPct}%`} variant={avgRevPct >= 100 ? 'success' : 'accent'} icon={Users} />
-            <StatCard title="Точки / план" value={`${totalUnits} / ${totalUp}`} subtitle={totalUp > 0 ? `${Math.round(totalUnits / totalUp * 100)}%` : ''} icon={Users} />
-            <StatCard title="Встречи / план" value={`${totalMeet} / ${totalMp}`} subtitle={totalMp > 0 ? `${Math.round(totalMeet / totalMp * 100)}%` : ''} icon={Users} />
+      <main className="flex-1 overflow-auto">
+        <div className="p-6 max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Users className="w-6 h-6 text-brand-400" />
+              <h1 className="text-2xl font-heading font-bold text-brand-900">Команда</h1>
+            </div>
           </div>
 
-          {/* Team progress summary */}
-          <div className="bg-white rounded-2xl border border-brand-100 p-6 mb-6">
-            <h2 className="text-lg font-heading font-semibold text-brand-900 mb-4">Общий прогресс</h2>
-            <div className="space-y-4">
-              <ProgressBar label="Выручка команды" value={totalRev} max={totalPlan} percent={avgRevPct} formatValue={formatMoney} />
-              <ProgressBar label="Точки подключения" value={totalUnits} max={totalUp} percent={totalUp > 0 ? Math.round(totalUnits / totalUp * 100) : 0} />
+          {/* Company filter tabs */}
+          <div className="flex items-center gap-2 mb-6">
+            <button
+              onClick={() => setCompanyFilter('all')}
+              className={cn(
+                'px-4 py-2 rounded-xl text-sm font-medium transition-colors',
+                companyFilter === 'all' ? 'bg-brand-500 text-white' : 'bg-white text-brand-500 border border-brand-100 hover:bg-brand-50'
+              )}
+            >
+              Все ({team.length})
+            </button>
+            {companies.map(c => {
+              const count = team.filter(m => m.company_id === c.id).length
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setCompanyFilter(c.id)}
+                  className={cn(
+                    'px-4 py-2 rounded-xl text-sm font-medium transition-colors',
+                    companyFilter === c.id ? 'bg-brand-500 text-white' : 'bg-white text-brand-500 border border-brand-100 hover:bg-brand-50'
+                  )}
+                >
+                  {c.name} ({count})
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Summary cards */}
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+              <p className="text-xs text-brand-500 mb-1">Факт выручки</p>
+              <p className="text-2xl font-bold text-brand-900">{formatMoney(totalRev)}</p>
+              <p className="text-[10px] text-brand-400 mt-0.5">план: {formatMoney(totalPlan)}</p>
+            </div>
+            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+              <p className="text-xs text-brand-500 mb-1">Прогноз</p>
+              <p className="text-2xl font-bold text-blue-600">{formatMoney(totalRev + totalForecast)}</p>
+              <p className="text-[10px] text-brand-400 mt-0.5">факт + неоплаченные</p>
+            </div>
+            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+              <p className="text-xs text-brand-500 mb-1">Точки</p>
+              <p className="text-2xl font-bold text-brand-900">{totalUnits} / {totalUp}</p>
+              <p className="text-[10px] text-brand-400 mt-0.5">{totalUp > 0 ? Math.round(totalUnits / totalUp * 100) : 0}%</p>
+            </div>
+            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+              <p className="text-xs text-brand-500 mb-1">Встречи</p>
+              <p className="text-2xl font-bold text-brand-900">{totalMeet} / {totalMp}</p>
+              <p className="text-[10px] text-brand-400 mt-0.5">{totalMp > 0 ? Math.round(totalMeet / totalMp * 100) : 0}%</p>
+            </div>
+          </div>
+
+          {/* Overall progress */}
+          <div className="bg-white rounded-xl border border-brand-100 p-5 mb-6">
+            <h2 className="text-sm font-semibold text-brand-900 mb-3">Общий прогресс</h2>
+            <div className="space-y-3">
+              <ProgressBar label="Выручка" value={totalRev} max={totalPlan} percent={avgRevPct} formatValue={formatMoney} />
+              <ProgressBar label="Точки" value={totalUnits} max={totalUp} percent={totalUp > 0 ? Math.round(totalUnits / totalUp * 100) : 0} />
               <ProgressBar label="Встречи" value={totalMeet} max={totalMp} percent={totalMp > 0 ? Math.round(totalMeet / totalMp * 100) : 0} />
             </div>
           </div>
 
-          {/* Individual cards */}
+          {/* Individual member cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {team.map(m => {
+            {filtered.map(m => {
               const revPct = m.revenue_plan > 0 ? Math.round((m.revenue_fact / m.revenue_plan) * 100) : 0
               const unitsPct = m.units_plan > 0 ? Math.round((m.units_fact / m.units_plan) * 100) : 0
               const meetPct = m.meetings_plan > 0 ? Math.round((m.meetings_fact / m.meetings_plan) * 100) : 0
@@ -98,33 +164,50 @@ export default function TeamPage() {
                   : { label: 'Риск', cls: 'bg-red-100 text-red-700' }
 
               return (
-                <div key={m.id} className="bg-white rounded-2xl border border-brand-100 p-6">
+                <div key={m.id} className="bg-white rounded-xl border border-brand-100 shadow-sm p-5">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold text-sm">
                         {m.name?.charAt(0) || '?'}
                       </div>
                       <div>
-                        <p className="font-semibold text-brand-900">{m.name}</p>
-                        <p className="text-xs text-gray-400">{m.position}</p>
+                        <p className="font-semibold text-brand-900 text-sm">{m.name}</p>
+                        <p className="text-xs text-brand-400">{m.position} • {m.company_name}</p>
                       </div>
                     </div>
                     <span className={cn('text-xs font-semibold px-2 py-1 rounded-full', status.cls)}>
                       {status.label}
                     </span>
                   </div>
-                  <div className="space-y-3">
+
+                  <div className="space-y-3 mb-4">
                     <ProgressBar label="Выручка" value={m.revenue_fact} max={m.revenue_plan} percent={revPct} formatValue={formatMoney} />
                     <ProgressBar label="Точки" value={m.units_fact} max={m.units_plan} percent={unitsPct} />
                     <ProgressBar label="Встречи" value={m.meetings_fact} max={m.meetings_plan} percent={meetPct} />
+                  </div>
+
+                  {/* Extra info row */}
+                  <div className="flex items-center gap-4 pt-3 border-t border-brand-100 text-xs text-brand-500">
+                    {m.revenue_forecast > 0 && (
+                      <span>Прогноз: <span className="text-blue-600 font-medium">+{formatMoney(m.revenue_forecast)}</span></span>
+                    )}
+                    {m.invoiced_sum > 0 && (
+                      <span>Выставлено: <span className="text-brand-700 font-medium">{formatMoney(m.invoiced_sum)}</span></span>
+                    )}
+                    {m.paid_sum > 0 && (
+                      <span>Оплачено: <span className="text-emerald-600 font-medium">{formatMoney(m.paid_sum)}</span></span>
+                    )}
+                    {m.revenue_forecast === 0 && m.invoiced_sum === 0 && m.paid_sum === 0 && (
+                      <span className="text-brand-300">Нет дополнительных данных</span>
+                    )}
                   </div>
                 </div>
               )
             })}
           </div>
 
-          {team.length === 0 && (
-            <div className="text-center text-gray-400 py-12">Нет сотрудников в команде</div>
+          {filtered.length === 0 && (
+            <div className="text-center text-gray-400 py-12">Нет сотрудников</div>
           )}
         </div>
       </main>
