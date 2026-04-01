@@ -18,6 +18,7 @@ const unbounded = Unbounded({
 export const metadata: Metadata = {
   title: 'Пульс КО',
   description: 'Пульс коммерческого отдела',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
 }
 
 export default function RootLayout({

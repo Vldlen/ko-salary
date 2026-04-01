@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Settings } from 'lucide-react'
+import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { getCurrentUser } from '@/lib/supabase/queries'
@@ -26,6 +27,7 @@ export default function AdminSettingsPage() {
   if (loading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-400" /></div>
 
   return (
+    <MobileRestricted>
     <div className="flex min-h-screen">
       <Sidebar role={user?.role || 'admin'} userName={user?.full_name || ''} companyName={user?.company?.name || 'ИННО'} />
       <main className="flex-1 p-8">
@@ -36,5 +38,6 @@ export default function AdminSettingsPage() {
         </div>
       </main>
     </div>
+    </MobileRestricted>
   )
 }

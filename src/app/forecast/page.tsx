@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, TrendingUp, ChevronDown, ChevronRight } from 'lucide-react'
+import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import { cn, formatMoney, getDealStatusLabel, getDealStatusColor } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
@@ -98,6 +99,7 @@ export default function ForecastPage() {
   const showUserColumn = user?.role !== 'manager'
 
   return (
+    <MobileRestricted>
     <div className="flex min-h-screen">
       <Sidebar role={user?.role || 'manager'} userName={user?.full_name || ''} companyName={user?.company?.name || 'ИННО'} />
 
@@ -206,5 +208,6 @@ export default function ForecastPage() {
         </div>
       </main>
     </div>
+    </MobileRestricted>
   )
 }

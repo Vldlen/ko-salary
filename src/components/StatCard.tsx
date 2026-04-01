@@ -20,14 +20,14 @@ export default function StatCard({ title, value, subtitle, icon: Icon, trend, va
 
   return (
     <div className={cn(
-      'glass rounded-2xl p-5 hover:bg-white/[0.08] transition-all',
+      'glass rounded-2xl p-3 lg:p-5 hover:bg-white/[0.08] transition-all',
       className
     )}>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-white/50">{title}</p>
-          <p className="text-2xl font-bold text-white mt-1">{value}</p>
-          {subtitle && <p className="text-sm text-white/40 mt-0.5">{subtitle}</p>}
+          <p className="text-xs lg:text-sm text-white/50">{title}</p>
+          <p className="text-lg lg:text-2xl font-bold text-white mt-1">{value}</p>
+          {subtitle && <p className="text-xs lg:text-sm text-white/40 mt-0.5">{subtitle}</p>}
           {trend && (
             <p className={cn(
               'text-sm font-medium mt-1',
@@ -37,8 +37,8 @@ export default function StatCard({ title, value, subtitle, icon: Icon, trend, va
             </p>
           )}
         </div>
-        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', iconBg[variant])}>
-          <Icon className="w-5 h-5" />
+        <div className={cn('w-8 h-8 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center', iconBg[variant])}>
+          <Icon className="w-4 h-4 lg:w-5 lg:h-5" />
         </div>
       </div>
     </div>

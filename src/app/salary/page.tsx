@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Wallet, TrendingUp } from 'lucide-react'
+import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import { formatMoney, getMonthName, cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
@@ -65,6 +66,7 @@ export default function SalaryPage() {
   ]
 
   return (
+    <MobileRestricted>
     <div className="flex min-h-screen">
       <Sidebar role={user?.role || 'manager'} userName={user?.full_name || ''} companyName={user?.company?.name || 'ИННО'} />
 
@@ -130,5 +132,6 @@ export default function SalaryPage() {
         </div>
       </main>
     </div>
+    </MobileRestricted>
   )
 }

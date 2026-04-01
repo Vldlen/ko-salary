@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronDown, Plus, Loader2, X, Pencil, Trash2, Check, Calendar } from 'lucide-react'
+import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import { formatMoney, getDealStatusLabel, getDealStatusColor, cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
@@ -221,6 +222,7 @@ export default function DealsPage() {
   }
 
   return (
+    <MobileRestricted>
     <div className="flex h-screen">
       <Sidebar role={user?.role || 'manager'} userName={user?.full_name || ''} companyName={user?.company?.name || 'ИННО'} />
 
@@ -513,5 +515,6 @@ export default function DealsPage() {
         )}
       </main>
     </div>
+    </MobileRestricted>
   )
 }

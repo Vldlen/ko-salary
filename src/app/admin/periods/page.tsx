@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, CalendarRange, Plus, X } from 'lucide-react'
+import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import { cn, getMonthName } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
@@ -94,6 +95,7 @@ export default function AdminPeriodsPage() {
   }
 
   return (
+    <MobileRestricted>
     <div className="flex min-h-screen">
       <Sidebar role={currentUser?.role || 'admin'} userName={currentUser?.full_name || ''} companyName={currentUser?.company?.name || 'ИННО'} />
 
@@ -173,5 +175,6 @@ export default function AdminPeriodsPage() {
         </div>
       </main>
     </div>
+    </MobileRestricted>
   )
 }

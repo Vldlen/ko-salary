@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Users } from 'lucide-react'
+import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import ProgressBar from '@/components/ProgressBar'
 import { formatMoney, cn } from '@/lib/utils'
@@ -77,6 +78,7 @@ export default function TeamPage() {
   const totalMp = filtered.reduce((s, m) => s + m.meetings_plan, 0)
 
   return (
+    <MobileRestricted>
     <div className="flex min-h-screen">
       <Sidebar role={user?.role || 'rop'} userName={user?.full_name || ''} companyName={user?.company?.name || 'ИННО'} />
 
@@ -212,5 +214,6 @@ export default function TeamPage() {
         </div>
       </main>
     </div>
+    </MobileRestricted>
   )
 }

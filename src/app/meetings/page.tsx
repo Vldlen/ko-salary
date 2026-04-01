@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
+import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import { cn, formatMoney } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
@@ -215,6 +216,7 @@ export default function MeetingsPage() {
     s + (parseInt(cellValues[cellKey(d, 'scheduled')]) || 0), 0)
 
   return (
+    <MobileRestricted>
     <div className="flex h-screen">
       <Sidebar role={user?.role || 'manager'} userName={user?.full_name || ''} companyName={user?.company?.name || 'ИННО'} />
 
@@ -342,5 +344,6 @@ export default function MeetingsPage() {
         </div>
       </main>
     </div>
+    </MobileRestricted>
   )
 }
