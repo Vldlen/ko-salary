@@ -253,35 +253,35 @@ export default function AdminUsersPage() {
           )}
 
           {/* Users table */}
-          <div className="glass rounded-2xl overflow-hidden">
-            <table className="w-full">
+          <div className="glass rounded-2xl overflow-x-auto">
+            <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Сотрудник</th>
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Логин</th>
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Пароль</th>
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Роль</th>
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Компания</th>
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Статус</th>
-                  <th className="px-6 py-3.5 text-right text-xs font-semibold text-white/50 uppercase tracking-wider">Действия</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Сотрудник</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Логин</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Пароль</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Роль</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Компания</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Статус</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-white/50 uppercase tracking-wider">Действия</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((u: any) => (
                   <tr key={u.id} className="border-b border-white/5 hover:bg-white/5 transition">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
                           {u.full_name?.charAt(0) || '?'}
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-white">{u.full_name}</p>
-                          <p className="text-xs text-white/30">{u.position?.name || '—'}</p>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-white truncate">{u.full_name}</p>
+                          <p className="text-xs text-white/30 truncate">{u.position?.name || '—'}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
                         <code className="text-sm font-mono text-blue-400">{u.login || '—'}</code>
                         {u.login && (
                           <button onClick={() => copyToClipboard(u.login, `login-${u.id}`)}
@@ -291,8 +291,8 @@ export default function AdminUsersPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
                         {u.password_plain ? (
                           <>
                             <code className="text-sm font-mono text-white/60">
@@ -312,7 +312,7 @@ export default function AdminUsersPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full',
                         u.role === 'admin' ? 'bg-purple-500/20 text-purple-300' :
                         u.role === 'director' ? 'bg-blue-500/20 text-blue-300' :
@@ -322,8 +322,8 @@ export default function AdminUsersPage() {
                         {ROLES.find(r => r.value === u.role)?.label || u.role}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-white/70">{u.company?.name || '—'}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 text-sm text-white/70 whitespace-nowrap">{u.company?.name || '—'}</td>
+                    <td className="px-4 py-3">
                       {(() => {
                         const status = getUserStatus(u)
                         return (
@@ -340,7 +340,7 @@ export default function AdminUsersPage() {
                         )
                       })()}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         {u.is_active && !u.fired_at && (
                           <>
@@ -374,7 +374,7 @@ export default function AdminUsersPage() {
                   </tr>
                 ))}
                 {users.length === 0 && (
-                  <tr><td colSpan={7} className="px-6 py-8 text-center text-white/40">Нет сотрудников</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-white/40">Нет сотрудников</td></tr>
                 )}
               </tbody>
             </table>
