@@ -60,7 +60,7 @@ export default function TeamPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-brand-50">
+      <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-brand-400" />
       </div>
     )
@@ -77,7 +77,7 @@ export default function TeamPage() {
   const totalMp = filtered.reduce((s, m) => s + m.meetings_plan, 0)
 
   return (
-    <div className="flex min-h-screen bg-brand-50">
+    <div className="flex min-h-screen">
       <Sidebar role={user?.role || 'rop'} userName={user?.full_name || ''} companyName={user?.company?.name || 'ИННО'} />
 
       <main className="flex-1 overflow-auto">

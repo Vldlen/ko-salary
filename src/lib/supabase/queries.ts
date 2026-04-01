@@ -215,31 +215,51 @@ export async function getSalaryHistory(supabase: SupabaseClient, userId: string,
 // ======== Team (for ROP/Director) ========
 
 export async function getTeamProgress(supabase: SupabaseClient, _companyId: string, periodId: string) {
-  // Get all active users across all companies
+  // Batch: 1 query for users, 1 for all deals, 1 for all meetings = 3 total (was N*2+1)
   const { data: users } = await supabase
     .from('users')
     .select('id, full_name, role, company:companies(id, name), position:positions(name, motivation_schemas(config))')
     .eq('is_active', true)
     .in('role', ['manager', 'rop'])
 
-  if (!users) return []
+  if (!users || users.length === 0) return []
 
-  const teamData = await Promise.all(users.map(async (user: any) => {
-    const [dealsRes, meetingsRes] = await Promise.all([
-      supabase
-        .from('deals')
-        .select('revenue, units, status, equipment_margin')
-        .eq('user_id', user.id)
-        .eq('period_id', periodId),
-      supabase
-        .from('meetings')
-        .select('new_completed, repeat_completed, invoiced_sum, paid_sum')
-        .eq('user_id', user.id)
-        .eq('period_id', periodId),
-    ])
+  const userIds = users.map((u: any) => u.id)
 
-    const deals = dealsRes.data || []
-    const meetings = meetingsRes.data || []
+  const [dealsRes, meetingsRes] = await Promise.all([
+    supabase
+      .from('deals')
+      .select('user_id, revenue, units, status, equipment_margin')
+      .eq('period_id', periodId)
+      .in('user_id', userIds),
+    supabase
+      .from('meetings')
+      .select('user_id, new_completed, repeat_completed, invoiced_sum, paid_sum')
+      .eq('period_id', periodId)
+      .in('user_id', userIds),
+  ])
+
+  const allDeals = dealsRes.data || []
+  const allMeetings = meetingsRes.data || []
+
+  // Group by user_id in memory
+  const dealsByUser = new Map<string, any[]>()
+  for (const d of allDeals) {
+    const list = dealsByUser.get(d.user_id) || []
+    list.push(d)
+    dealsByUser.set(d.user_id, list)
+  }
+
+  const meetingsByUser = new Map<string, any[]>()
+  for (const m of allMeetings) {
+    const list = meetingsByUser.get(m.user_id) || []
+    list.push(m)
+    meetingsByUser.set(m.user_id, list)
+  }
+
+  const teamData = users.map((user: any) => {
+    const deals = dealsByUser.get(user.id) || []
+    const meetings = meetingsByUser.get(user.id) || []
     const config = user.position?.motivation_schemas?.[0]?.config || {}
 
     const paidDeals = deals.filter((d: any) => d.status === 'paid')
@@ -267,7 +287,7 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
       invoiced_sum: invoicedSum,
       paid_sum: paidSum,
     }
-  }))
+  })
 
   // Sort by revenue plan completion % descending
   teamData.sort((a, b) => {

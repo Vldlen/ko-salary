@@ -90,11 +90,11 @@ export default function AdminPeriodsPage() {
   }
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-brand-50"><Loader2 className="w-8 h-8 animate-spin text-brand-400" /></div>
+    return <div className="flex min-h-screen items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-brand-400" /></div>
   }
 
   return (
-    <div className="flex min-h-screen bg-brand-50">
+    <div className="flex min-h-screen">
       <Sidebar role={currentUser?.role || 'admin'} userName={currentUser?.full_name || ''} companyName={currentUser?.company?.name || 'ИННО'} />
 
       <main className="flex-1 p-8">

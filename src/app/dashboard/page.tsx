@@ -52,7 +52,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-brand-50">
+      <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-brand-400" />
       </div>
     )
@@ -60,7 +60,7 @@ export default function DashboardPage() {
 
   if (!user || !data) {
     return (
-      <div className="flex min-h-screen bg-brand-50">
+      <div className="flex min-h-screen">
         <Sidebar role="manager" userName="..." companyName="..." />
         <main className="flex-1 p-8">
           <div className="text-center text-gray-400 mt-20">
@@ -75,7 +75,7 @@ export default function DashboardPage() {
   const salary = d.salary || { base_salary: 0, kpi_quality: 0, kpi_quantity: 0, margin_bonus: 0, total: 0, forecast_total: 0 }
 
   return (
-    <div className="flex min-h-screen bg-brand-50">
+    <div className="flex min-h-screen">
       <Sidebar
         role={user.role}
         userName={user.full_name}

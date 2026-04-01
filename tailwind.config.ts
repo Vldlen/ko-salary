@@ -24,8 +24,8 @@ const config: Config = {
         }
       },
       fontFamily: {
-        heading: ['Bounded', 'system-ui', 'sans-serif'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        heading: ['var(--font-unbounded)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
       },
     },
   },

@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -34,7 +35,7 @@ const adminLinks = [
   { href: '/admin/settings', label: 'Настройки', icon: Settings },
 ]
 
-export default function Sidebar({ role, userName, companyName }: SidebarProps) {
+function Sidebar({ role, userName, companyName }: SidebarProps) {
   const pathname = usePathname()
 
   const links = [
@@ -44,16 +45,16 @@ export default function Sidebar({ role, userName, companyName }: SidebarProps) {
   ]
 
   return (
-    <aside className="w-64 bg-white border-r border-brand-100 min-h-screen flex flex-col">
+    <aside className="w-64 glass-sidebar min-h-screen flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-brand-100">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">КО</span>
+            <TrendingUp className="w-4 h-4 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-heading font-bold text-brand-900">Salary</h1>
-            <p className="text-[10px] text-brand-300 uppercase tracking-wider">{companyName}</p>
+            <h1 className="text-lg font-heading font-bold text-brand-900">Пульс</h1>
+            <p className="text-[10px] text-brand-300 uppercase tracking-wider">ком. отдела</p>
           </div>
         </div>
       </div>
@@ -103,3 +104,5 @@ export default function Sidebar({ role, userName, companyName }: SidebarProps) {
     </aside>
   )
 }
+
+export default memo(Sidebar)

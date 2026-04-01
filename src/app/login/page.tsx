@@ -30,19 +30,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 via-white to-brand-100">
-      {/* Decorative elements */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-brand-400/10 to-transparent rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-accent/10 to-transparent rounded-full blur-3xl" />
+    <div className="min-h-screen flex items-center justify-center bg-mesh relative overflow-hidden">
+      {/* Decorative blobs */}
+      <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-gradient-to-bl from-brand-400/15 to-brand-200/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-gradient-to-tr from-accent/10 to-brand-300/10 rounded-full blur-3xl" />
+      <div className="absolute top-[40%] left-[30%] w-[300px] h-[300px] bg-gradient-to-r from-brand-300/8 to-transparent rounded-full blur-3xl" />
 
-      <div className="relative bg-white rounded-3xl shadow-xl shadow-brand-400/10 p-8 w-full max-w-md border border-brand-100">
+      <div className="relative glass-strong rounded-3xl shadow-xl shadow-brand-400/10 p-8 w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 mb-4">
-            <span className="text-white font-bold text-xl">КО</span>
+            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
           </div>
-          <h1 className="text-2xl font-heading font-bold text-brand-900">Salary</h1>
-          <p className="text-gray-400 mt-1 text-sm">Система расчёта зарплат</p>
+          <h1 className="text-2xl font-heading font-bold text-brand-900">Пульс КО</h1>
+          <p className="text-gray-400 mt-1 text-sm">Пульс коммерческого отдела</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">

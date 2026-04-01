@@ -201,7 +201,7 @@ export default function DealsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-brand-50">
+      <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-brand-400" />
       </div>
     )
@@ -221,7 +221,7 @@ export default function DealsPage() {
   }
 
   return (
-    <div className="flex h-screen bg-brand-50">
+    <div className="flex h-screen">
       <Sidebar role={user?.role || 'manager'} userName={user?.full_name || ''} companyName={user?.company?.name || 'ИННО'} />
 
       <main className="flex-1 overflow-auto">

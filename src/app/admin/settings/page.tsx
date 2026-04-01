@@ -23,10 +23,10 @@ export default function AdminSettingsPage() {
     load()
   }, [supabase, router])
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center bg-brand-50"><Loader2 className="w-8 h-8 animate-spin text-brand-400" /></div>
+  if (loading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-brand-400" /></div>
 
   return (
-    <div className="flex min-h-screen bg-brand-50">
+    <div className="flex min-h-screen">
       <Sidebar role={user?.role || 'admin'} userName={user?.full_name || ''} companyName={user?.company?.name || 'ИННО'} />
       <main className="flex-1 p-8">
         <div className="max-w-4xl mx-auto text-center mt-20">

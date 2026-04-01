@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>КО Salary — Превью</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif; background: #F2F7FF; color: #242424; }
+:root {
+  --brand-50: #F2F7FF; --brand-100: #DEE7F5; --brand-200: #B8CDE8; --brand-300: #7BA3D4;
+  --brand-400: #004AFF; --brand-500: #0020DD; --brand-600: #33058D; --brand-900: #242424;
+  --accent: #FF6D2E;
+}
+.app { display: flex; min-height: 100vh; }
+/* Sidebar */
+.sidebar { width: 220px; background: #fff; border-right: 1px solid var(--brand-100); display: flex; flex-direction: column; }
+.sidebar-logo { padding: 20px 16px; border-bottom: 1px solid var(--brand-100); display: flex; align-items: center; gap: 8px; }
+.logo-icon { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--brand-400), var(--brand-600)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
+.logo-text { font-weight: 700; font-size: 16px; color: var(--brand-900); }
+.logo-sub { font-size: 9px; color: var(--brand-300); text-transform: uppercase; letter-spacing: 1.5px; }
+.sidebar nav { flex: 1; padding: 12px 8px; }
+.nav-item { padding: 8px 12px; border-radius: 8px; margin-bottom: 2px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: #6b7280; transition: all 0.15s; }
+.nav-item:hover { background: var(--brand-50); }
+.nav-item.active { background: var(--brand-50); color: var(--brand-400); }
+.nav-item.disabled { opacity: 0.4; cursor: default; }
+.nav-item.disabled:hover { background: transparent; }
+.nav-icon { font-size: 16px; }
+.sidebar-user { padding: 12px 16px; border-top: 1px solid var(--brand-100); display: flex; align-items: center; gap: 8px; }
+.user-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--brand-400), var(--accent)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
+.user-name { font-size: 12px; font-weight: 500; color: var(--brand-900); }
+.user-role { font-size: 10px; color: #9ca3af; }
+/* Main */
+main { flex: 1; padding: 28px; max-width: 960px; overflow: auto; }
+h1 { font-size: 22px; font-weight: 700; color: var(--brand-900); }
+h2 { font-size: 15px; font-weight: 600; color: var(--brand-900); }
+/* Cards */
+.stat-cards { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+.stat-card { background: #fff; border-radius: 16px; border: 1px solid var(--brand-100); padding: 16px 20px; flex: 1; min-width: 140px; }
+.stat-card.accent { background: #FFF7ED; }
+.stat-card.success { background: #F0FDF4; }
+.stat-label { font-size: 11px; color: #9ca3af; margin-bottom: 4px; }
+.stat-value { font-size: 22px; font-weight: 700; color: var(--brand-900); }
+.stat-card.accent .stat-value { color: var(--accent); }
+.stat-card.success .stat-value { color: #16a34a; }
+.stat-sub { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+.stat-trend { font-size: 11px; margin-top: 2px; }
+.stat-trend.pos { color: #16a34a; }
+/* Progress */
+.progress-item { margin-bottom: 12px; }
+.progress-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.progress-label { font-size: 12px; color: #6b7280; }
+.progress-val { font-size: 12px; font-weight: 600; color: var(--brand-900); }
+.progress-badge { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 99px; margin-left: 6px; }
+.progress-badge.green { background: #dcfce7; color: #16a34a; }
+.progress-badge.blue { background: #dbeafe; color: var(--brand-400); }
+.progress-badge.orange { background: #ffedd5; color: var(--accent); }
+.progress-track { height: 6px; border-radius: 3px; background: var(--brand-100); }
+.progress-fill { height: 6px; border-radius: 3px; transition: width 0.5s; }
+.progress-fill.green { background: linear-gradient(90deg, #16a34a, #16a34acc); }
+.progress-fill.blue { background: linear-gradient(90deg, var(--brand-400), #004affcc); }
+.progress-fill.orange { background: linear-gradient(90deg, var(--accent), #FF6D2Ecc); }
+/* Panel */
+.panel { background: #fff; border-radius: 16px; border: 1px solid var(--brand-100); padding: 20px; margin-bottom: 20px; }
+.panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+/* Deal row */
+.deal-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 12px; }
+.deal-row:hover { background: var(--brand-50); }
+.deal-left { display: flex; align-items: center; gap: 12px; }
+.deal-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--brand-50); display: flex; align-items: center; justify-content: center; color: var(--brand-400); font-weight: 700; font-size: 13px; }
+.deal-client { font-size: 13px; font-weight: 500; color: var(--brand-900); }
+.deal-units { font-size: 11px; color: #9ca3af; }
+.deal-right { display: flex; align-items: center; gap: 12px; }
+.deal-revenue { font-size: 13px; font-weight: 600; color: var(--brand-900); width: 100px; text-align: right; }
+/* Status badge */
+.badge { font-size: 11px; font-weight: 500; padding: 2px 10px; border-radius: 99px; white-space: nowrap; }
+.badge-paid { background: #dcfce7; color: #166534; }
+.badge-waiting { background: #ffedd5; color: #c2410c; }
+.badge-negotiation { background: #fef9c3; color: #854d0e; }
+.badge-prospect { background: #f3f4f6; color: #374151; }
+.badge-cancelled { background: #fee2e2; color: #991b1b; }
+/* Table */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead tr { background: var(--brand-50); }
+th { padding: 10px 14px; text-align: left; font-weight: 500; color: #6b7280; font-size: 11px; border-bottom: 1px solid var(--brand-100); }
+td { padding: 10px 14px; border-bottom: 1px solid var(--brand-50); }
+/* Button */
+.btn-primary { background: var(--brand-400); color: #fff; border: none; border-radius: 10px; padding: 8px 18px; font-weight: 600; font-size: 13px; cursor: pointer; }
+.btn-primary:hover { background: var(--brand-500); }
+/* Filters */
+.filters { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+.filter-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--brand-100); background: #fff; color: #6b7280; font-size: 12px; font-weight: 500; cursor: pointer; }
+.filter-btn.active { border-color: var(--brand-400); background: var(--brand-400); color: #fff; }
+/* Salary detail */
+.salary-hero { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.salary-hero-card { border-radius: 16px; padding: 24px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.salary-hero-card.current { background: #fff; border: 1px solid var(--brand-100); }
+.salary-hero-card.forecast { background: #FFF7ED; border: 1px solid #fed7aa; }
+.salary-big { font-size: 36px; font-weight: 700; }
+.salary-big.blue { color: var(--brand-400); }
+.salary-big.orange { color: var(--accent); }
+.salary-detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--brand-50); }
+.salary-total-row { display: flex; justify-content: space-between; padding: 12px 0; border-top: 2px solid var(--brand-100); margin-top: 8px; }
+.salary-forecast-bar { display: flex; justify-content: space-between; background: #FFF7ED; border-radius: 12px; padding: 10px 14px; margin-top: 8px; }
+/* History */
+.history-row { display: flex; gap: 12px; }
+.history-card { flex: 1; border-radius: 12px; padding: 12px 16px; text-align: center; }
+.history-card.past { background: var(--brand-50); }
+.history-card.current { background: #FFF7ED; }
+.history-month { font-size: 11px; color: #9ca3af; }
+.history-card.current .history-month { color: #c2410c; }
+.history-amount { font-size: 18px; font-weight: 700; margin-top: 4px; }
+/* Team */
+.team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.team-card { background: #fff; border-radius: 16px; border: 1px solid var(--brand-100); padding: 20px; }
+.team-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 14px; }
+.team-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--brand-400), var(--brand-600)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; }
+.team-name { font-size: 14px; font-weight: 600; color: var(--brand-900); }
+.team-pos { font-size: 11px; color: #9ca3af; }
+.team-metrics { display: flex; gap: 16px; margin-bottom: 12px; }
+.team-metric-label { font-size: 11px; color: #9ca3af; }
+.team-metric-val { font-size: 14px; font-weight: 600; color: var(--brand-900); }
+.team-salary-bar { display: flex; justify-content: space-between; padding: 8px 12px; background: var(--brand-50); border-radius: 10px; }
+/* Period indicator */
+.period-badge { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 12px; padding: 6px 14px; border: 1px solid var(--brand-100); }
+.period-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; }
+.period-text { font-size: 12px; color: #6b7280; }
+.hidden { display: none; }
+.td-client { display: flex; align-items: center; gap: 8px; }
+.td-icon { width: 30px; height: 30px; border-radius: 8px; background: var(--brand-50); display: flex; align-items: center; justify-content: center; color: var(--brand-400); font-weight: 700; font-size: 12px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">КО</div>
+      <div><div class="logo-text">Salary</div><div class="logo-sub">ИННО</div></div>
+    </div>
+    <nav id="nav"></nav>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="userAvatar">С</div>
+      <div>
+        <div class="user-name" id="userName">Субботин Иван</div>
+        <div class="user-role" id="userRole">Менеджер</div>
+      </div>
+    </div>
+  </div>
+  <main id="content"></main>
+</div>
+
+<script>
+const fmt = n => new Intl.NumberFormat('ru-RU').format(n) + ' \u20BD';
+const navItems = [
+  { id: 'dashboard', label: 'Дашборд', icon: '\uD83D\uDCCA', enabled: true },
+  { id: 'deals', label: 'Сделки', icon: '\uD83E\uDD1D', enabled: true },
+  { id: 'meetings', label: 'Встречи', icon: '\uD83D\uDCC5', enabled: false },
+  { id: 'salary', label: 'Моя ЗП', icon: '\uD83D\uDCB0', enabled: true },
+  { id: 'forecast', label: 'Прогноз', icon: '\uD83D\uDCC8', enabled: false },
+  { id: 'team', label: 'Командный результат', icon: '\uD83D\uDC65', enabled: true },
+];
+let currentPage = 'dashboard';
+
+function navigate(id) {
+  currentPage = id;
+  renderNav();
+  renderPage();
+  // Update user based on page
+  if (id === 'team') {
+    document.getElementById('userAvatar').textContent = 'П';
+    document.getElementById('userName').textContent = 'Петров Владлен';
+    document.getElementById('userRole').textContent = 'РОП';
+  } else {
+    document.getElementById('userAvatar').textContent = 'С';
+    document.getElementById('userName').textContent = 'Субботин Иван';
+    document.getElementById('userRole').textContent = 'Менеджер';
+  }
+}
+
+function renderNav() {
+  const nav = document.getElementById('nav');
+  nav.innerHTML = navItems.map(n =>
+    `<div class="nav-item ${currentPage === n.id ? 'active' : ''} ${!n.enabled ? 'disabled' : ''}"
+          ${n.enabled ? `onclick="navigate('${n.id}')"` : ''}>
+      <span class="nav-icon">${n.icon}</span>${n.label}
+    </div>`
+  ).join('');
+}
+
+function progressBar(label, value, max, pct, fmtFn) {
+  const color = pct >= 100 ? 'green' : pct >= 70 ? 'blue' : 'orange';
+  const valStr = fmtFn ? fmtFn(value) : value;
+  const maxStr = fmtFn ? fmtFn(max) : max;
+  return `<div class="progress-item">
+    <div class="progress-header">
+      <span class="progress-label">${label}</span>
+      <span class="progress-val">${valStr} / ${maxStr} <span class="progress-badge ${color}">${pct}%</span></span>
+    </div>
+    <div class="progress-track"><div class="progress-fill ${color}" style="width:${Math.min(pct,100)}%"></div></div>
+  </div>`;
+}
+
+function badgeClass(status) {
+  return { paid:'badge-paid', waiting_payment:'badge-waiting', negotiation:'badge-negotiation', prospect:'badge-prospect', cancelled:'badge-cancelled' }[status] || '';
+}
+function statusLabel(s) {
+  return { prospect:'Перспектива', negotiation:'Переговоры', waiting_payment:'Ждём оплату', paid:'Оплачено', cancelled:'Отменено' }[s] || s;
+}
+
+function renderDashboard() {
+  const d = {
+    salary: { base: 80000, kpiQ: 14400, kpiN: 7300, margin: 7849, total: 114549, forecast: 142000 },
+    rev: { fact: 1454716, forecast: 1715856, plan: 660000, pct: 220, fpct: 260 },
+    units: { fact: 11, plan: 15, pct: 73 }, meet: { fact: 24, plan: 25, pct: 96 },
+    deals: [
+      { client:'U Coffee', revenue:851676, status:'paid', units:16 },
+      { client:'Bonjour Elephant', revenue:406000, status:'waiting_payment', units:7 },
+      { client:'Udon Noodle Bar', revenue:194200, status:'paid', units:8 },
+      { client:'Vaffel', revenue:187300, status:'paid', units:60 },
+      { client:'Татардан', revenue:32000, status:'waiting_payment', units:3 },
+    ]
+  };
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+      <div><h1>Март 2026</h1><p style="color:#9ca3af;margin-top:4px;font-size:13px">Мой прогресс</p></div>
+      <div class="period-badge"><div class="period-dot"></div><span class="period-text">Период активен</span></div>
+    </div>
+    <div class="stat-cards">
+      <div class="stat-card"><div class="stat-label">Текущая ЗП</div><div class="stat-value">${fmt(d.salary.total)}</div></div>
+      <div class="stat-card accent"><div class="stat-label">Прогноз ЗП</div><div class="stat-value">${fmt(d.salary.forecast)}</div><div class="stat-trend pos">+${fmt(d.salary.forecast - d.salary.total)}</div></div>
+      <div class="stat-card"><div class="stat-label">Сделки</div><div class="stat-value">16</div><div class="stat-sub">${d.units.fact} точек подключено</div></div>
+      <div class="stat-card success"><div class="stat-label">Встречи</div><div class="stat-value">${d.meet.fact} / ${d.meet.plan}</div><div class="stat-sub">${d.meet.pct}% плана</div></div>
+    </div>
+    <div class="panel-grid">
+      <div class="panel">
+        <h2 style="margin-bottom:16px">🎯 Выполнение плана</h2>
+        ${progressBar('Выручка (факт)', d.rev.fact, d.rev.plan, d.rev.pct, fmt)}
+        ${progressBar('Выручка (прогноз)', d.rev.forecast, d.rev.plan, d.rev.fpct, fmt)}
+        ${progressBar('Точки', d.units.fact, d.units.plan, d.units.pct)}
+        ${progressBar('Встречи', d.meet.fact, d.meet.plan, d.meet.pct)}
+      </div>
+      <div class="panel">
+        <h2 style="margin-bottom:16px">📊 Расчёт ЗП</h2>
+        ${[
+          ['Оклад', d.salary.base], ['KPI качественный', d.salary.kpiQ],
+          ['KPI количественный', d.salary.kpiN], ['Маржа с оборудования', d.salary.margin]
+        ].map(([l,v]) => `<div class="salary-detail-row"><span style="font-size:13px;color:#6b7280">${l}</span><span style="font-size:13px;font-weight:600">${fmt(v)}</span></div>`).join('')}
+        <div class="salary-total-row">
+          <span style="font-weight:600">Итого</span>
+          <span style="font-size:18px;font-weight:700;color:var(--brand-400)">${fmt(d.salary.total)}</span>
+        </div>
+        <div class="salary-forecast-bar">
+          <span style="font-size:13px;font-weight:500;color:#c2410c">Прогноз</span>
+          <span style="font-size:16px;font-weight:700;color:var(--accent)">${fmt(d.salary.forecast)}</span>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2 style="margin-bottom:12px">🤝 Последние сделки</h2>
+      ${d.deals.map(deal => `
+        <div class="deal-row">
+          <div class="deal-left">
+            <div class="deal-icon">${deal.client[0]}</div>
+            <div><div class="deal-client">${deal.client}</div><div class="deal-units">${deal.units} точек</div></div>
+          </div>
+          <div class="deal-right">
+            <span class="badge ${badgeClass(deal.status)}">${statusLabel(deal.status)}</span>
+            <span class="deal-revenue">${fmt(deal.revenue)}</span>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+let dealsFilter = 'all';
+function setDealsFilter(f) { dealsFilter = f; renderPage(); }
+
+function renderDeals() {
+  const deals = [
+    { client:'U Coffee', revenue:851676, mrr:42000, units:16, margin:45000, status:'paid', forecast:851676, date:'05.03' },
+    { client:'Bonjour Elephant', revenue:406000, mrr:28000, units:7, margin:18000, status:'waiting_payment', forecast:406000, date:'08.03' },
+    { client:'Udon Noodle Bar', revenue:194200, mrr:15000, units:8, margin:12500, status:'paid', forecast:194200, date:'12.03' },
+    { client:'Vaffel', revenue:187300, mrr:11000, units:60, margin:8000, status:'paid', forecast:187300, date:'15.03' },
+    { client:'Татардан', revenue:32000, mrr:5000, units:3, margin:0, status:'waiting_payment', forecast:32000, date:'18.03' },
+    { client:'Кофе Хауз', revenue:0, mrr:0, units:5, margin:0, status:'negotiation', forecast:280000, date:'20.03' },
+    { client:'Теремок', revenue:0, mrr:0, units:12, margin:0, status:'prospect', forecast:520000, date:'22.03' },
+  ];
+  const filtered = dealsFilter === 'all' ? deals : deals.filter(d => d.status === dealsFilter);
+  const filters = [['all','Все'],['paid','Оплачено'],['waiting_payment','Ждём оплату'],['negotiation','Переговоры'],['prospect','Перспектива']];
+
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h1>Сделки</h1>
+      <button class="btn-primary">+ Новая сделка</button>
+    </div>
+    <div class="filters">
+      ${filters.map(([k,l]) => `<button class="filter-btn ${dealsFilter===k?'active':''}" onclick="setDealsFilter('${k}')">${l}</button>`).join('')}
+    </div>
+    <div class="panel" style="padding:0;overflow:hidden">
+      <table>
+        <thead><tr>${['Клиент','Выручка','MRR','Точки','Маржа','Статус','Прогноз','Дата'].map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${filtered.map(d => `<tr>
+            <td><div class="td-client"><div class="td-icon">${d.client[0]}</div><span style="font-weight:500">${d.client}</span></div></td>
+            <td style="font-weight:600">${d.revenue > 0 ? fmt(d.revenue) : '—'}</td>
+            <td style="color:#6b7280">${d.mrr > 0 ? fmt(d.mrr) : '—'}</td>
+            <td style="color:#6b7280">${d.units}</td>
+            <td style="color:#6b7280">${d.margin > 0 ? fmt(d.margin) : '—'}</td>
+            <td><span class="badge ${badgeClass(d.status)}">${statusLabel(d.status)}</span></td>
+            <td style="color:${d.revenue===0?'var(--accent)':'#6b7280'};font-weight:${d.revenue===0?600:400}">${fmt(d.forecast)}</td>
+            <td style="color:#9ca3af">${d.date}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function renderSalary() {
+  const s = { base:80000, kpiQ:14400, kpiN:7300, margin:7849, bonus:5000, deduction:0, total:114549, forecast:142000 };
+  const items = [
+    { label:'Оклад', value:s.base, max:80000 },
+    { label:'KPI качественный (встречи)', value:s.kpiQ, max:15000, note:'96% плана' },
+    { label:'KPI количественный (точки)', value:s.kpiN, max:10000, note:'73% плана' },
+    { label:'Маржа с оборудования', value:s.margin, max:15000, note:'83 500 × 9.4%' },
+    { label:'Разовый бонус', value:s.bonus, max:5000 },
+    { label:'Депремирование', value:s.deduction, max:0, negative:true },
+  ];
+  const diff = s.forecast - s.total;
+  const diffPct = Math.round(diff / s.total * 100);
+
+  return `
+    <h1 style="margin-bottom:20px">Расчёт зарплаты</h1>
+    <div class="salary-hero">
+      <div class="salary-hero-card current">
+        <div style="font-size:12px;color:#9ca3af;margin-bottom:4px">Текущая зарплата</div>
+        <div class="salary-big blue">${fmt(s.total)}</div>
+      </div>
+      <div class="salary-hero-card forecast">
+        <div style="font-size:12px;color:#c2410c;margin-bottom:4px">Прогноз</div>
+        <div class="salary-big orange">${fmt(s.forecast)}</div>
+        <div style="font-size:13px;color:#16a34a;margin-top:4px">+${fmt(diff)} (${diffPct}%)</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2 style="margin-bottom:16px">Детализация</h2>
+      ${items.map(item => `
+        <div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:13px;color:#6b7280">${item.label} ${item.note ? `<span style="font-size:11px;color:#9ca3af">(${item.note})</span>` : ''}</span>
+            <span style="font-size:13px;font-weight:600;color:${item.negative?'#dc2626':'var(--brand-900)'}">${item.negative?'−':''}${fmt(item.value)}</span>
+          </div>
+          ${item.max > 0 ? `<div class="progress-track"><div class="progress-fill blue" style="width:${Math.min(100,(item.value/item.max)*100)}%"></div></div>` : ''}
+        </div>`).join('')}
+      <div class="salary-total-row">
+        <span style="font-weight:700;font-size:15px">Итого к выплате</span>
+        <span style="font-weight:700;font-size:22px;color:var(--brand-400)">${fmt(s.total)}</span>
+      </div>
+    </div>
+    <div class="panel">
+      <h2 style="margin-bottom:12px">История</h2>
+      <div class="history-row">
+        <div class="history-card past"><div class="history-month">Январь</div><div class="history-amount" style="color:var(--brand-900)">${fmt(92000)}</div></div>
+        <div class="history-card past"><div class="history-month">Февраль</div><div class="history-amount" style="color:var(--brand-900)">${fmt(105000)}</div></div>
+        <div class="history-card current"><div class="history-month">Март (текущий)</div><div class="history-amount" style="color:var(--accent)">${fmt(s.total)}</div></div>
+      </div>
+    </div>`;
+}
+
+function renderTeam() {
+  const managers = [
+    { name:'Субботин Иван', pos:'Менеджер ОП', rev:1454716, plan:660000, units:11, up:15, meet:24, mp:25 },
+    { name:'Тимофеева Алёна', pos:'Менеджер ОП', rev:890000, plan:660000, units:9, up:15, meet:20, mp:25 },
+    { name:'Козлов Дмитрий', pos:'Мл. менеджер ОП', rev:320000, plan:440000, units:5, up:10, meet:15, mp:20 },
+    { name:'Новикова Мария', pos:'Мл. менеджер ОП', rev:180000, plan:440000, units:3, up:10, meet:12, mp:20 },
+  ];
+  const totalRev = managers.reduce((s,m) => s+m.rev, 0);
+  const totalPlan = managers.reduce((s,m) => s+m.plan, 0);
+  const avgRevPct = Math.round((totalRev / totalPlan) * 100);
+  const totalUnits = managers.reduce((s,m) => s+m.units, 0);
+  const totalUp = managers.reduce((s,m) => s+m.up, 0);
+  const totalMeet = managers.reduce((s,m) => s+m.meet, 0);
+  const totalMp = managers.reduce((s,m) => s+m.mp, 0);
+
+  return `
+    <h1 style="margin-bottom:20px">Командный результат</h1>
+    <div class="stat-cards">
+      <div class="stat-card"><div class="stat-label">Общая выручка</div><div class="stat-value">${fmt(totalRev)}</div><div class="stat-sub">план: ${fmt(totalPlan)}</div></div>
+      <div class="stat-card ${avgRevPct >= 100 ? 'success' : 'accent'}"><div class="stat-label">Выполнение плана</div><div class="stat-value">${avgRevPct}%</div></div>
+      <div class="stat-card"><div class="stat-label">Точки / план</div><div class="stat-value">${totalUnits} / ${totalUp}</div><div class="stat-sub">${Math.round(totalUnits/totalUp*100)}%</div></div>
+      <div class="stat-card"><div class="stat-label">Встречи / план</div><div class="stat-value">${totalMeet} / ${totalMp}</div><div class="stat-sub">${Math.round(totalMeet/totalMp*100)}%</div></div>
+    </div>
+    <div class="panel" style="margin-bottom:20px">
+      <h2 style="margin-bottom:16px">Общий прогресс</h2>
+      ${progressBar('Выручка команды', totalRev, totalPlan, avgRevPct, fmt)}
+      ${progressBar('Точки подключения', totalUnits, totalUp, Math.round(totalUnits/totalUp*100))}
+      ${progressBar('Встречи', totalMeet, totalMp, Math.round(totalMeet/totalMp*100))}
+    </div>
+    <div class="team-grid">
+      ${managers.map(m => {
+        const revPct = Math.round((m.rev/m.plan)*100);
+        const unitsPct = Math.round((m.units/m.up)*100);
+        const meetPct = Math.round((m.meet/m.mp)*100);
+        const st = revPct >= 100 ? ['По плану','#dcfce7','#166534'] : revPct >= 60 ? ['Отстаёт','#fef9c3','#854d0e'] : ['Риск','#fee2e2','#991b1b'];
+        return `<div class="team-card">
+          <div class="team-header">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="team-avatar">${m.name[0]}</div>
+              <div><div class="team-name">${m.name}</div><div class="team-pos">${m.pos}</div></div>
+            </div>
+            <span class="badge" style="background:${st[1]};color:${st[2]};font-size:10px">${st[0]}</span>
+          </div>
+          ${progressBar('Выручка', m.rev, m.plan, revPct, fmt)}
+          ${progressBar('Точки', m.units, m.up, unitsPct)}
+          ${progressBar('Встречи', m.meet, m.mp, meetPct)}
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function renderPage() {
+  const content = document.getElementById('content');
+  switch(currentPage) {
+    case 'dashboard': content.innerHTML = renderDashboard(); break;
+    case 'deals': content.innerHTML = renderDeals(); break;
+    case 'salary': content.innerHTML = renderSalary(); break;
+    case 'team': content.innerHTML = renderTeam(); break;
+    default: content.innerHTML = renderDashboard();
+  }
+}
+
+renderNav();
+renderPage();
+</script>
+</body>
+</html>
