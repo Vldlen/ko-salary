@@ -205,6 +205,15 @@ export default function MeetingsPage() {
 
   const today = new Date().toISOString().slice(0, 10)
 
+  // Summary stats from cellValues
+  const totalCompleted = allDays.reduce((s, d) =>
+    s + (parseInt(cellValues[cellKey(d, 'new_completed')]) || 0)
+      + (parseInt(cellValues[cellKey(d, 'repeat_completed')]) || 0), 0)
+  const totalRescheduled = allDays.reduce((s, d) =>
+    s + (parseInt(cellValues[cellKey(d, 'rescheduled')]) || 0), 0)
+  const totalScheduled = allDays.reduce((s, d) =>
+    s + (parseInt(cellValues[cellKey(d, 'scheduled')]) || 0), 0)
+
   return (
     <div className="flex h-screen bg-brand-50">
       <Sidebar role={user?.role || 'manager'} userName={user?.full_name || ''} companyName={user?.company?.name || 'ИННО'} />
@@ -213,7 +222,24 @@ export default function MeetingsPage() {
         <div className="p-6">
           <div className="mb-6">
             <h1 className="font-heading text-2xl font-bold text-brand-900">Встречи</h1>
-            <p className="text-brand-500 text-sm mt-1">{monthName} • Tab/Enter — следующая ячейка, стрелки — навигация</p>
+            <p className="text-brand-500 text-sm mt-1">{monthName}</p>
+          </div>
+
+          {/* Summary cards */}
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+              <p className="text-xs text-brand-500 mb-1">Назначено</p>
+              <p className="text-2xl font-bold text-brand-900">{totalScheduled}</p>
+            </div>
+            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+              <p className="text-xs text-brand-500 mb-1">Проведено</p>
+              <p className="text-2xl font-bold text-emerald-600">{totalCompleted}</p>
+              <p className="text-[10px] text-brand-400 mt-0.5">новых + повторных</p>
+            </div>
+            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+              <p className="text-xs text-brand-500 mb-1">Перенесено</p>
+              <p className="text-2xl font-bold text-amber-600">{totalRescheduled}</p>
+            </div>
           </div>
 
           <div className="rounded-xl border border-brand-100 bg-white shadow-sm overflow-x-auto">
