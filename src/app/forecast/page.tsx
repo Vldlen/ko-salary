@@ -42,6 +42,18 @@ export default function ForecastPage() {
           activePeriod.id,
           isManager ? currentUser.id : undefined
         )
+
+        // For non-managers, enrich deals with user names
+        if (!isManager && data.length > 0) {
+          const userIds = [...new Set(data.map((d: any) => d.user_id))]
+          const { data: usersData } = await supabase
+            .from('users')
+            .select('id, full_name')
+            .in('id', userIds)
+          const userMap = new Map((usersData || []).map((u: any) => [u.id, u.full_name]))
+          data.forEach((d: any) => { d.user_name = userMap.get(d.user_id) || '—' })
+        }
+
         setDeals(data)
       } catch (err) {
         console.error('Forecast load error:', err)
@@ -151,7 +163,7 @@ export default function ForecastPage() {
                       {group.deals.map((deal: any) => (
                         <tr key={deal.id} className="border-b border-brand-50 hover:bg-brand-50/50 transition">
                           {showUserColumn && (
-                            <td className="px-4 py-3 text-brand-800 font-medium">{deal.user?.full_name || '—'}</td>
+                            <td className="px-4 py-3 text-brand-800 font-medium">{deal.user_name || '—'}</td>
                           )}
                           <td className="px-4 py-3 text-brand-900 font-medium">{deal.client_name}</td>
                           <td className="px-4 py-3 text-right text-brand-900 font-medium">{formatMoney(deal.revenue)}</td>

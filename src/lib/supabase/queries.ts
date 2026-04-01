@@ -268,20 +268,18 @@ export async function getTeamProgress(supabase: SupabaseClient, companyId: strin
 // ======== Forecast ========
 
 export async function getForecastDeals(supabase: SupabaseClient, periodId: string, userId?: string) {
-  // Get all non-cancelled deals for the period
-  // If userId provided — filter by user, otherwise get all (for ROP/director)
   let query = supabase
     .from('deals')
-    .select('*, user:users(id, full_name, company:companies(name))')
+    .select('*')
     .eq('period_id', periodId)
-    .neq('status', 'cancelled')
     .order('created_at', { ascending: false })
 
   if (userId) {
     query = query.eq('user_id', userId)
   }
 
-  const { data } = await query
+  const { data, error } = await query
+  if (error) console.error('getForecastDeals error:', error)
   return data || []
 }
 
