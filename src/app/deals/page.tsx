@@ -270,8 +270,8 @@ export default function DealsPage() {
             ))}
           </div>
 
-          {/* New/Edit Deal Form */}
-          {showForm && (
+          {/* New/Edit Deal Form — only for managers */}
+          {showForm && user?.role === 'manager' && (
             <div className="mb-8 rounded-2xl glass p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-white">
@@ -453,18 +453,20 @@ export default function DealsPage() {
                     </td>
                     <td className="px-4 py-4 text-sm text-blue-400">{formatDate(deal.created_at)}</td>
                     <td className="px-4 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => openEdit(deal)}
-                          className="rounded-lg p-2 text-blue-400 hover:bg-white/5 transition-colors"
-                          title="Редактировать">
-                          <Pencil size={16} />
-                        </button>
-                        <button onClick={() => handleDelete(deal.id)}
-                          className="rounded-lg p-2 text-red-400 hover:bg-red-50/10 transition-colors"
-                          title="Удалить">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                      {user?.role === 'manager' && (
+                        <div className="flex items-center justify-end gap-2">
+                          <button onClick={() => openEdit(deal)}
+                            className="rounded-lg p-2 text-blue-400 hover:bg-white/5 transition-colors"
+                            title="Редактировать">
+                            <Pencil size={16} />
+                          </button>
+                          <button onClick={() => handleDelete(deal.id)}
+                            className="rounded-lg p-2 text-red-400 hover:bg-red-50/10 transition-colors"
+                            title="Удалить">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 )) : (
@@ -476,8 +478,8 @@ export default function DealsPage() {
             </table>
           </div>
 
-          {/* Add button */}
-          {!showForm && (
+          {/* Add button — only for managers */}
+          {!showForm && user?.role === 'manager' && (
             <button onClick={openNew}
               className="flex items-center gap-2 rounded-2xl bg-blue-500 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-600">
               <Plus size={20} />

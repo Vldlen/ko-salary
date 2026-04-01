@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, UserCog, Plus, X, Check, Ban, Copy, Eye, EyeOff } from 'lucide-react'
+import { Loader2, UserCog, Plus, X, Check, Ban, Copy, Eye, EyeOff, Pencil } from 'lucide-react'
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import { cn } from '@/lib/utils'
@@ -31,6 +31,9 @@ export default function AdminUsersPage() {
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [createdCreds, setCreatedCreds] = useState<{ login: string; password: string; name: string } | null>(null)
+  const [editUser, setEditUser] = useState<any>(null)
+  const [editForm, setEditForm] = useState({ company_id: '', position_id: '', role: '' })
+  const [editSaving, setEditSaving] = useState(false)
   const [form, setForm] = useState({
     full_name: '', role: 'manager', company_id: '', position_id: ''
   })
@@ -128,6 +131,39 @@ export default function AdminUsersPage() {
     return { label: 'Активен', color: 'bg-green-500/20 text-green-300' }
   }
 
+  function openEditUser(u: any) {
+    setEditUser(u)
+    setEditForm({
+      company_id: u.company_id || '',
+      position_id: u.position_id || '',
+      role: u.role || 'manager',
+    })
+  }
+
+  async function saveEditUser() {
+    if (!editUser) return
+    setEditSaving(true)
+    try {
+      const updates: any = { role: editForm.role }
+      if (['manager', 'rop'].includes(editForm.role)) {
+        updates.company_id = editForm.company_id || null
+        updates.position_id = editForm.position_id || null
+      } else {
+        updates.company_id = null
+        updates.position_id = null
+      }
+      await updateUserProfile(supabase, editUser.id, updates)
+      // Refresh users to get joined company/position names
+      const usersData = await getUsers(supabase)
+      setUsers(usersData)
+      setEditUser(null)
+    } catch (err: any) {
+      alert('Ошибка: ' + err.message)
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
   function copyToClipboard(text: string, id: string) {
     navigator.clipboard.writeText(text)
     setCopiedId(id)
@@ -179,27 +215,34 @@ export default function AdminUsersPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white/70 mb-1">Роль</label>
-                  <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}
+                  <select value={form.role} onChange={e => {
+                      const role = e.target.value
+                      setForm({ ...form, role, ...(!['manager', 'rop'].includes(role) ? { company_id: '', position_id: '' } : {}) })
+                    }}
                     className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 outline-none">
                     {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1">Компания</label>
-                  <select required value={form.company_id} onChange={e => setForm({ ...form, company_id: e.target.value, position_id: '' })}
-                    className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 outline-none">
-                    <option value="">Выберите компанию</option>
-                    {companies.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-white/70 mb-1">Должность</label>
-                  <select required value={form.position_id} onChange={e => setForm({ ...form, position_id: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 outline-none">
-                    <option value="">Выберите должность</option>
-                    {filteredPositions.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                </div>
+                {['manager', 'rop'].includes(form.role) && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-white/70 mb-1">Компания</label>
+                      <select required value={form.company_id} onChange={e => setForm({ ...form, company_id: e.target.value, position_id: '' })}
+                        className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 outline-none">
+                        <option value="">Выберите компанию</option>
+                        {companies.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-white/70 mb-1">Должность</label>
+                      <select required value={form.position_id} onChange={e => setForm({ ...form, position_id: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 outline-none">
+                        <option value="">Выберите должность</option>
+                        {filteredPositions.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      </select>
+                    </div>
+                  </>
+                )}
               </div>
               {error && <div className="text-red-400 text-sm bg-red-500/10 px-4 py-2 rounded-xl mb-4 border border-red-500/20">{error}</div>}
               <button type="submit" disabled={saving}
@@ -247,6 +290,60 @@ export default function AdminUsersPage() {
                 }}
                   className="w-full mt-4 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 font-medium text-sm px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2">
                   {copiedId === 'modal-all' ? <><Check className="w-4 h-4" /> Скопировано!</> : <><Copy className="w-4 h-4" /> Скопировать всё</>}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Edit user modal */}
+          {editUser && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setEditUser(null)}>
+              <div className="glass-strong rounded-2xl p-6 w-96 shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-heading font-bold text-white">Редактировать</h3>
+                  <button onClick={() => setEditUser(null)} className="text-white/40 hover:text-white"><X className="w-5 h-5" /></button>
+                </div>
+                <p className="text-sm text-white/50 mb-4">{editUser.full_name}</p>
+
+                <div className="space-y-3 mb-4">
+                  <div>
+                    <label className="block text-xs text-white/40 mb-1">Роль</label>
+                    <select value={editForm.role} onChange={e => {
+                        const role = e.target.value
+                        setEditForm(prev => ({ ...prev, role, ...(!['manager', 'rop'].includes(role) ? { company_id: '', position_id: '' } : {}) }))
+                      }}
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none focus:ring-2 focus:ring-blue-400/30">
+                      {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                    </select>
+                  </div>
+
+                  {['manager', 'rop'].includes(editForm.role) && (
+                    <>
+                      <div>
+                        <label className="block text-xs text-white/40 mb-1">Компания</label>
+                        <select value={editForm.company_id} onChange={e => setEditForm(prev => ({ ...prev, company_id: e.target.value, position_id: '' }))}
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none focus:ring-2 focus:ring-blue-400/30">
+                          <option value="">Не выбрано</option>
+                          {companies.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-white/40 mb-1">Должность</label>
+                        <select value={editForm.position_id} onChange={e => setEditForm(prev => ({ ...prev, position_id: e.target.value }))}
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none focus:ring-2 focus:ring-blue-400/30">
+                          <option value="">Не выбрано</option>
+                          {positions.filter((p: any) => !editForm.company_id || p.company_id === editForm.company_id).map((p: any) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <button onClick={saveEditUser} disabled={editSaving}
+                  className="w-full bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 font-medium text-sm px-4 py-2.5 rounded-xl transition disabled:opacity-50">
+                  {editSaving ? 'Сохраняю...' : 'Сохранить'}
                 </button>
               </div>
             </div>
@@ -342,6 +439,13 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => openEditUser(u)}
+                          className="text-xs font-medium px-2.5 py-1.5 rounded-lg transition text-blue-400 hover:bg-blue-500/10"
+                          title="Редактировать"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
                         {u.is_active && !u.fired_at && (
                           <>
                             <button

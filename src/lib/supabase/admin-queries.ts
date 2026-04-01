@@ -59,7 +59,8 @@ export async function createUserProfile(supabase: SupabaseClient, userData: {
 export async function updateUserProfile(supabase: SupabaseClient, userId: string, updates: {
   full_name?: string
   role?: string
-  position_id?: string
+  company_id?: string | null
+  position_id?: string | null
   is_active?: boolean
   fired_at?: string | null
 }) {
