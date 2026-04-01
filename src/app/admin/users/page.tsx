@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, UserCog, Plus, X, Check, Ban } from 'lucide-react'
+import { Loader2, UserCog, Plus, X, Check, Ban, Copy, Eye, EyeOff } from 'lucide-react'
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import { cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { getCurrentUser } from '@/lib/supabase/queries'
-import { getUsers, getCompanies, getPositions, createUserProfile, updateUserProfile } from '@/lib/supabase/admin-queries'
+import { getUsers, getCompanies, getPositions, updateUserProfile } from '@/lib/supabase/admin-queries'
 
 const ROLES = [
   { value: 'manager', label: 'Менеджер' },
@@ -28,8 +28,11 @@ export default function AdminUsersPage() {
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [createdCreds, setCreatedCreds] = useState<{ login: string; password: string; name: string } | null>(null)
   const [form, setForm] = useState({
-    email: '', full_name: '', password: '', role: 'manager', company_id: '', position_id: ''
+    full_name: '', role: 'manager', company_id: '', position_id: ''
   })
 
   useEffect(() => {
@@ -66,9 +69,7 @@ export default function AdminUsersPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: form.email,
           full_name: form.full_name,
-          password: form.password,
           role: form.role,
           company_id: form.company_id,
           position_id: form.position_id,
@@ -78,11 +79,19 @@ export default function AdminUsersPage() {
       if (!res.ok) {
         throw new Error(result.error || 'Ошибка при создании пользователя')
       }
+
+      // Show credentials modal
+      setCreatedCreds({
+        login: result.credentials.login,
+        password: result.credentials.password,
+        name: form.full_name,
+      })
+
       // Refresh users list
       const usersData = await getUsers(supabase)
       setUsers(usersData)
       setShowForm(false)
-      setForm({ email: '', full_name: '', password: '', role: 'manager', company_id: '', position_id: '' })
+      setForm({ full_name: '', role: 'manager', company_id: '', position_id: '' })
     } catch (err: any) {
       setError(err.message || 'Ошибка при создании пользователя')
     } finally {
@@ -97,6 +106,12 @@ export default function AdminUsersPage() {
     } catch (err: any) {
       alert('Ошибка: ' + err.message)
     }
+  }
+
+  function copyToClipboard(text: string, id: string) {
+    navigator.clipboard.writeText(text)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
   }
 
   if (loading) {
@@ -130,28 +145,17 @@ export default function AdminUsersPage() {
             </button>
           </div>
 
-          {/* Create form */}
+          {/* Create form — no email/password, just name + role + company + position */}
           {showForm && (
             <form onSubmit={handleCreate} className="glass rounded-2xl p-6 mb-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Новый сотрудник</h2>
+              <h2 className="text-lg font-semibold text-white mb-1">Новый сотрудник</h2>
+              <p className="text-sm text-white/40 mb-4">Логин и пароль создадутся автоматически</p>
               <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
+                <div className="col-span-2">
                   <label className="block text-sm font-medium text-white/70 mb-1">ФИО</label>
                   <input type="text" required value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })}
                     className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 outline-none"
-                    placeholder="Иванов Иван Иванович" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1">Email</label>
-                  <input type="email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 outline-none"
-                    placeholder="ivan@inno.team" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1">Пароль</label>
-                  <input type="text" required minLength={6} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 outline-none"
-                    placeholder="Минимум 6 символов" />
+                    placeholder="Петров Владлен Игоревич" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white/70 mb-1">Роль</label>
@@ -168,7 +172,7 @@ export default function AdminUsersPage() {
                     {companies.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
-                <div>
+                <div className="col-span-2">
                   <label className="block text-sm font-medium text-white/70 mb-1">Должность</label>
                   <select required value={form.position_id} onChange={e => setForm({ ...form, position_id: e.target.value })}
                     className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 outline-none">
@@ -177,12 +181,55 @@ export default function AdminUsersPage() {
                   </select>
                 </div>
               </div>
-              {error && <div className="text-red-600 text-sm bg-red-50/10 px-4 py-2 rounded-xl mb-4">{error}</div>}
+              {error && <div className="text-red-400 text-sm bg-red-500/10 px-4 py-2 rounded-xl mb-4 border border-red-500/20">{error}</div>}
               <button type="submit" disabled={saving}
                 className="bg-blue-400 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl font-medium text-sm transition disabled:opacity-50">
                 {saving ? 'Создаём...' : 'Создать сотрудника'}
               </button>
             </form>
+          )}
+
+          {/* Credentials modal — shown after successful creation */}
+          {createdCreds && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setCreatedCreds(null)}>
+              <div className="glass-strong rounded-2xl p-6 w-96 shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-heading font-bold text-white">Сотрудник создан</h3>
+                  <button onClick={() => setCreatedCreds(null)} className="text-white/40 hover:text-white"><X className="w-5 h-5" /></button>
+                </div>
+                <p className="text-sm text-white/50 mb-4">Передайте эти данные сотруднику <span className="text-white font-medium">{createdCreds.name}</span></p>
+
+                <div className="space-y-3">
+                  <div className="bg-white/5 rounded-xl p-3">
+                    <p className="text-xs text-white/40 mb-1">Логин</p>
+                    <div className="flex items-center justify-between">
+                      <code className="text-lg font-mono text-blue-400">{createdCreds.login}</code>
+                      <button onClick={() => copyToClipboard(createdCreds.login, 'modal-login')}
+                        className="text-white/40 hover:text-white p-1 transition">
+                        {copiedId === 'modal-login' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-3">
+                    <p className="text-xs text-white/40 mb-1">Пароль</p>
+                    <div className="flex items-center justify-between">
+                      <code className="text-lg font-mono text-orange-400">{createdCreds.password}</code>
+                      <button onClick={() => copyToClipboard(createdCreds.password, 'modal-pass')}
+                        className="text-white/40 hover:text-white p-1 transition">
+                        {copiedId === 'modal-pass' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <button onClick={() => {
+                  copyToClipboard(`Логин: ${createdCreds.login}\nПароль: ${createdCreds.password}`, 'modal-all')
+                }}
+                  className="w-full mt-4 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 font-medium text-sm px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+                  {copiedId === 'modal-all' ? <><Check className="w-4 h-4" /> Скопировано!</> : <><Copy className="w-4 h-4" /> Скопировать всё</>}
+                </button>
+              </div>
+            </div>
           )}
 
           {/* Users table */}
@@ -191,9 +238,10 @@ export default function AdminUsersPage() {
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
                   <th className="px-6 py-3.5 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Сотрудник</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Логин</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Пароль</th>
                   <th className="px-6 py-3.5 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Роль</th>
                   <th className="px-6 py-3.5 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Компания</th>
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Должность</th>
                   <th className="px-6 py-3.5 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Статус</th>
                   <th className="px-6 py-3.5 text-right text-xs font-semibold text-white/50 uppercase tracking-wider">Действия</th>
                 </tr>
@@ -208,8 +256,40 @@ export default function AdminUsersPage() {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-white">{u.full_name}</p>
-                          <p className="text-xs text-white/40">{u.email}</p>
+                          <p className="text-xs text-white/30">{u.position?.name || '—'}</p>
                         </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <code className="text-sm font-mono text-blue-400">{u.login || '—'}</code>
+                        {u.login && (
+                          <button onClick={() => copyToClipboard(u.login, `login-${u.id}`)}
+                            className="text-white/30 hover:text-white transition p-0.5">
+                            {copiedId === `login-${u.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        {u.password_plain ? (
+                          <>
+                            <code className="text-sm font-mono text-white/60">
+                              {showPasswords[u.id] ? u.password_plain : '•••••••'}
+                            </code>
+                            <button onClick={() => setShowPasswords(prev => ({ ...prev, [u.id]: !prev[u.id] }))}
+                              className="text-white/30 hover:text-white transition p-0.5">
+                              {showPasswords[u.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                            <button onClick={() => copyToClipboard(u.password_plain, `pass-${u.id}`)}
+                              className="text-white/30 hover:text-white transition p-0.5">
+                              {copiedId === `pass-${u.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-sm text-white/30">—</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -223,7 +303,6 @@ export default function AdminUsersPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-white/70">{u.company?.name || '—'}</td>
-                    <td className="px-6 py-4 text-sm text-white/70">{u.position?.name || '—'}</td>
                     <td className="px-6 py-4">
                       <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full',
                         u.is_active ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
@@ -241,13 +320,13 @@ export default function AdminUsersPage() {
                         )}
                       >
                         {u.is_active ? <Ban className="w-4 h-4 inline mr-1" /> : <Check className="w-4 h-4 inline mr-1" />}
-                        {u.is_active ? 'Отключить' : 'Включить'}
+                        {u.is_active ? 'Откл.' : 'Вкл.'}
                       </button>
                     </td>
                   </tr>
                 ))}
                 {users.length === 0 && (
-                  <tr><td colSpan={6} className="px-6 py-8 text-center text-white/40">Нет сотрудников</td></tr>
+                  <tr><td colSpan={7} className="px-6 py-8 text-center text-white/40">Нет сотрудников</td></tr>
                 )}
               </tbody>
             </table>

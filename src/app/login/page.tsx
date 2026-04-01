@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -17,10 +17,13 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
+    // Логин → email для Supabase Auth
+    const email = login.includes('@') ? login : `${login.toLowerCase().trim()}@pulse.local`
+
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-      setError('Неверный email или пароль')
+      setError('Неверный логин или пароль')
       setLoading(false)
       return
     }
@@ -36,7 +39,7 @@ export default function LoginPage() {
       <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-gradient-to-tr from-orange-500/10 to-blue-500/10 rounded-full blur-3xl" />
       <div className="absolute top-[40%] left-[30%] w-[300px] h-[300px] bg-gradient-to-r from-blue-400/10 to-transparent rounded-full blur-3xl" />
 
-      <div className="relative glass-strong rounded-3xl shadow-xl shadow-brand-400/10 p-8 w-full max-w-md">
+      <div className="relative glass-strong rounded-3xl shadow-xl shadow-blue-500/10 p-8 w-full max-w-md mx-4">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 mb-4">
@@ -48,13 +51,15 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Email</label>
+            <label className="block text-sm font-medium text-white/70 mb-1.5">Логин</label>
             <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              type="text"
+              value={login}
+              onChange={e => setLogin(e.target.value)}
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 outline-none transition text-white placeholder-white/40"
-              placeholder="ivan@inno.team"
+              placeholder="v.petrov"
+              autoCapitalize="none"
+              autoCorrect="off"
               required
             />
           </div>
@@ -72,7 +77,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="text-red-600 text-sm bg-red-50/10 px-4 py-2.5 rounded-xl border border-red-500/20">{error}</div>
+            <div className="text-red-400 text-sm bg-red-500/10 px-4 py-2.5 rounded-xl border border-red-500/20">{error}</div>
           )}
 
           <button
