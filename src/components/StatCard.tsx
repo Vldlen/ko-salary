@@ -20,7 +20,7 @@ export default function StatCard({ title, value, subtitle, icon: Icon, trend, va
 
   return (
     <div className={cn(
-      'bg-white rounded-2xl border border-brand-100 p-5 hover:shadow-md transition-shadow',
+      'glass rounded-2xl p-5 hover:shadow-md transition-shadow',
       className
     )}>
       <div className="flex items-start justify-between">

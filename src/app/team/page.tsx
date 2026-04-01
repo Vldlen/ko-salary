@@ -119,22 +119,22 @@ export default function TeamPage() {
 
           {/* Summary cards */}
           <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+            <div className="rounded-xl glass p-4">
               <p className="text-xs text-brand-500 mb-1">Факт выручки</p>
               <p className="text-2xl font-bold text-brand-900">{formatMoney(totalRev)}</p>
               <p className="text-[10px] text-brand-400 mt-0.5">план: {formatMoney(totalPlan)}</p>
             </div>
-            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+            <div className="rounded-xl glass p-4">
               <p className="text-xs text-brand-500 mb-1">Прогноз</p>
               <p className="text-2xl font-bold text-blue-600">{formatMoney(totalRev + totalForecast)}</p>
               <p className="text-[10px] text-brand-400 mt-0.5">факт + неоплаченные</p>
             </div>
-            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+            <div className="rounded-xl glass p-4">
               <p className="text-xs text-brand-500 mb-1">Точки</p>
               <p className="text-2xl font-bold text-brand-900">{totalUnits} / {totalUp}</p>
               <p className="text-[10px] text-brand-400 mt-0.5">{totalUp > 0 ? Math.round(totalUnits / totalUp * 100) : 0}%</p>
             </div>
-            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+            <div className="rounded-xl glass p-4">
               <p className="text-xs text-brand-500 mb-1">Встречи</p>
               <p className="text-2xl font-bold text-brand-900">{totalMeet} / {totalMp}</p>
               <p className="text-[10px] text-brand-400 mt-0.5">{totalMp > 0 ? Math.round(totalMeet / totalMp * 100) : 0}%</p>
@@ -142,7 +142,7 @@ export default function TeamPage() {
           </div>
 
           {/* Overall progress */}
-          <div className="bg-white rounded-xl border border-brand-100 p-5 mb-6">
+          <div className="glass rounded-xl p-5 mb-6">
             <h2 className="text-sm font-semibold text-brand-900 mb-3">Общий прогресс</h2>
             <div className="space-y-3">
               <ProgressBar label="Выручка" value={totalRev} max={totalPlan} percent={avgRevPct} formatValue={formatMoney} />
@@ -164,7 +164,7 @@ export default function TeamPage() {
                   : { label: 'Риск', cls: 'bg-red-100 text-red-700' }
 
               return (
-                <div key={m.id} className="bg-white rounded-xl border border-brand-100 shadow-sm p-5">
+                <div key={m.id} className="glass rounded-xl p-5">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold text-sm">

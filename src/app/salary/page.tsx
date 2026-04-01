@@ -73,7 +73,7 @@ export default function SalaryPage() {
           <h1 className="text-2xl font-heading font-bold text-brand-900 mb-6">Расчёт зарплаты</h1>
 
           <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-white rounded-2xl border border-brand-100 p-6 flex flex-col items-center justify-center">
+            <div className="glass rounded-2xl p-6 flex flex-col items-center justify-center">
               <Wallet className="w-6 h-6 text-brand-300 mb-2" />
               <p className="text-sm text-gray-400 mb-1">Текущая зарплата</p>
               <p className="text-3xl font-bold text-brand-500">{formatMoney(Number(s.total))}</p>
@@ -86,7 +86,7 @@ export default function SalaryPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-brand-100 p-6 mb-6">
+          <div className="glass rounded-2xl p-6 mb-6">
             <h2 className="text-lg font-heading font-semibold text-brand-900 mb-4">Детализация</h2>
             {items.map(item => (
               <div key={item.label} className="mb-4">
@@ -110,7 +110,7 @@ export default function SalaryPage() {
           </div>
 
           {history.length > 0 && (
-            <div className="bg-white rounded-2xl border border-brand-100 p-6">
+            <div className="glass rounded-2xl p-6">
               <h2 className="text-lg font-heading font-semibold text-brand-900 mb-4">История</h2>
               <div className="flex gap-3">
                 {history.map((h: any) => (

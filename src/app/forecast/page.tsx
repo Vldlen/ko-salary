@@ -113,17 +113,17 @@ export default function ForecastPage() {
 
           {/* Summary cards */}
           <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+            <div className="rounded-xl glass p-4">
               <p className="text-xs text-brand-500 mb-1">Прогноз (неоплаченные)</p>
               <p className="text-2xl font-bold text-brand-900">{formatMoney(forecastRevenue)}</p>
               <p className="text-[10px] text-brand-400 mt-0.5">{forecastUnits} юнитов • {forecastDeals.length} сделок</p>
             </div>
-            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+            <div className="rounded-xl glass p-4">
               <p className="text-xs text-brand-500 mb-1">Уже оплачено</p>
               <p className="text-2xl font-bold text-emerald-600">{formatMoney(paidRevenue)}</p>
               <p className="text-[10px] text-brand-400 mt-0.5">{paidUnits} юнитов • {paidDeals.length} сделок</p>
             </div>
-            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+            <div className="rounded-xl glass p-4">
               <p className="text-xs text-brand-500 mb-1">Итого если всё закроется</p>
               <p className="text-2xl font-bold text-blue-600">{formatMoney(totalRevenue)}</p>
               <p className="text-[10px] text-brand-400 mt-0.5">
@@ -141,7 +141,7 @@ export default function ForecastPage() {
               <div key={group.status} className="mb-4">
                 <button
                   onClick={() => toggleGroup(group.status)}
-                  className="w-full flex items-center gap-3 py-3 px-4 bg-white rounded-xl border border-brand-100 shadow-sm hover:bg-brand-50 transition"
+                  className="w-full flex items-center gap-3 py-3 px-4 glass rounded-xl hover:bg-brand-50 transition"
                 >
                   {isExpanded
                     ? <ChevronDown className="w-4 h-4 text-brand-400" />
@@ -159,7 +159,7 @@ export default function ForecastPage() {
                 </button>
 
                 {isExpanded && (
-                  <div className="mt-2 bg-white rounded-xl border border-brand-100 shadow-sm overflow-hidden">
+                  <div className="mt-2 glass rounded-xl overflow-hidden">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-brand-100 bg-brand-50">

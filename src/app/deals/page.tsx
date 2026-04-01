@@ -228,7 +228,7 @@ export default function DealsPage() {
         <div className="p-8">
           <div className="mb-8 flex items-center justify-between">
             <h1 className="font-heading text-3xl font-bold text-brand-900">Сделки</h1>
-            <div className="flex items-center gap-2 rounded-lg border border-brand-100 bg-white px-4 py-2">
+            <div className="flex items-center gap-2 rounded-lg glass px-4 py-2">
               <span className="text-sm font-medium text-brand-900">
                 {period ? `${['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'][period.month-1]} ${period.year}` : '...'}
               </span>
@@ -238,26 +238,26 @@ export default function DealsPage() {
 
           {/* Stats */}
           <div className="mb-8 grid grid-cols-4 gap-4">
-            <div className="rounded-2xl border border-brand-100 bg-white p-6">
+            <div className="rounded-2xl glass p-6">
               <p className="text-sm font-medium text-brand-500">Выручка</p>
               <p className="font-heading text-2xl font-bold text-brand-900 mt-2">{formatMoney(totalRevenue)}</p>
             </div>
-            <div className="rounded-2xl border border-brand-100 bg-white p-6">
+            <div className="rounded-2xl glass p-6">
               <p className="text-sm font-medium text-brand-500">Точки</p>
               <p className="font-heading text-2xl font-bold text-brand-900 mt-2">{totalUnits}</p>
             </div>
-            <div className="rounded-2xl border border-brand-100 bg-white p-6">
+            <div className="rounded-2xl glass p-6">
               <p className="text-sm font-medium text-brand-500">Сделок</p>
               <p className="font-heading text-2xl font-bold text-brand-900 mt-2">{dealsCount}</p>
             </div>
-            <div className="rounded-2xl border border-brand-100 bg-white p-6">
+            <div className="rounded-2xl glass p-6">
               <p className="text-sm font-medium text-brand-500">Маржа обор.</p>
               <p className={cn("font-heading text-2xl font-bold mt-2", totalMargin > 0 ? 'text-green-600' : 'text-brand-900')}>{formatMoney(totalMargin)}</p>
             </div>
           </div>
 
           {/* Filters */}
-          <div className="mb-8 flex items-center gap-2 overflow-x-auto rounded-2xl border border-brand-100 bg-white p-2">
+          <div className="mb-8 flex items-center gap-2 overflow-x-auto rounded-2xl glass p-2">
             {STATUS_FILTERS.map((filter) => (
               <button key={filter.key} onClick={() => setSelectedStatus(filter.key)}
                 className={cn('whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition-colors',
@@ -270,7 +270,7 @@ export default function DealsPage() {
 
           {/* New/Edit Deal Form */}
           {showForm && (
-            <div className="mb-8 rounded-2xl border border-brand-100 bg-white p-6">
+            <div className="mb-8 rounded-2xl glass p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-brand-900">
                   {editingDeal ? 'Редактировать сделку' : 'Новая сделка'}
@@ -388,7 +388,7 @@ export default function DealsPage() {
           )}
 
           {/* Deals Table */}
-          <div className="mb-8 overflow-x-auto rounded-2xl border border-brand-100 bg-white">
+          <div className="mb-8 overflow-x-auto rounded-2xl glass">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-brand-100 bg-brand-50">
@@ -488,7 +488,7 @@ export default function DealsPage() {
         {paidPopup && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/20" onClick={() => setPaidPopup(null)} />
-            <div className="relative rounded-2xl border border-brand-100 bg-white p-6 shadow-xl w-80">
+            <div className="relative rounded-2xl glass p-6 shadow-xl w-80">
               <h3 className="text-base font-bold text-brand-900 mb-1">Дата оплаты</h3>
               <p className="text-xs text-brand-500 mb-4">Укажите дату поступления оплаты</p>
               <input

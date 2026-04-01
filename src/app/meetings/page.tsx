@@ -227,22 +227,22 @@ export default function MeetingsPage() {
 
           {/* Summary cards */}
           <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+            <div className="rounded-xl glass p-4">
               <p className="text-xs text-brand-500 mb-1">Назначено</p>
               <p className="text-2xl font-bold text-brand-900">{totalScheduled}</p>
             </div>
-            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+            <div className="rounded-xl glass p-4">
               <p className="text-xs text-brand-500 mb-1">Проведено</p>
               <p className="text-2xl font-bold text-emerald-600">{totalCompleted}</p>
               <p className="text-[10px] text-brand-400 mt-0.5">новых + повторных</p>
             </div>
-            <div className="rounded-xl bg-white border border-brand-100 shadow-sm p-4">
+            <div className="rounded-xl glass p-4">
               <p className="text-xs text-brand-500 mb-1">Перенесено</p>
               <p className="text-2xl font-bold text-amber-600">{totalRescheduled}</p>
             </div>
           </div>
 
-          <div className="rounded-xl border border-brand-100 bg-white shadow-sm overflow-x-auto">
+          <div className="rounded-xl glass overflow-x-auto">
             <table className="text-xs border-collapse w-max">
               <thead>
                 <tr>

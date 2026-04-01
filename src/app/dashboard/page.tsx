@@ -92,7 +92,7 @@ export default function DashboardPage() {
               </h1>
               <p className="text-gray-400 mt-1">Мой прогресс</p>
             </div>
-            <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-2 border border-brand-100">
+            <div className="flex items-center gap-2 glass rounded-xl px-4 py-2">
               <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               <span className="text-sm text-gray-500">Период активен</span>
             </div>
@@ -132,7 +132,7 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             {/* Plan progress */}
-            <div className="bg-white rounded-2xl border border-brand-100 p-6">
+            <div className="glass rounded-2xl p-6">
               <h2 className="text-lg font-heading font-semibold text-brand-900 mb-5 flex items-center gap-2">
                 <Target className="w-5 h-5 text-brand-500" />
                 Выполнение плана
@@ -168,7 +168,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Salary breakdown */}
-            <div className="bg-white rounded-2xl border border-brand-100 p-6">
+            <div className="glass rounded-2xl p-6">
               <h2 className="text-lg font-heading font-semibold text-brand-900 mb-5 flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-brand-500" />
                 Расчёт ЗП
@@ -204,7 +204,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Recent deals */}
-          <div className="bg-white rounded-2xl border border-brand-100 p-6">
+          <div className="glass rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-heading font-semibold text-brand-900 flex items-center gap-2">
                 <Handshake className="w-5 h-5 text-brand-500" />

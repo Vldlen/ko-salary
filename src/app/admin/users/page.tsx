@@ -130,7 +130,7 @@ export default function AdminUsersPage() {
 
           {/* Create form */}
           {showForm && (
-            <form onSubmit={handleCreate} className="bg-white rounded-2xl border border-brand-100 p-6 mb-6">
+            <form onSubmit={handleCreate} className="glass rounded-2xl p-6 mb-6">
               <h2 className="text-lg font-semibold text-brand-900 mb-4">Новый сотрудник</h2>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
@@ -184,7 +184,7 @@ export default function AdminUsersPage() {
           )}
 
           {/* Users table */}
-          <div className="bg-white rounded-2xl border border-brand-100 overflow-hidden">
+          <div className="glass rounded-2xl overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-brand-100 bg-brand-50">
