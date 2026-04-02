@@ -56,7 +56,7 @@ export default function ViewAsBar({ userRole }: ViewAsBarProps) {
         {showPicker && (
           <>
             <div className="fixed inset-0 z-30" onClick={() => setShowPicker(false)} />
-            <div className="absolute right-0 top-full mt-2 z-[100] glass-strong rounded-xl shadow-2xl w-72 max-h-80 overflow-y-auto border border-white/10">
+            <div className="absolute right-0 top-full mt-2 z-[100] bg-[#1a1f35] rounded-xl shadow-2xl w-72 max-h-80 overflow-y-auto border border-white/15 backdrop-blur-none">
               {managers.length === 0 ? (
                 <div className="p-4 text-sm text-white/30 text-center">Нет активных менеджеров</div>
               ) : (
