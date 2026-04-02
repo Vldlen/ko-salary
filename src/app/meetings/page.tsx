@@ -63,6 +63,7 @@ export default function MeetingsPage() {
   const [dirtyKeys, setDirtyKeys] = useState<Set<string>>(new Set())
   const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set())
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({})
 
   const cellKey = (date: string, field: MeetingField) => `${date}__${field}`
 
@@ -127,6 +128,13 @@ export default function MeetingsPage() {
     const clean = value.replace(/\D/g, '')
     setCellValues(prev => ({ ...prev, [key]: clean }))
     setDirtyKeys(prev => new Set(prev).add(key))
+
+    // Debounce: автосохранение через 800мс после последнего ввода
+    if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key])
+    debounceTimers.current[key] = setTimeout(() => {
+      // Триггерим blur-сохранение через фокус
+      inputRefs.current[key]?.blur()
+    }, 800)
   }, [])
 
   const handleBlur = useCallback(async (key: string) => {

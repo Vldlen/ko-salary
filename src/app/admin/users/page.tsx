@@ -9,11 +9,12 @@ import { cn, generatePassword } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { getCurrentUser } from '@/lib/supabase/queries'
 import { getUsers, getCompanies, getPositions, updateUserProfile } from '@/lib/supabase/admin-queries'
+import { logAudit } from '@/lib/audit'
 
 const ROLES = [
   { value: 'manager', label: 'Менеджер' },
   { value: 'rop', label: 'РОП' },
-  { value: 'director', label: 'Комдир' },
+  { value: 'director', label: 'Директор по продажам' },
   { value: 'admin', label: 'Администратор' },
 ]
 
@@ -33,6 +34,7 @@ export default function AdminUsersPage() {
   const [editUser, setEditUser] = useState<any>(null)
   const [editForm, setEditForm] = useState({ company_id: '', position_id: '', role: '' })
   const [editSaving, setEditSaving] = useState(false)
+  const [showDeleted, setShowDeleted] = useState(false)
   const [form, setForm] = useState({
     full_name: '', role: 'manager', company_id: '', position_id: ''
   })
@@ -82,6 +84,11 @@ export default function AdminUsersPage() {
         throw new Error(result.error || 'Ошибка при создании пользователя')
       }
 
+      // Audit log
+      if (currentUser) {
+        logAudit(supabase, 'user_created', currentUser.id, { target_name: form.full_name, role: form.role })
+      }
+
       // Show credentials modal
       setCreatedCreds({
         login: result.credentials.login,
@@ -104,6 +111,8 @@ export default function AdminUsersPage() {
   async function blockUser(userId: string) {
     try {
       await updateUserProfile(supabase, userId, { is_active: false })
+      const target = users.find(u => u.id === userId)
+      if (currentUser) logAudit(supabase, 'user_blocked', currentUser.id, { target_name: target?.full_name })
       setUsers(users.map(u => u.id === userId ? { ...u, is_active: false } : u))
     } catch (err: any) { alert('Ошибка: ' + err.message) }
   }
@@ -111,6 +120,8 @@ export default function AdminUsersPage() {
   async function unblockUser(userId: string) {
     try {
       await updateUserProfile(supabase, userId, { is_active: true, fired_at: null })
+      const target = users.find(u => u.id === userId)
+      if (currentUser) logAudit(supabase, 'user_unblocked', currentUser.id, { target_name: target?.full_name })
       setUsers(users.map(u => u.id === userId ? { ...u, is_active: true, fired_at: null } : u))
     } catch (err: any) { alert('Ошибка: ' + err.message) }
   }
@@ -120,26 +131,33 @@ export default function AdminUsersPage() {
     try {
       const fired_at = new Date().toISOString()
       await updateUserProfile(supabase, userId, { is_active: false, fired_at })
+      const target = users.find(u => u.id === userId)
+      if (currentUser) logAudit(supabase, 'user_fired', currentUser.id, { target_name: target?.full_name })
       setUsers(users.map(u => u.id === userId ? { ...u, is_active: false, fired_at } : u))
     } catch (err: any) { alert('Ошибка: ' + err.message) }
   }
 
-  async function deleteUser(userId: string, name: string) {
-    if (!confirm(`Удалить ${name} и ВСЕ его данные (сделки, встречи, ЗП)? Это необратимо!`)) return
-    if (!confirm('Точно удалить? Данные нельзя будет восстановить.')) return
+  async function softDeleteUser(userId: string, name: string) {
+    if (!confirm(`Удалить ${name}? Сотрудник будет скрыт, данные сохранятся.`)) return
     try {
-      const res = await fetch('/api/admin/delete-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId }),
-      })
-      const result = await res.json()
-      if (!res.ok) throw new Error(result.error || 'Ошибка')
-      setUsers(users.filter(u => u.id !== userId))
+      const deleted_at = new Date().toISOString()
+      await updateUserProfile(supabase, userId, { is_active: false, deleted_at } as any)
+      if (currentUser) logAudit(supabase, 'user_deleted', currentUser.id, { target_name: name })
+      setUsers(users.map(u => u.id === userId ? { ...u, is_active: false, deleted_at } : u))
+    } catch (err: any) { alert('Ошибка: ' + err.message) }
+  }
+
+  async function restoreUser(userId: string) {
+    try {
+      await updateUserProfile(supabase, userId, { is_active: true, deleted_at: null, fired_at: null } as any)
+      const target = users.find(u => u.id === userId)
+      if (currentUser) logAudit(supabase, 'user_unblocked', currentUser.id, { target_name: target?.full_name })
+      setUsers(users.map(u => u.id === userId ? { ...u, is_active: true, deleted_at: null, fired_at: null } : u))
     } catch (err: any) { alert('Ошибка: ' + err.message) }
   }
 
   function getUserStatus(u: any): { label: string; color: string } {
+    if (u.deleted_at) return { label: 'Удалён', color: 'bg-red-500/20 text-red-300' }
     if (u.fired_at) return { label: 'Уволен', color: 'bg-red-500/20 text-red-300' }
     if (!u.is_active) return { label: 'Заблокирован', color: 'bg-orange-500/20 text-orange-300' }
     return { label: 'Активен', color: 'bg-green-500/20 text-green-300' }
@@ -167,6 +185,7 @@ export default function AdminUsersPage() {
         updates.position_id = null
       }
       await updateUserProfile(supabase, editUser.id, updates)
+      if (currentUser) logAudit(supabase, 'user_edited', currentUser.id, { target_name: editUser.full_name, changes: updates })
       // Refresh users to get joined company/position names
       const usersData = await getUsers(supabase)
       setUsers(usersData)
@@ -182,10 +201,20 @@ export default function AdminUsersPage() {
     if (!confirm('Сгенерировать новый пароль?')) return
     try {
       const newPassword = generatePassword()
-      await updateUserProfile(supabase, userId, { password_plain: newPassword } as any)
-      setUsers(users.map(u => u.id === userId ? { ...u, password_plain: newPassword } : u))
+      // Обновляем пароль в Auth через API
+      const res = await fetch('/api/admin/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, new_password: newPassword }),
+      })
+      if (!res.ok) {
+        const result = await res.json()
+        throw new Error(result.error || 'Ошибка смены пароля')
+      }
+      const target = users.find(u => u.id === userId)
+      if (currentUser) logAudit(supabase, 'password_reset', currentUser.id, { target_name: target?.full_name })
       copyToClipboard(newPassword, `pass-${userId}`)
-      alert(`Новый пароль: ${newPassword}\n(уже скопирован)`)
+      alert(`Новый пароль: ${newPassword}\n(уже скопирован в буфер)`)
     } catch (err: any) { alert('Ошибка: ' + err.message) }
   }
 
@@ -217,13 +246,20 @@ export default function AdminUsersPage() {
               <h1 className="text-2xl font-heading font-bold text-white">Сотрудники</h1>
               <span className="text-sm text-white/50 bg-white/10 px-2 py-0.5 rounded-full">{users.length}</span>
             </div>
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="flex items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition"
-            >
-              {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-              {showForm ? 'Отмена' : 'Добавить сотрудника'}
-            </button>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-xs text-white/40 cursor-pointer">
+                <input type="checkbox" checked={showDeleted} onChange={e => setShowDeleted(e.target.checked)}
+                  className="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-400/30" />
+                Показать удалённых
+              </label>
+              <button
+                onClick={() => setShowForm(!showForm)}
+                className="flex items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition"
+              >
+                {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                {showForm ? 'Отмена' : 'Добавить сотрудника'}
+              </button>
+            </div>
           </div>
 
           {/* Create form — no email/password, just name + role + company + position */}
@@ -390,17 +426,16 @@ export default function AdminUsersPage() {
             <table className="w-full table-fixed">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
-                  <th className="w-[22%] px-3 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Сотрудник</th>
-                  <th className="w-[15%] px-3 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Логин</th>
-                  <th className="w-[8%] px-3 py-3 text-center text-xs font-semibold text-white/50 uppercase tracking-wider">Пароль</th>
-                  <th className="w-[12%] px-3 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Роль</th>
-                  <th className="w-[12%] px-3 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Компания</th>
-                  <th className="w-[13%] px-3 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Статус</th>
-                  <th className="w-[18%] px-3 py-3 text-right text-xs font-semibold text-white/50 uppercase tracking-wider">Действия</th>
+                  <th className="w-[24%] px-3 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Сотрудник</th>
+                  <th className="w-[16%] px-3 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Логин</th>
+                  <th className="w-[13%] px-3 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Роль</th>
+                  <th className="w-[13%] px-3 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Компания</th>
+                  <th className="w-[14%] px-3 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Статус</th>
+                  <th className="w-[20%] px-3 py-3 text-right text-xs font-semibold text-white/50 uppercase tracking-wider">Действия</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((u: any) => (
+                {users.filter(u => showDeleted || !u.deleted_at).map((u: any) => (
                   <tr key={u.id} className="border-b border-white/5 hover:bg-white/5 transition">
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2">
@@ -421,24 +456,6 @@ export default function AdminUsersPage() {
                             className="text-white/30 hover:text-white transition p-0.5 shrink-0">
                             {copiedId === `login-${u.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                           </button>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="flex items-center justify-center gap-1">
-                        {u.password_plain ? (
-                          <>
-                            <button onClick={() => copyToClipboard(u.password_plain, `pass-${u.id}`)}
-                              className="text-white/30 hover:text-white transition p-1" title="Скопировать пароль">
-                              {copiedId === `pass-${u.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                            </button>
-                            <button onClick={() => resetUserPassword(u.id)}
-                              className="text-white/30 hover:text-orange-400 transition p-1" title="Сменить пароль">
-                              <RefreshCw className="w-3.5 h-3.5" />
-                            </button>
-                          </>
-                        ) : (
-                          <span className="text-sm text-white/30">—</span>
                         )}
                       </div>
                     </td>
@@ -479,6 +496,13 @@ export default function AdminUsersPage() {
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
+                        <button
+                          onClick={() => resetUserPassword(u.id)}
+                          className="text-xs font-medium px-2.5 py-1.5 rounded-lg transition text-orange-400 hover:bg-orange-500/10"
+                          title="Сменить пароль"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                        </button>
                         {u.is_active && !u.fired_at && (
                           <>
                             <button
@@ -506,19 +530,29 @@ export default function AdminUsersPage() {
                             <Check className="w-3.5 h-3.5" />
                           </button>
                         )}
-                        <button
-                          onClick={() => deleteUser(u.id, u.full_name)}
-                          className="text-xs font-medium px-2.5 py-1.5 rounded-lg transition text-white/20 hover:text-red-400 hover:bg-red-500/10"
-                          title="Удалить полностью"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {u.deleted_at ? (
+                          <button
+                            onClick={() => restoreUser(u.id)}
+                            className="text-xs font-medium px-2.5 py-1.5 rounded-lg transition text-green-400 hover:bg-green-500/10"
+                            title="Восстановить"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => softDeleteUser(u.id, u.full_name)}
+                            className="text-xs font-medium px-2.5 py-1.5 rounded-lg transition text-white/20 hover:text-red-400 hover:bg-red-500/10"
+                            title="Удалить"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
                 ))}
                 {users.length === 0 && (
-                  <tr><td colSpan={7} className="px-3 py-8 text-center text-white/40">Нет сотрудников</td></tr>
+                  <tr><td colSpan={6} className="px-3 py-8 text-center text-white/40">Нет сотрудников</td></tr>
                 )}
               </tbody>
             </table>

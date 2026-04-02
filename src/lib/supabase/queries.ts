@@ -108,6 +108,66 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string,
   }
 }
 
+// ======== Previous Period Comparison ========
+
+export async function getPreviousPeriodComparison(
+  supabase: SupabaseClient,
+  userId: string,
+  currentPeriod: { year: number; month: number }
+) {
+  // Find previous month
+  const prevMonth = currentPeriod.month === 1 ? 12 : currentPeriod.month - 1
+  const prevYear = currentPeriod.month === 1 ? currentPeriod.year - 1 : currentPeriod.year
+
+  // Get previous period
+  const { data: prevPeriod } = await supabase
+    .from('periods')
+    .select('*')
+    .eq('year', prevYear)
+    .eq('month', prevMonth)
+    .limit(1)
+    .single()
+
+  if (!prevPeriod) return null
+
+  // Get deals and meetings from previous period
+  const [dealsRes, meetingsRes] = await Promise.all([
+    supabase.from('deals').select('*').eq('user_id', userId).eq('period_id', prevPeriod.id),
+    supabase.from('meetings').select('*').eq('user_id', userId).eq('period_id', prevPeriod.id),
+  ])
+
+  const deals = dealsRes.data || []
+  const meetings = meetingsRes.data || []
+  const paidDeals = deals.filter((d: any) => d.status === 'paid')
+
+  // Считаем показатели на тот же день месяца
+  const today = new Date()
+  const currentDay = today.getDate()
+
+  // Фильтруем сделки прошлого месяца, созданные до того же дня
+  const dealsBeforeDay = deals.filter((d: any) => {
+    const created = new Date(d.created_at)
+    return created.getDate() <= currentDay
+  })
+  const paidBeforeDay = dealsBeforeDay.filter((d: any) => d.status === 'paid')
+
+  // Фильтруем встречи прошлого месяца до того же дня
+  const meetingsBeforeDay = meetings.filter((m: any) => {
+    const day = parseInt(m.date.split('-')[2])
+    return day <= currentDay
+  })
+
+  return {
+    period: prevPeriod,
+    revenue_at_same_day: paidBeforeDay.reduce((s: number, d: any) => s + Number(d.revenue), 0),
+    revenue_total: paidDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0),
+    deals_at_same_day: dealsBeforeDay.length,
+    deals_total: deals.length,
+    units_at_same_day: paidBeforeDay.reduce((s: number, d: any) => s + d.units, 0),
+    meetings_at_same_day: meetingsBeforeDay.reduce((s: number, m: any) => s + m.new_completed + m.repeat_completed, 0),
+  }
+}
+
 // ======== Deals ========
 
 export async function getDeals(supabase: SupabaseClient, userId: string, periodId: string, status?: string) {

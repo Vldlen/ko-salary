@@ -64,6 +64,7 @@ export async function updateUserProfile(supabase: SupabaseClient, userId: string
   password_plain?: string
   is_active?: boolean
   fired_at?: string | null
+  deleted_at?: string | null
 }) {
   const { data, error } = await supabase
     .from('users')

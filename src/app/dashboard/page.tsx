@@ -10,7 +10,7 @@ import { formatMoney, getMonthName, getDealStatusLabel, getDealStatusColor } fro
 import { cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { useViewAs } from '@/lib/view-as-context'
-import { getCurrentUser, getActivePeriod, getDashboardData } from '@/lib/supabase/queries'
+import { getCurrentUser, getActivePeriod, getDashboardData, getPreviousPeriodComparison } from '@/lib/supabase/queries'
 import {
   Wallet, TrendingUp, Handshake, CalendarDays,
   Target, BarChart3, ChevronRight, Loader2, Eye
@@ -24,6 +24,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [period, setPeriod] = useState<any>(null)
   const [data, setData] = useState<any>(null)
+  const [prevComparison, setPrevComparison] = useState<any>(null)
 
   // Load current user once
   useEffect(() => {
@@ -51,16 +52,21 @@ export default function DashboardPage() {
     if (['admin', 'director', 'rop'].includes(user.role) && !isViewingAs) {
       setData(null)
       setPeriod(null)
+      setPrevComparison(null)
       return
     }
 
     async function loadDash() {
       try {
         const activePeriod = await getActivePeriod(supabase, targetCompanyId)
-        if (!activePeriod) { setPeriod(null); setData(null); return }
+        if (!activePeriod) { setPeriod(null); setData(null); setPrevComparison(null); return }
         setPeriod(activePeriod)
-        const dashData = await getDashboardData(supabase, targetUserId, activePeriod.id)
+        const [dashData, prevData] = await Promise.all([
+          getDashboardData(supabase, targetUserId, activePeriod.id),
+          getPreviousPeriodComparison(supabase, targetUserId, { year: activePeriod.year, month: activePeriod.month }),
+        ])
         setData(dashData)
+        setPrevComparison(prevData)
       } catch (err) {
         console.error(err)
       }
@@ -131,6 +137,61 @@ export default function DashboardPage() {
                   <StatCard title="Сделки" value={String(d.deals_count)} subtitle={`${d.breakdown.units_fact} точек`} icon={Handshake} />
                   <StatCard title="Встречи" value={`${d.breakdown.meetings_fact} / ${d.breakdown.meetings_plan}`} subtitle={`${d.breakdown.meetings_percent}% плана`} icon={CalendarDays} variant="success" />
                 </div>
+
+                {/* Сравнение с прошлым месяцем */}
+                {prevComparison && (
+                  <div className="glass rounded-2xl p-4 mb-6 lg:mb-8">
+                    <p className="text-xs text-white/30 mb-3 font-semibold uppercase tracking-wider">
+                      vs {getMonthName(prevComparison.period.month)} — к {new Date().getDate()} числу
+                    </p>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                      {[
+                        {
+                          label: 'Выручка',
+                          current: d.breakdown.revenue_fact,
+                          prev: prevComparison.revenue_at_same_day,
+                          format: formatMoney,
+                        },
+                        {
+                          label: 'Сделки',
+                          current: d.deals_count,
+                          prev: prevComparison.deals_at_same_day,
+                          format: String,
+                        },
+                        {
+                          label: 'Точки',
+                          current: d.breakdown.units_fact,
+                          prev: prevComparison.units_at_same_day,
+                          format: String,
+                        },
+                        {
+                          label: 'Встречи',
+                          current: d.breakdown.meetings_fact,
+                          prev: prevComparison.meetings_at_same_day,
+                          format: String,
+                        },
+                      ].map(item => {
+                        const diff = item.current - item.prev
+                        const isUp = diff > 0
+                        const isDown = diff < 0
+                        return (
+                          <div key={item.label} className="flex flex-col gap-1">
+                            <p className="text-xs text-white/40">{item.label}</p>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-sm font-semibold text-white">{item.format(item.current)}</span>
+                              <span className={cn('text-xs font-medium',
+                                isUp ? 'text-green-400' : isDown ? 'text-red-400' : 'text-white/30'
+                              )}>
+                                {isUp ? '↑' : isDown ? '↓' : '='} {item.format(Math.abs(diff))}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-white/25">в прошлом: {item.format(item.prev)}</p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
                   <div className="glass rounded-2xl p-6">

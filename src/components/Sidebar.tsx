@@ -8,7 +8,7 @@ import { useSupabase } from '@/lib/supabase/hooks'
 import type { UserRole } from '@/types/database'
 import {
   LayoutDashboard, Handshake, CalendarDays, Wallet,
-  TrendingUp, Users, Settings, Building2, UserCog, CalendarRange, Target, LogOut, Menu, X
+  TrendingUp, Users, Settings, Building2, UserCog, CalendarRange, Target, LogOut, Menu, X, ScrollText
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -25,7 +25,7 @@ const managerLinks = [
   { href: '/forecast', label: 'Прогноз', icon: TrendingUp },
 ]
 
-const ropLinks = [
+const leaderLinks = [
   { href: '/team', label: 'Команда', icon: Users },
   { href: '/admin/plans', label: 'Планы', icon: Target },
 ]
@@ -35,7 +35,10 @@ const adminLinks = [
   { href: '/admin/positions', label: 'Должности', icon: Building2 },
   { href: '/admin/periods', label: 'Периоды', icon: CalendarRange },
   { href: '/admin/settings', label: 'Настройки', icon: Settings },
+  { href: '/admin/audit', label: 'Журнал', icon: ScrollText },
 ]
+
+type LinkSection = { title: string; links: typeof managerLinks }
 
 function Sidebar({ role, userName, companyName }: SidebarProps) {
   const pathname = usePathname()
@@ -48,11 +51,22 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
     router.push('/login')
   }
 
-  const links = [
-    ...managerLinks,
-    ...((['rop', 'director', 'admin'] as UserRole[]).includes(role) ? ropLinks : []),
-    ...((['admin', 'director'] as UserRole[]).includes(role) ? adminLinks : []),
+  // Собираем секции по роли
+  const sections: LinkSection[] = [
+    { title: '', links: managerLinks },
   ]
+
+  if (['rop', 'director', 'admin'].includes(role)) {
+    sections.push({ title: 'Руководство', links: leaderLinks })
+  }
+  if (['admin', 'director'].includes(role)) {
+    sections.push({ title: 'Администрирование', links: adminLinks })
+  }
+
+  const roleLabel =
+    role === 'admin' ? 'Администратор' :
+    role === 'director' ? 'Директор по продажам' :
+    role === 'rop' ? 'РОП' : 'Менеджер'
 
   const sidebarContent = (
     <>
@@ -74,27 +88,38 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {links.map(link => {
-          const Icon = link.icon
-          const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setOpen(false)}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-                isActive
-                  ? 'bg-white/10 text-white shadow-sm'
-                  : 'text-white/50 hover:bg-white/5 hover:text-white/80'
-              )}
-            >
-              <Icon className={cn('w-5 h-5', isActive ? 'text-blue-400' : '')} />
-              {link.label}
-            </Link>
-          )
-        })}
+      <nav className="flex-1 px-3 py-4">
+        {sections.map((section, idx) => (
+          <div key={idx} className={idx > 0 ? 'mt-4' : ''}>
+            {section.title && (
+              <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/25">
+                {section.title}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {section.links.map(link => {
+                const Icon = link.icon
+                const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+                      isActive
+                        ? 'bg-white/10 text-white shadow-sm'
+                        : 'text-white/50 hover:bg-white/5 hover:text-white/80'
+                    )}
+                  >
+                    <Icon className={cn('w-5 h-5', isActive ? 'text-blue-400' : '')} />
+                    {link.label}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* User */}
@@ -105,11 +130,7 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">{userName}</p>
-            <p className="text-xs text-white/40">{
-              role === 'admin' ? 'Администратор' :
-              role === 'director' ? 'Комдир' :
-              role === 'rop' ? 'РОП' : 'Менеджер'
-            }</p>
+            <p className="text-xs text-white/40">{roleLabel}</p>
           </div>
           <button onClick={handleLogout} className="p-1.5 text-white/30 hover:text-red-400 transition" title="Выйти">
             <LogOut className="w-4 h-4" />

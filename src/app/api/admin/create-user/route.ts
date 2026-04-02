@@ -94,7 +94,6 @@ export async function POST(request: NextRequest) {
         id: authData.user.id,
         email: fakeEmail,
         login,
-        password_plain: password,
         full_name,
         role,
         company_id: company_id || null,
