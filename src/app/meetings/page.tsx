@@ -54,10 +54,17 @@ function getDaysInMonth(year: number, month: number): string[] {
   return days
 }
 
-const KPI_PRODUCT_OPTIONS = [
+const BONDA_KPI_PRODUCTS = [
   { value: 'Чек-Ап', label: 'Чек-Ап' },
   { value: 'ФД', label: 'ФД' },
   { value: 'Bonda BI', label: 'Bonda BI' },
+  { value: 'Другое', label: 'Другое' },
+]
+
+const INNO_KPI_PRODUCTS = [
+  { value: 'Новый клиент', label: 'Новый клиент' },
+  { value: 'Повторный', label: 'Повторный' },
+  { value: 'Ментор', label: 'Ментор' },
   { value: 'Другое', label: 'Другое' },
 ]
 
@@ -65,7 +72,7 @@ const EMPTY_KPI_FORM = {
   entry_date: new Date().toISOString().slice(0, 10),
   client_name: '',
   amo_link: '',
-  product: 'Чек-Ап',
+  product: '',
   comment: '',
 }
 
@@ -83,7 +90,7 @@ export default function MeetingsPage() {
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({})
 
-  // KPI entries state (БОНДА)
+  // KPI entries state
   const [kpiEntries, setKpiEntries] = useState<any[]>([])
   const [showKpiForm, setShowKpiForm] = useState(false)
   const [editingKpi, setEditingKpi] = useState<any>(null)
@@ -124,9 +131,6 @@ export default function MeetingsPage() {
       return
     }
 
-    const viewCompanyName = isViewingAs ? (viewAsUser?.company?.name || '') : (user.company?.name || '')
-    const isBondaCompany = viewCompanyName.toUpperCase().includes('БОНД')
-
     async function loadMeetings() {
       try {
         const activePeriod = await getActivePeriod(supabase, targetCompanyId)
@@ -136,13 +140,9 @@ export default function MeetingsPage() {
         const meetingsData = await getMeetings(supabase, targetUserId, activePeriod.id)
         setMeetings(meetingsData || [])
 
-        // Load KPI entries for БОНДА
-        if (isBondaCompany) {
-          const kpiData = await getKpiEntries(supabase, targetUserId, activePeriod.id)
-          setKpiEntries(kpiData)
-        } else {
-          setKpiEntries([])
-        }
+        // Load KPI entries for all companies
+        const kpiData = await getKpiEntries(supabase, targetUserId, activePeriod.id)
+        setKpiEntries(kpiData)
 
         // Initialize cell values
         const initial: Record<string, string> = {}
@@ -495,8 +495,7 @@ export default function MeetingsPage() {
             </table>
           </div>
 
-          {/* KPI записи — БОНДА */}
-          {isBonda && (
+          {/* KPI записи */}
             <div className="mt-8">
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -549,7 +548,7 @@ export default function MeetingsPage() {
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-white/60 mb-1">Продукт</label>
-                        <CustomSelect value={kpiForm.product} onChange={(v) => setKpiForm({ ...kpiForm, product: v })} options={KPI_PRODUCT_OPTIONS} />
+                        <CustomSelect value={kpiForm.product} onChange={(v) => setKpiForm({ ...kpiForm, product: v })} options={isBonda ? BONDA_KPI_PRODUCTS : INNO_KPI_PRODUCTS} />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-white/60 mb-1">AMO CRM</label>
@@ -645,7 +644,6 @@ export default function MeetingsPage() {
                 </table>
               </div>
             </div>
-          )}
 
           </>)}
         </div>
