@@ -8,7 +8,7 @@ import { useSupabase } from '@/lib/supabase/hooks'
 import type { UserRole } from '@/types/database'
 import {
   LayoutDashboard, Handshake, CalendarDays, Wallet,
-  TrendingUp, Users, Building2, UserCog, CalendarRange, Target, LogOut, Menu, X, ScrollText
+  TrendingUp, Users, Building2, UserCog, CalendarRange, Target, LogOut, Menu, X, ScrollText, ClipboardCheck
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -50,9 +50,17 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
     router.push('/login')
   }
 
+  // Detect БОНДА company for conditional KPI link
+  const isBonda = companyName?.toUpperCase()?.includes('БОНД') || false
+
+  // Для БОНДА добавляем KPI записи после встреч
+  const effectiveManagerLinks = isBonda
+    ? [...managerLinks, { href: '/kpi', label: 'KPI записи', icon: ClipboardCheck }]
+    : managerLinks
+
   // Собираем секции по роли
   const sections: LinkSection[] = [
-    { title: '', links: managerLinks },
+    { title: '', links: effectiveManagerLinks },
   ]
 
   if (['rop', 'director', 'admin'].includes(role)) {

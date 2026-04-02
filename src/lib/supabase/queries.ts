@@ -248,6 +248,9 @@ export async function createDeal(supabase: SupabaseClient, deal: {
   equipment_margin?: number
   forecast_revenue?: number
   notes?: string
+  product_type?: string | null
+  subscription_period?: string | null
+  amo_link?: string | null
 }) {
   const { data, error } = await supabase
     .from('deals')
@@ -509,4 +512,189 @@ export async function getOneTimePayments(supabase: SupabaseClient, userId: strin
     .order('created_at', { ascending: false })
 
   return data || []
+}
+
+// ======== KPI Entries (БОНДА) ========
+
+export async function getKpiEntries(supabase: SupabaseClient, userId: string, periodId: string) {
+  const { data } = await supabase
+    .from('kpi_entries')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('period_id', periodId)
+    .order('entry_date', { ascending: false })
+
+  return data || []
+}
+
+export async function createKpiEntry(supabase: SupabaseClient, entry: {
+  user_id: string
+  period_id: string
+  entry_date: string
+  client_name: string
+  amo_link?: string
+  product?: string
+  comment?: string
+}) {
+  const { data, error } = await supabase
+    .from('kpi_entries')
+    .insert(entry)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updateKpiEntry(supabase: SupabaseClient, entryId: string, updates: Record<string, any>) {
+  const { data, error } = await supabase
+    .from('kpi_entries')
+    .update(updates)
+    .eq('id', entryId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteKpiEntry(supabase: SupabaseClient, entryId: string) {
+  const { error } = await supabase
+    .from('kpi_entries')
+    .delete()
+    .eq('id', entryId)
+
+  if (error) throw error
+}
+
+// ======== KPI Approvals (БОНДА) ========
+
+export async function getKpiApprovals(supabase: SupabaseClient, userId: string, periodId: string) {
+  const { data } = await supabase
+    .from('kpi_approvals')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('period_id', periodId)
+
+  return data || []
+}
+
+export async function toggleKpiApproval(supabase: SupabaseClient, userId: string, periodId: string, kpiType: string, approvedBy: string) {
+  // Check if exists
+  const { data: existing } = await supabase
+    .from('kpi_approvals')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('period_id', periodId)
+    .eq('kpi_type', kpiType)
+    .single()
+
+  if (existing) {
+    // Remove approval
+    const { error } = await supabase
+      .from('kpi_approvals')
+      .delete()
+      .eq('id', existing.id)
+    if (error) throw error
+    return null
+  } else {
+    // Create approval
+    const { data, error } = await supabase
+      .from('kpi_approvals')
+      .insert({
+        user_id: userId,
+        period_id: periodId,
+        kpi_type: kpiType,
+        approved_by: approvedBy,
+      })
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  }
+}
+
+// ======== БОНДА Dashboard ========
+
+export async function getBondaDashboardData(supabase: SupabaseClient, userId: string, periodId: string) {
+  const [dealsRes, kpiEntriesRes, kpiApprovalsRes, userRes, planRes, periodRes] = await Promise.all([
+    supabase
+      .from('deals')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('period_id', periodId)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('kpi_entries')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('period_id', periodId),
+    supabase
+      .from('kpi_approvals')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('period_id', periodId),
+    supabase
+      .from('users')
+      .select('position_id, position:positions(name, motivation_schemas(*))')
+      .eq('id', userId)
+      .single(),
+    supabase
+      .from('individual_plans')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('period_id', periodId)
+      .single(),
+    supabase
+      .from('periods')
+      .select('year, month')
+      .eq('id', periodId)
+      .single(),
+  ])
+
+  const deals = dealsRes.data || []
+  const kpiEntries = kpiEntriesRes.data || []
+  const kpiApprovals = (kpiApprovalsRes.data || []).map((a: any) => a.kpi_type)
+  const posData = userRes.data?.position as any
+  const allSchemas = Array.isArray(posData) ? posData[0]?.motivation_schemas : posData?.motivation_schemas
+  const period = periodRes.data
+  const individualPlan = planRes.data
+
+  const schema = period
+    ? findSchemaForPeriod(allSchemas, period.year, period.month)
+    : allSchemas?.[0]
+
+  const config = schema?.config || {}
+  const baseSalary = schema?.base_salary || 0
+  const positionName = (Array.isArray(posData) ? posData[0]?.name : posData?.name) || ''
+  const isJunior = positionName.toLowerCase().includes('младш')
+
+  // Import and use bonda calculator
+  const { calculateBondaSalary } = await import('@/lib/bonda-calculator')
+
+  const calcResult = calculateBondaSalary({
+    deals,
+    kpiEntriesCount: kpiEntries.length,
+    kpiApprovals,
+    baseSalary,
+    isJunior,
+    kpiMaxAmount: config.kpi_max_amount || 10000,
+    kpiEntriesTarget: isJunior ? (config.kpi_entries_target_junior || 5) : (config.kpi_entries_target || 12),
+    fdThreshold: config.fd_threshold || 4,
+    fdPercentLow: config.fd_percent_low || 0.075,
+    fdPercentHigh: config.fd_percent_high || 0.15,
+    oneTimeServicePercent: config.one_time_service_percent || 0.10,
+  })
+
+  return {
+    deals,
+    kpiEntries,
+    kpiApprovals,
+    salary: calcResult,
+    schema,
+    isJunior,
+    individualPlan,
+    findir_plan: individualPlan?.findir_plan || 0,
+    units_plan: individualPlan?.units_plan || 0,
+  }
 }

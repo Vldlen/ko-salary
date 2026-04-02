@@ -10,7 +10,7 @@ import { formatMoney, getMonthName, getDealStatusLabel, getDealStatusColor } fro
 import { cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { useViewAs } from '@/lib/view-as-context'
-import { getCurrentUser, getActivePeriod, getDashboardData, getPreviousPeriodComparison } from '@/lib/supabase/queries'
+import { getCurrentUser, getActivePeriod, getDashboardData, getBondaDashboardData, getPreviousPeriodComparison } from '@/lib/supabase/queries'
 import {
   Wallet, TrendingUp, Handshake, CalendarDays,
   Target, BarChart3, ChevronRight, Loader2, Eye
@@ -24,6 +24,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [period, setPeriod] = useState<any>(null)
   const [data, setData] = useState<any>(null)
+  const [bondaData, setBondaData] = useState<any>(null)
   const [prevComparison, setPrevComparison] = useState<any>(null)
 
   // Load current user once
@@ -51,22 +52,35 @@ export default function DashboardPage() {
     // Admin/director/rop without viewAs and not a manager — show empty
     if (['admin', 'director', 'rop'].includes(user.role) && !isViewingAs) {
       setData(null)
+      setBondaData(null)
       setPeriod(null)
       setPrevComparison(null)
       return
     }
 
+    // Detect БОНДА company
+    const companyName = isViewingAs ? viewAsUser?.company?.name : user.company?.name
+    const isBondaUser = companyName?.toUpperCase()?.includes('БОНД') || false
+
     async function loadDash() {
       try {
         const activePeriod = await getActivePeriod(supabase, targetCompanyId)
-        if (!activePeriod) { setPeriod(null); setData(null); setPrevComparison(null); return }
+        if (!activePeriod) { setPeriod(null); setData(null); setBondaData(null); setPrevComparison(null); return }
         setPeriod(activePeriod)
-        const [dashData, prevData] = await Promise.all([
-          getDashboardData(supabase, targetUserId, activePeriod.id),
-          getPreviousPeriodComparison(supabase, targetUserId, { year: activePeriod.year, month: activePeriod.month }),
-        ])
-        setData(dashData)
-        setPrevComparison(prevData)
+
+        if (isBondaUser) {
+          const bData = await getBondaDashboardData(supabase, targetUserId, activePeriod.id)
+          setBondaData(bData)
+          setData(null)
+        } else {
+          const [dashData, prevData] = await Promise.all([
+            getDashboardData(supabase, targetUserId, activePeriod.id),
+            getPreviousPeriodComparison(supabase, targetUserId, { year: activePeriod.year, month: activePeriod.month }),
+          ])
+          setData(dashData)
+          setBondaData(null)
+          setPrevComparison(prevData)
+        }
       } catch (err) {
         console.error(err)
       }
@@ -81,7 +95,7 @@ export default function DashboardPage() {
   if (!user) return null
 
   const isAdminRole = ['admin', 'director', 'rop'].includes(user.role)
-  const showEmptyPrompt = isAdminRole && !isViewingAs && !data
+  const showEmptyPrompt = isAdminRole && !isViewingAs && !data && !bondaData
 
   return (
     <div className="flex min-h-screen">
@@ -102,7 +116,7 @@ export default function DashboardPage() {
           )}
 
           {/* No period */}
-          {isViewingAs && !data && period === null && (
+          {isViewingAs && !data && !bondaData && period === null && (
             <div className="glass rounded-2xl p-12 text-center">
               <p className="text-white/40">Нет активного периода для этого сотрудника.</p>
             </div>
@@ -258,6 +272,157 @@ export default function DashboardPage() {
                             <div>
                               <p className="text-sm font-medium text-white">{deal.client_name}</p>
                               <p className="text-xs text-white/40">{deal.units} точек</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full', getDealStatusColor(deal.status))}>
+                              {getDealStatusLabel(deal.status)}
+                            </span>
+                            <span className="text-sm font-semibold text-white w-28 text-right">{formatMoney(Number(deal.revenue))}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </>
+            )
+          })()}
+
+          {/* БОНДА Dashboard */}
+          {bondaData && (() => {
+            const bd = bondaData
+            const salary = bd.salary
+            const paidDeals = bd.deals.filter((d: any) => d.status === 'paid')
+            const fdCount = paidDeals.filter((d: any) => d.product_type === 'findir').length
+            const biCount = paidDeals.filter((d: any) => d.product_type === 'bonda_bi').length
+            const otCount = paidDeals.filter((d: any) => d.product_type === 'one_time_service').length
+            const totalRevenue = paidDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0)
+
+            return (
+              <>
+                <div className="flex items-center justify-between mb-6 lg:mb-8">
+                  <div>
+                    <h1 className="text-xl lg:text-2xl font-heading font-bold text-white">
+                      {period ? `${getMonthName(period.month)} ${period.year}` : 'Дашборд'}
+                    </h1>
+                    <p className="text-white/40 mt-1 text-sm">
+                      {isViewingAs ? `Дашборд — ${viewAsUser?.full_name}` : 'Мой прогресс'}
+                    </p>
+                  </div>
+                  <div className="hidden sm:flex items-center gap-2 glass rounded-xl px-4 py-2">
+                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                    <span className="text-sm text-white/50">Период активен</span>
+                  </div>
+                </div>
+
+                {/* БОНДА stat cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6 lg:mb-8">
+                  <StatCard title="Итого ЗП" value={formatMoney(salary.total)} icon={Wallet} />
+                  <StatCard title="Пуш-бонус" value={formatMoney(salary.push_bonus_total)} icon={TrendingUp} variant="accent" />
+                  <StatCard title="KPI" value={formatMoney(salary.kpi_total)} subtitle={`записей: ${bd.kpiEntries.length}`} icon={Target} variant="success" />
+                  <StatCard title="Сделок (оплач.)" value={String(paidDeals.length)} subtitle={`ФД: ${fdCount} · BI: ${biCount}`} icon={Handshake} />
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
+                  {/* Продукты */}
+                  <div className="glass rounded-2xl p-6">
+                    <h2 className="text-lg font-heading font-semibold text-white mb-5 flex items-center gap-2">
+                      <Target className="w-5 h-5 text-blue-400" /> Продукты
+                    </h2>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center py-2.5 border-b border-white/5">
+                        <span className="text-sm text-purple-400">ФинДиров продано</span>
+                        <span className="text-sm font-semibold text-white">{fdCount} шт.</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2.5 border-b border-white/5">
+                        <span className="text-sm text-purple-400">Ставка ФД</span>
+                        <span className={cn('text-sm font-semibold', salary.breakdown.fd_rate_applied >= 15 ? 'text-emerald-400' : 'text-white')}>
+                          {salary.breakdown.fd_rate_applied}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-2.5 border-b border-white/5">
+                        <span className="text-sm text-cyan-400">Bonda BI</span>
+                        <span className="text-sm font-semibold text-white">{biCount} шт.</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2.5 border-b border-white/5">
+                        <span className="text-sm text-orange-400">Разовые услуги</span>
+                        <span className="text-sm font-semibold text-white">{otCount} шт.</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-3 mt-1 border-t-2 border-white/10">
+                        <span className="text-sm text-white/50">Выручка (оплачено)</span>
+                        <span className="text-sm font-bold text-white">{formatMoney(totalRevenue)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Расчёт ЗП */}
+                  <div className="glass rounded-2xl p-6">
+                    <h2 className="text-lg font-heading font-semibold text-white mb-5 flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5 text-blue-400" /> Расчёт ЗП
+                    </h2>
+                    <div className="space-y-3">
+                      {[
+                        { label: 'Оклад', value: salary.base_salary },
+                        { label: 'KPI (записи)', value: salary.kpi_entries_bonus },
+                        { label: bd.isJunior ? 'KPI (аттестация)' : 'KPI (конверсия)', value: salary.kpi_approval_bonus },
+                        { label: 'Пуш-бонус ФД', value: salary.push_bonus_fd },
+                        { label: 'Пуш-бонус BI', value: salary.push_bonus_bi },
+                        { label: 'Пуш-бонус разовые', value: salary.push_bonus_one_time },
+                      ].map(item => (
+                        <div key={item.label} className="flex justify-between items-center py-2.5 border-b border-white/5">
+                          <span className="text-sm text-white/50">{item.label}</span>
+                          <span className={cn('text-sm font-semibold', item.value > 0 ? 'text-white' : 'text-white/20')}>
+                            {formatMoney(Number(item.value))}
+                          </span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between items-center pt-3 mt-1 border-t-2 border-white/10">
+                        <span className="font-heading font-semibold text-white">Итого</span>
+                        <span className="text-xl font-bold text-blue-400">{formatMoney(Number(salary.total))}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Последние сделки */}
+                <div className="glass rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-heading font-semibold text-white flex items-center gap-2">
+                      <Handshake className="w-5 h-5 text-blue-400" /> Последние сделки
+                    </h2>
+                    {!isViewingAs && (
+                      <button onClick={() => router.push('/deals')} className="text-sm text-blue-400 hover:text-blue-500 font-medium flex items-center gap-1 transition">
+                        Все сделки <ChevronRight className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {bd.deals.length === 0 ? (
+                      <p className="text-white/40 text-sm text-center py-8">Нет сделок за этот период</p>
+                    ) : (
+                      bd.deals.slice(0, 5).map((deal: any, i: number) => (
+                        <div key={deal.id || i} className="flex items-center justify-between py-3 px-4 rounded-xl hover:bg-white/5 transition">
+                          <div className="flex items-center gap-4">
+                            <div className={cn(
+                              "w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm",
+                              deal.product_type === 'findir' ? 'bg-purple-500/20 text-purple-400' :
+                              deal.product_type === 'bonda_bi' ? 'bg-cyan-500/20 text-cyan-400' :
+                              'bg-orange-500/20 text-orange-400'
+                            )}>
+                              {deal.client_name?.charAt(0) || '?'}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-white">{deal.client_name}</p>
+                              <p className="text-xs text-white/40">
+                                {deal.product_type === 'findir' ? 'ФинДир' :
+                                 deal.product_type === 'bonda_bi' ? 'Bonda BI' : 'Разовая'}
+                                {deal.subscription_period && ` · ${
+                                  deal.subscription_period === 'month' ? 'мес' :
+                                  deal.subscription_period === 'quarter' ? 'кв' :
+                                  deal.subscription_period === 'half_year' ? '6 мес' : 'год'
+                                }`}
+                              </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">

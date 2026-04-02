@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, Users, ChevronDown, ChevronUp, TrendingUp, AlertTriangle, Clock } from 'lucide-react'
+import { Loader2, Users, ChevronDown, ChevronUp, TrendingUp, AlertTriangle, Clock, CheckCircle2, Circle } from 'lucide-react'
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import ProgressBar from '@/components/ProgressBar'
 import { formatMoney, cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
-import { getCurrentUser, getActivePeriod, getTeamProgress } from '@/lib/supabase/queries'
+import { getCurrentUser, getActivePeriod, getTeamProgress, getKpiEntries, getKpiApprovals, toggleKpiApproval } from '@/lib/supabase/queries'
 
 type CompanyFilter = 'all' | string
 
@@ -27,6 +27,11 @@ export default function TeamPage() {
   const [team, setTeam] = useState<any[]>([])
   const [companyFilter, setCompanyFilter] = useState<CompanyFilter>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [periodId, setPeriodId] = useState<string | null>(null)
+
+  // KPI data for БОНДА managers (loaded on expand)
+  const [kpiData, setKpiData] = useState<Record<string, { entries: any[]; approvals: any[] }>>({})
+  const [kpiLoading, setKpiLoading] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -43,6 +48,7 @@ export default function TeamPage() {
         const activePeriod = await getActivePeriod(supabase)
         if (!activePeriod) { setLoading(false); return }
 
+        setPeriodId(activePeriod.id)
         const teamData = await getTeamProgress(supabase, currentUser.company_id, activePeriod.id)
         setTeam(teamData)
       } catch (err) {
@@ -53,6 +59,46 @@ export default function TeamPage() {
     }
     load()
   }, [supabase, router])
+
+  // Load KPI data for a БОНДА user when expanding
+  async function loadKpiForUser(userId: string) {
+    if (!periodId || kpiData[userId]) return
+    setKpiLoading(userId)
+    try {
+      const [entries, approvals] = await Promise.all([
+        getKpiEntries(supabase, userId, periodId),
+        getKpiApprovals(supabase, userId, periodId),
+      ])
+      setKpiData(prev => ({ ...prev, [userId]: { entries, approvals } }))
+    } catch (err) {
+      console.error('KPI load error:', err)
+    } finally {
+      setKpiLoading(null)
+    }
+  }
+
+  async function handleToggleApproval(managerId: string, kpiType: string) {
+    if (!periodId || !user) return
+    try {
+      await toggleKpiApproval(supabase, managerId, periodId, kpiType, user.id)
+      // Reload approvals
+      const approvals = await getKpiApprovals(supabase, managerId, periodId)
+      setKpiData(prev => ({
+        ...prev,
+        [managerId]: { ...prev[managerId], approvals },
+      }))
+    } catch (err: any) {
+      alert(err.message || 'Ошибка')
+    }
+  }
+
+  function handleExpand(userId: string, isBondaCompany: boolean) {
+    const isExpanding = expandedId !== userId
+    setExpandedId(isExpanding ? userId : null)
+    if (isExpanding && isBondaCompany) {
+      loadKpiForUser(userId)
+    }
+  }
 
   const companies = useMemo(() => {
     const map = new Map<string, string>()
@@ -173,6 +219,8 @@ export default function TeamPage() {
               const unitsPct = m.units_plan > 0 ? Math.round((m.units_fact / m.units_plan) * 100) : 0
               const meetPct = m.meetings_plan > 0 ? Math.round((m.meetings_fact / m.meetings_plan) * 100) : 0
               const isExpanded = expandedId === m.id
+              const isBondaCompany = m.company_name?.toUpperCase()?.includes('БОНД') || false
+              const isJunior = m.position?.toLowerCase()?.includes('младш') || false
 
               const statusIcon = revPct >= 100
                 ? { label: 'План выполнен', cls: 'bg-emerald-500/20 text-emerald-400', icon: TrendingUp }
@@ -184,7 +232,7 @@ export default function TeamPage() {
                 <div key={m.id} className="glass rounded-xl overflow-hidden">
                   {/* Header — always visible */}
                   <button
-                    onClick={() => setExpandedId(isExpanded ? null : m.id)}
+                    onClick={() => handleExpand(m.id, isBondaCompany)}
                     className="w-full px-5 py-4 flex items-center justify-between hover:bg-white/5 transition text-left"
                   >
                     <div className="flex items-center gap-3">
@@ -338,6 +386,62 @@ export default function TeamPage() {
                           </div>
                         </div>
                       </div>
+
+                      {/* БОНДА: KPI Approvals */}
+                      {isBondaCompany && (
+                        <div className="mb-5">
+                          <p className="text-[10px] text-white/30 uppercase tracking-wider mb-2">KPI — БОНДА</p>
+                          <div className="bg-white/5 rounded-lg p-4">
+                            {kpiLoading === m.id ? (
+                              <div className="flex items-center gap-2 text-sm text-white/40">
+                                <Loader2 className="w-4 h-4 animate-spin" /> Загрузка...
+                              </div>
+                            ) : kpiData[m.id] ? (
+                              <div className="space-y-3">
+                                {/* KPI entries count */}
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="text-white/60">
+                                    {isJunior ? 'Встречи (KPI записи)' : 'Чек-апы (KPI записи)'}
+                                  </span>
+                                  <span className={cn(
+                                    'font-semibold',
+                                    kpiData[m.id].entries.length >= (isJunior ? 5 : 12)
+                                      ? 'text-emerald-400' : 'text-white'
+                                  )}>
+                                    {kpiData[m.id].entries.length} / {isJunior ? 5 : 12}
+                                  </span>
+                                </div>
+                                {/* Approval checkboxes */}
+                                {isJunior ? (
+                                  <button
+                                    onClick={() => handleToggleApproval(m.id, 'attestation')}
+                                    className="flex items-center gap-2 text-sm hover:bg-white/5 rounded-lg px-2 py-1.5 -mx-2 transition w-full text-left"
+                                  >
+                                    {kpiData[m.id].approvals.some((a: any) => a.kpi_type === 'attestation')
+                                      ? <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                                      : <Circle className="w-5 h-5 text-white/20" />
+                                    }
+                                    <span className="text-white/70">Аттестация пройдена</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleToggleApproval(m.id, 'conversion_approved')}
+                                    className="flex items-center gap-2 text-sm hover:bg-white/5 rounded-lg px-2 py-1.5 -mx-2 transition w-full text-left"
+                                  >
+                                    {kpiData[m.id].approvals.some((a: any) => a.kpi_type === 'conversion_approved')
+                                      ? <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                                      : <Circle className="w-5 h-5 text-white/20" />
+                                    }
+                                    <span className="text-white/70">Конверсия одобрена</span>
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-white/30">Нет данных</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Recent deals */}
                       {m.recent_deals && m.recent_deals.length > 0 && (

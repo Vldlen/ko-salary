@@ -43,6 +43,27 @@ export function getDealStatusColor(status: string): string {
   return colors[status] || 'bg-white/10 text-white/60'
 }
 
+// ======== БОНДА helpers ========
+
+export function getProductTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    findir: 'ФинДир',
+    bonda_bi: 'Bonda BI',
+    one_time_service: 'Разовая услуга',
+  }
+  return labels[type] || type
+}
+
+export function getSubscriptionPeriodLabel(period: string): string {
+  const labels: Record<string, string> = {
+    month: 'Месяц',
+    quarter: 'Квартал',
+    half_year: 'Полгода',
+    year: 'Год',
+  }
+  return labels[period] || period
+}
+
 // ======== Login & Password generation ========
 
 const TRANSLIT: Record<string, string> = {

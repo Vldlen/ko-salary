@@ -2,6 +2,8 @@ export type UserRole = 'admin' | 'director' | 'rop' | 'manager'
 export type PeriodStatus = 'draft' | 'active' | 'closed'
 export type DealStatus = 'prospect' | 'negotiation' | 'waiting_payment' | 'paid' | 'cancelled'
 export type PaymentType = 'bonus' | 'deduction'
+export type ProductType = 'findir' | 'bonda_bi' | 'one_time_service'
+export type SubscriptionPeriod = 'month' | 'quarter' | 'half_year' | 'year'
 
 export interface Company {
   id: string
@@ -99,8 +101,32 @@ export interface Deal {
   forecast_close_date: string | null
   notes: string | null
   amo_link: string | null
+  // БОНДА-специфичные поля
+  product_type: ProductType | null
+  subscription_period: SubscriptionPeriod | null
   created_at: string
   updated_at: string
+}
+
+export interface KpiEntry {
+  id: string
+  user_id: string
+  period_id: string
+  entry_date: string
+  client_name: string
+  amo_link: string | null
+  product: string | null
+  comment: string | null
+  created_at: string
+}
+
+export interface KpiApproval {
+  id: string
+  user_id: string
+  period_id: string
+  kpi_type: string   // 'attestation' | 'conversion_approved'
+  approved_by: string | null
+  approved_at: string
 }
 
 export interface Meeting {
