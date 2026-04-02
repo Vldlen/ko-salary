@@ -50,8 +50,8 @@ export default function SalaryPage() {
     const bonda = companyName.toUpperCase().includes('БОНД')
     setIsBonda(bonda)
 
-    // Admin/director/rop without viewAs — show empty
-    if (['admin', 'director', 'rop'].includes(user.role) && !isViewingAs) {
+    // Admin without viewAs — show empty (director/rop see own data)
+    if (user.role === 'admin' && !isViewingAs) {
       setSalary(null)
       setBondaData(null)
       setPeriod(null)
@@ -134,7 +134,7 @@ export default function SalaryPage() {
           <ViewAsBar userRole={user?.role || 'manager'} />
 
           {/* Empty prompt for admin without viewAs */}
-          {['admin', 'director', 'rop'].includes(user?.role) && !isViewingAs && (
+          {user?.role === 'admin' && !isViewingAs && (
             <div className="glass rounded-2xl p-12 text-center">
               <Eye className="w-12 h-12 text-white/15 mx-auto mb-4" />
               <h2 className="text-lg font-heading font-bold text-white mb-2">Выберите менеджера</h2>
@@ -142,7 +142,7 @@ export default function SalaryPage() {
             </div>
           )}
 
-          {(isViewingAs || !['admin', 'director', 'rop'].includes(user?.role)) && (<>
+          {(isViewingAs || user?.role !== 'admin') && (<>
           <h1 className="text-2xl font-heading font-bold text-white mb-1">Расчёт зарплаты</h1>
           {isViewingAs && <p className="text-white/40 text-sm mb-6">ЗП — {viewAsUser?.full_name}</p>}
           {!isViewingAs && <div className="mb-6" />}

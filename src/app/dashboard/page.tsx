@@ -49,8 +49,8 @@ export default function DashboardPage() {
     const targetUserId = effectiveUserId(user.id)
     const targetCompanyId = effectiveCompanyId(user.company_id)
 
-    // Admin/director/rop without viewAs and not a manager — show empty
-    if (['admin', 'director', 'rop'].includes(user.role) && !isViewingAs) {
+    // Admin without viewAs — show empty (director/rop see own data)
+    if (user.role === 'admin' && !isViewingAs) {
       setData(null)
       setBondaData(null)
       setPeriod(null)
@@ -94,8 +94,8 @@ export default function DashboardPage() {
 
   if (!user) return null
 
-  const isAdminRole = ['admin', 'director', 'rop'].includes(user.role)
-  const showEmptyPrompt = isAdminRole && !isViewingAs && !data && !bondaData
+  const isAdminOnly = user.role === 'admin'
+  const showEmptyPrompt = isAdminOnly && !isViewingAs && !data && !bondaData
 
   return (
     <div className="flex min-h-screen">
