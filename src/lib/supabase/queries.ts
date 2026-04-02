@@ -65,10 +65,14 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string,
 
   const deals = dealsRes.data || []
   const meetings = meetingsRes.data || []
-  const salary = salaryRes.data
+  const salaryResult = salaryRes.data
   const posData = schemaRes.data?.position as any
   const schemas = Array.isArray(posData) ? posData[0]?.motivation_schemas : posData?.motivation_schemas
   const schema = schemas?.[0]
+
+  // Base salary from motivation schema
+  const baseSalary = schema?.base_salary || 0
+  const config = schema?.config || {}
 
   // Calculate stats from deals
   const paidDeals = deals.filter((d: any) => d.status === 'paid')
@@ -81,14 +85,33 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string,
   const meetingsFact = meetings.reduce((s: number, m: any) => s + m.new_completed + m.repeat_completed, 0)
 
   // Plan from motivation schema
-  const config = schema?.config || {}
   const revenuePlan = config.revenue_plan || 660000
   const unitsPlan = config.units_plan || 15
   const meetingsPlan = config.meetings_plan || 25
 
+  // Build salary object — use salary_results if exists, otherwise compute from schema
+  const salary = salaryResult || {
+    base_salary: baseSalary,
+    kpi_quality: 0,
+    kpi_quantity: 0,
+    margin_bonus: 0,
+    extra_bonus: 0,
+    deduction: 0,
+    total: baseSalary,
+    forecast_total: baseSalary,
+  }
+
+  // If salary_results exists but has no base_salary, fill it from schema
+  if (salaryResult && (!salaryResult.base_salary || Number(salaryResult.base_salary) === 0)) {
+    salary.base_salary = baseSalary
+    salary.total = Number(salary.total || 0) + baseSalary
+    salary.forecast_total = Number(salary.forecast_total || 0) + baseSalary
+  }
+
   return {
     deals,
     salary,
+    schema,
     breakdown: {
       revenue_fact: revenueFact,
       revenue_forecast: revenueForecast,

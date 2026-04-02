@@ -1,9 +1,6 @@
 'use client'
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
-import { useSupabase } from '@/lib/supabase/hooks'
-import { getUsers } from '@/lib/supabase/admin-queries'
-
 interface ViewAsUser {
   id: string
   full_name: string
@@ -36,7 +33,6 @@ interface ViewAsContextType {
 const ViewAsContext = createContext<ViewAsContextType | null>(null)
 
 export function ViewAsProvider({ children }: { children: ReactNode }) {
-  const supabase = useSupabase()
   const [viewAsUser, setViewAsUser] = useState<ViewAsUser | null>(null)
   const [managers, setManagers] = useState<ViewAsUser[]>([])
   const [managersLoaded, setManagersLoaded] = useState(false)
@@ -44,15 +40,15 @@ export function ViewAsProvider({ children }: { children: ReactNode }) {
   const loadManagers = useCallback(async () => {
     if (managersLoaded) return
     try {
-      const allUsers = await getUsers(supabase)
-      setManagers(
-        allUsers.filter((u: any) => u.is_active && !u.fired_at && u.role === 'manager')
-      )
+      const res = await fetch('/api/admin/managers')
+      if (!res.ok) throw new Error('Ошибка загрузки менеджеров')
+      const data = await res.json()
+      setManagers(data.managers || [])
       setManagersLoaded(true)
     } catch (err) {
       console.error('Failed to load managers:', err)
     }
-  }, [supabase, managersLoaded])
+  }, [managersLoaded])
 
   const selectManager = useCallback((user: ViewAsUser) => {
     setViewAsUser(user)
