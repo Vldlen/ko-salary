@@ -17,23 +17,36 @@ export interface Position {
 }
 
 export interface MotivationConfig {
-  revenue_plan: number
-  units_plan: number
-  meetings_plan: number
+  // Планы
+  revenue_plan: number        // план выручки (₽)
+  units_plan: number          // план по штукам
+  meetings_plan: number       // план встреч
+  // Проценты от дохода
+  revenue_percent: number     // % от выручки
+  mrr_percent: number         // % от MRR
+  // KPI качественный (конверсия встреч)
   kpi_quality: {
     enabled: boolean
     description: string
     max_amount: number
+    conversion_threshold: number // порог конверсии (%) для получения бонуса
   }
+  // KPI количественный (штуки)
   kpi_quantity: {
     enabled: boolean
     description: string
     max_amount: number
   }
+  // Маржа с оборудования
   margin_bonus: {
     enabled: boolean
     description: string
     percent: number
+  }
+  // Аттестация
+  attestation: {
+    enabled: boolean
+    bonus_amount: number      // бонус за сданную аттестацию
   }
 }
 

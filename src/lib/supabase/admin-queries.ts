@@ -119,6 +119,52 @@ export async function createPosition(supabase: SupabaseClient, posData: {
   return data
 }
 
+// ======== Motivation Schemas ========
+
+export async function getMotivationSchemas(supabase: SupabaseClient) {
+  const { data, error } = await supabase
+    .from('motivation_schemas')
+    .select('*, position:positions(name, company:companies(name))')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data || []
+}
+
+export async function createMotivationSchema(supabase: SupabaseClient, schema: {
+  position_id: string
+  name: string
+  base_salary: number
+  valid_from: string
+  config: Record<string, unknown>
+}) {
+  const { data, error } = await supabase
+    .from('motivation_schemas')
+    .insert(schema)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updateMotivationSchema(supabase: SupabaseClient, id: string, updates: {
+  name?: string
+  base_salary?: number
+  config?: Record<string, unknown>
+  valid_to?: string | null
+}) {
+  const { data, error } = await supabase
+    .from('motivation_schemas')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
 // ======== Periods ========
 
 export async function getPeriods(supabase: SupabaseClient, companyId?: string) {
