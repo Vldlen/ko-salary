@@ -24,7 +24,7 @@ export default function ViewAsBar({ userRole }: ViewAsBarProps) {
   if (!canViewAs) return null
 
   return (
-    <div className="glass rounded-2xl p-3 mb-6 flex items-center justify-between">
+    <div className="glass rounded-2xl p-3 mb-6 flex items-center justify-between relative z-50">
       <div className="flex items-center gap-3">
         <Eye className="w-4 h-4 text-blue-400" />
         <span className="text-sm text-white/50">Просмотр:</span>
@@ -56,7 +56,7 @@ export default function ViewAsBar({ userRole }: ViewAsBarProps) {
         {showPicker && (
           <>
             <div className="fixed inset-0 z-30" onClick={() => setShowPicker(false)} />
-            <div className="absolute right-0 top-full mt-2 z-40 glass-strong rounded-xl shadow-2xl w-72 max-h-80 overflow-y-auto">
+            <div className="absolute right-0 top-full mt-2 z-[100] glass-strong rounded-xl shadow-2xl w-72 max-h-80 overflow-y-auto border border-white/10">
               {managers.length === 0 ? (
                 <div className="p-4 text-sm text-white/30 text-center">Нет активных менеджеров</div>
               ) : (
