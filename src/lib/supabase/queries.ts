@@ -36,8 +36,21 @@ export async function getActivePeriod(supabase: SupabaseClient, _companyId?: str
 
 // ======== Dashboard ========
 
+// Найти актуальную схему мотивации для даты периода
+function findSchemaForPeriod(schemas: any[], year: number, month: number): any {
+  if (!schemas || schemas.length === 0) return null
+  // Дата начала периода (первый день месяца)
+  const periodDate = `${year}-${String(month).padStart(2, '0')}-01`
+  // Ищем схему, где valid_from <= periodDate и (valid_to IS NULL или valid_to >= periodDate)
+  const matching = schemas.find((s: any) =>
+    s.valid_from <= periodDate && (!s.valid_to || s.valid_to >= periodDate)
+  )
+  // Если не нашли — берём последнюю по valid_from (на случай если даты ещё не настроены)
+  return matching || schemas.sort((a: any, b: any) => b.valid_from.localeCompare(a.valid_from))[0]
+}
+
 export async function getDashboardData(supabase: SupabaseClient, userId: string, periodId: string) {
-  const [dealsRes, meetingsRes, salaryRes, schemaRes] = await Promise.all([
+  const [dealsRes, meetingsRes, salaryRes, userRes, planRes, periodRes] = await Promise.all([
     supabase
       .from('deals')
       .select('*')
@@ -58,21 +71,37 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string,
       .single(),
     supabase
       .from('users')
-      .select('position:positions(motivation_schemas(*))')
+      .select('position_id, position:positions(motivation_schemas(*))')
       .eq('id', userId)
+      .single(),
+    supabase
+      .from('individual_plans')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('period_id', periodId)
+      .single(),
+    supabase
+      .from('periods')
+      .select('year, month')
+      .eq('id', periodId)
       .single(),
   ])
 
   const deals = dealsRes.data || []
   const meetings = meetingsRes.data || []
   const salaryResult = salaryRes.data
-  const posData = schemaRes.data?.position as any
-  const schemas = Array.isArray(posData) ? posData[0]?.motivation_schemas : posData?.motivation_schemas
-  const schema = schemas?.[0]
+  const posData = userRes.data?.position as any
+  const allSchemas = Array.isArray(posData) ? posData[0]?.motivation_schemas : posData?.motivation_schemas
+  const period = periodRes.data
+  const individualPlan = planRes.data
 
-  // Base salary from motivation schema
-  const baseSalary = schema?.base_salary || 0
+  // Выбираем схему по valid_from/valid_to для текущего периода
+  const schema = period
+    ? findSchemaForPeriod(allSchemas, period.year, period.month)
+    : allSchemas?.[0]
+
   const config = schema?.config || {}
+  const baseSalary = schema?.base_salary || 0
 
   // Calculate stats from deals
   const paidDeals = deals.filter((d: any) => d.status === 'paid')
@@ -84,12 +113,12 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string,
   // Meetings stats
   const meetingsFact = meetings.reduce((s: number, m: any) => s + m.new_completed + m.repeat_completed, 0)
 
-  // Plan from motivation schema
-  const revenuePlan = config.revenue_plan || 660000
-  const unitsPlan = config.units_plan || 15
-  const meetingsPlan = config.meetings_plan || 25
+  // Plans: individual_plans (персональные), meetings_plan из schema (общий для должности)
+  const revenuePlan = individualPlan?.revenue_plan || 0
+  const unitsPlan = individualPlan?.units_plan || 0
+  const meetingsPlan = config.meetings_plan || 0
 
-  // Build salary object — use salary_results if exists, otherwise compute from schema
+  // Build salary object
   const salary = salaryResult || {
     base_salary: baseSalary,
     kpi_quality: 0,
@@ -101,7 +130,6 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string,
     forecast_total: baseSalary,
   }
 
-  // If salary_results exists but has no base_salary, fill it from schema
   if (salaryResult && (!salaryResult.base_salary || Number(salaryResult.base_salary) === 0)) {
     salary.base_salary = baseSalary
     salary.total = Number(salary.total || 0) + baseSalary
@@ -304,18 +332,26 @@ export async function getSalaryHistory(supabase: SupabaseClient, userId: string,
 // ======== Team (for ROP/Director) ========
 
 export async function getTeamProgress(supabase: SupabaseClient, _companyId: string, periodId: string) {
-  // Batch: 1 query for users, 1 for all deals, 1 for all meetings = 3 total (was N*2+1)
-  const { data: users } = await supabase
-    .from('users')
-    .select('id, full_name, role, company:companies(id, name), position:positions(name, motivation_schemas(config))')
-    .eq('is_active', true)
-    .in('role', ['manager', 'rop'])
+  const [usersRes, periodRes] = await Promise.all([
+    supabase
+      .from('users')
+      .select('id, full_name, role, position_id, company:companies(id, name), position:positions(name, motivation_schemas(*))')
+      .eq('is_active', true)
+      .in('role', ['manager', 'rop']),
+    supabase
+      .from('periods')
+      .select('year, month')
+      .eq('id', periodId)
+      .single(),
+  ])
 
+  const users = usersRes.data
+  const period = periodRes.data
   if (!users || users.length === 0) return []
 
   const userIds = users.map((u: any) => u.id)
 
-  const [dealsRes, meetingsRes] = await Promise.all([
+  const [dealsRes, meetingsRes, plansRes] = await Promise.all([
     supabase
       .from('deals')
       .select('user_id, revenue, units, status, equipment_margin')
@@ -326,12 +362,18 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
       .select('user_id, new_completed, repeat_completed, invoiced_sum, paid_sum')
       .eq('period_id', periodId)
       .in('user_id', userIds),
+    supabase
+      .from('individual_plans')
+      .select('*')
+      .eq('period_id', periodId)
+      .in('user_id', userIds),
   ])
 
   const allDeals = dealsRes.data || []
   const allMeetings = meetingsRes.data || []
+  const allPlans = plansRes.data || []
 
-  // Group by user_id in memory
+  // Group by user_id
   const dealsByUser = new Map<string, any[]>()
   for (const d of allDeals) {
     const list = dealsByUser.get(d.user_id) || []
@@ -346,10 +388,21 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
     meetingsByUser.set(m.user_id, list)
   }
 
+  const plansByUser = new Map<string, any>()
+  for (const p of allPlans) {
+    plansByUser.set(p.user_id, p)
+  }
+
   const teamData = users.map((user: any) => {
     const deals = dealsByUser.get(user.id) || []
     const meetings = meetingsByUser.get(user.id) || []
-    const config = user.position?.motivation_schemas?.[0]?.config || {}
+    const plan = plansByUser.get(user.id)
+    const allSchemas = user.position?.motivation_schemas || []
+    const schema = period
+      ? findSchemaForPeriod(allSchemas, period.year, period.month)
+      : allSchemas[0]
+    const config = schema?.config || {}
+    const baseSalary = schema?.base_salary || 0
 
     const paidDeals = deals.filter((d: any) => d.status === 'paid')
     const unpaidDeals = deals.filter((d: any) => d.status !== 'paid' && d.status !== 'cancelled')
@@ -368,17 +421,17 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
       company_name: user.company?.name || '',
       revenue_fact: revenueFact,
       revenue_forecast: revenueForecast,
-      revenue_plan: config.revenue_plan || 0,
+      revenue_plan: plan?.revenue_plan || 0,
       units_fact: unitsFact,
-      units_plan: config.units_plan || 0,
+      units_plan: plan?.units_plan || 0,
       meetings_fact: meetingsFact,
       meetings_plan: config.meetings_plan || 0,
       invoiced_sum: invoicedSum,
       paid_sum: paidSum,
+      base_salary: baseSalary,
     }
   })
 
-  // Sort by revenue plan completion % descending
   teamData.sort((a, b) => {
     const aPct = a.revenue_plan > 0 ? a.revenue_fact / a.revenue_plan : 0
     const bPct = b.revenue_plan > 0 ? b.revenue_fact / b.revenue_plan : 0

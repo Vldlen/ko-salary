@@ -5,6 +5,10 @@ interface CalcInput {
   deals: Deal[]
   meetings: Meeting[]
   oneTimePayments: OneTimePayment[]
+  individualPlan?: {         // планы из individual_plans (приоритет над schema.config)
+    revenue_plan?: number | null
+    units_plan?: number | null
+  }
 }
 
 interface CalcResult {
@@ -35,7 +39,7 @@ interface CalcResult {
 }
 
 export function calculateSalary(input: CalcInput): CalcResult {
-  const { schema, deals, meetings, oneTimePayments } = input
+  const { schema, deals, meetings, oneTimePayments, individualPlan } = input
   const config = schema.config
 
   // --- Revenue ---
@@ -46,13 +50,14 @@ export function calculateSalary(input: CalcInput): CalcResult {
   const revenueForecast = forecastDeals.reduce((sum, d) => {
     return sum + Number(d.forecast_revenue ?? d.revenue)
   }, 0)
-  const revenuePlan = config.revenue_plan
+  // Plans: individual_plans has priority, fallback to schema config
+  const revenuePlan = individualPlan?.revenue_plan ?? config.revenue_plan
   const revenuePercent = revenuePlan > 0 ? revenueFact / revenuePlan : 0
   const revenueForecastPercent = revenuePlan > 0 ? revenueForecast / revenuePlan : 0
 
   // --- Units ---
   const unitsFact = paidDeals.reduce((sum, d) => sum + d.units, 0)
-  const unitsPlan = config.units_plan
+  const unitsPlan = individualPlan?.units_plan ?? config.units_plan
   const unitsPercent = unitsPlan > 0 ? unitsFact / unitsPlan : 0
 
   // --- Meetings ---
@@ -93,7 +98,7 @@ export function calculateSalary(input: CalcInput): CalcResult {
     .filter(p => p.type === 'deduction')
     .reduce((sum, p) => sum + Number(p.amount), 0)
 
-  // --- Base salary ---
+  // --- Base salary (из схемы мотивации должности) ---
   const baseSalary = schema.base_salary
 
   // --- Total ---
