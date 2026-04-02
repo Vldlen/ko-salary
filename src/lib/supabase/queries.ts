@@ -354,12 +354,13 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
   const [dealsRes, meetingsRes, plansRes] = await Promise.all([
     supabase
       .from('deals')
-      .select('user_id, revenue, units, status, equipment_margin')
+      .select('user_id, client_name, revenue, forecast_revenue, units, status, equipment_margin, created_at')
       .eq('period_id', periodId)
-      .in('user_id', userIds),
+      .in('user_id', userIds)
+      .order('created_at', { ascending: false }),
     supabase
       .from('meetings')
-      .select('user_id, new_completed, repeat_completed, invoiced_sum, paid_sum')
+      .select('user_id, date, new_completed, repeat_completed, scheduled, invoiced_sum, paid_sum')
       .eq('period_id', periodId)
       .in('user_id', userIds),
     supabase
@@ -406,12 +407,31 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
 
     const paidDeals = deals.filter((d: any) => d.status === 'paid')
     const unpaidDeals = deals.filter((d: any) => d.status !== 'paid' && d.status !== 'cancelled')
+    const waitingDeals = deals.filter((d: any) => d.status === 'waiting_payment')
+    const noInvoiceDeals = deals.filter((d: any) => d.status === 'no_invoice')
+    const cancelledDeals = deals.filter((d: any) => d.status === 'cancelled')
+
     const revenueFact = paidDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0)
     const revenueForecast = unpaidDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0)
+    const revenueWaiting = waitingDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0)
     const unitsFact = paidDeals.reduce((s: number, d: any) => s + d.units, 0)
-    const meetingsFact = meetings.reduce((s: number, m: any) => s + (m.new_completed || 0) + (m.repeat_completed || 0), 0)
+    const unitsWaiting = waitingDeals.reduce((s: number, d: any) => s + d.units, 0)
+    const marginFact = paidDeals.reduce((s: number, d: any) => s + Number(d.equipment_margin || 0), 0)
+
+    const meetingsNew = meetings.reduce((s: number, m: any) => s + (m.new_completed || 0), 0)
+    const meetingsRepeat = meetings.reduce((s: number, m: any) => s + (m.repeat_completed || 0), 0)
+    const meetingsFact = meetingsNew + meetingsRepeat
+    const meetingsScheduled = meetings.reduce((s: number, m: any) => s + (m.scheduled || 0), 0)
     const invoicedSum = meetings.reduce((s: number, m: any) => s + (m.invoiced_sum || 0), 0)
     const paidSum = meetings.reduce((s: number, m: any) => s + (m.paid_sum || 0), 0)
+
+    // Последние 5 сделок для превью
+    const recentDeals = deals.slice(0, 5).map((d: any) => ({
+      client_name: d.client_name,
+      revenue: Number(d.revenue),
+      status: d.status,
+      units: d.units,
+    }))
 
     return {
       id: user.id,
@@ -419,15 +439,34 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
       position: user.position?.name || '',
       company_id: user.company?.id || '',
       company_name: user.company?.name || '',
+      // Выручка
       revenue_fact: revenueFact,
       revenue_forecast: revenueForecast,
+      revenue_waiting: revenueWaiting,
       revenue_plan: plan?.revenue_plan || 0,
+      // Сделки
+      deals_total: deals.length,
+      deals_paid: paidDeals.length,
+      deals_waiting: waitingDeals.length,
+      deals_no_invoice: noInvoiceDeals.length,
+      deals_cancelled: cancelledDeals.length,
+      recent_deals: recentDeals,
+      // Точки
       units_fact: unitsFact,
+      units_waiting: unitsWaiting,
       units_plan: plan?.units_plan || 0,
+      // Маржа
+      margin_fact: marginFact,
+      // Встречи
       meetings_fact: meetingsFact,
+      meetings_new: meetingsNew,
+      meetings_repeat: meetingsRepeat,
+      meetings_scheduled: meetingsScheduled,
       meetings_plan: config.meetings_plan || 0,
+      // Финансы из встреч
       invoiced_sum: invoicedSum,
       paid_sum: paidSum,
+      // Оклад
       base_salary: baseSalary,
     }
   })
