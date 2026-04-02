@@ -2,14 +2,15 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, Eye } from 'lucide-react'
+import { Loader2, Eye, Plus, X, Check, Trash2, Pencil, ExternalLink, ClipboardCheck } from 'lucide-react'
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import ViewAsBar from '@/components/ViewAsBar'
+import CustomSelect from '@/components/CustomSelect'
 import { cn, formatMoney } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { useViewAs } from '@/lib/view-as-context'
-import { getCurrentUser, getActivePeriod, getMeetings, upsertMeeting } from '@/lib/supabase/queries'
+import { getCurrentUser, getActivePeriod, getMeetings, upsertMeeting, getKpiEntries, createKpiEntry, updateKpiEntry, deleteKpiEntry } from '@/lib/supabase/queries'
 
 type MeetingField = 'scheduled' | 'new_completed' | 'repeat_completed' | 'mentor' | 'next_day' | 'rescheduled' | 'invoiced_sum' | 'paid_sum'
 
@@ -51,6 +52,21 @@ function getDaysInMonth(year: number, month: number): string[] {
   return days
 }
 
+const KPI_PRODUCT_OPTIONS = [
+  { value: 'Чек-Ап', label: 'Чек-Ап' },
+  { value: 'ФД', label: 'ФД' },
+  { value: 'Bonda BI', label: 'Bonda BI' },
+  { value: 'Другое', label: 'Другое' },
+]
+
+const EMPTY_KPI_FORM = {
+  entry_date: new Date().toISOString().slice(0, 10),
+  client_name: '',
+  amo_link: '',
+  product: 'Чек-Ап',
+  comment: '',
+}
+
 export default function MeetingsPage() {
   const supabase = useSupabase()
   const router = useRouter()
@@ -64,6 +80,14 @@ export default function MeetingsPage() {
   const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set())
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({})
+
+  // KPI entries state (БОНДА)
+  const [kpiEntries, setKpiEntries] = useState<any[]>([])
+  const [showKpiForm, setShowKpiForm] = useState(false)
+  const [editingKpi, setEditingKpi] = useState<any>(null)
+  const [kpiForm, setKpiForm] = useState(EMPTY_KPI_FORM)
+  const [kpiSaving, setKpiSaving] = useState(false)
+  const [kpiError, setKpiError] = useState('')
 
   const cellKey = (date: string, field: MeetingField) => `${date}__${field}`
 
@@ -94,17 +118,26 @@ export default function MeetingsPage() {
       setMeetings([])
       setPeriod(null)
       setCellValues({})
+      setKpiEntries([])
       return
     }
+
+    const isBondaCompany = (user.company?.name || '').toUpperCase().includes('БОНД')
 
     async function loadMeetings() {
       try {
         const activePeriod = await getActivePeriod(supabase, targetCompanyId)
-        if (!activePeriod) { setPeriod(null); setMeetings([]); setCellValues({}); return }
+        if (!activePeriod) { setPeriod(null); setMeetings([]); setCellValues({}); setKpiEntries([]); return }
         setPeriod(activePeriod)
 
         const meetingsData = await getMeetings(supabase, targetUserId, activePeriod.id)
         setMeetings(meetingsData || [])
+
+        // Load KPI entries for БОНДА
+        if (isBondaCompany) {
+          const kpiData = await getKpiEntries(supabase, targetUserId, activePeriod.id)
+          setKpiEntries(kpiData)
+        }
 
         // Initialize cell values
         const initial: Record<string, string> = {}
@@ -221,6 +254,71 @@ export default function MeetingsPage() {
       inputRefs.current[nextKey]?.select()
     }
   }, [])
+
+  // === KPI handlers ===
+  const isBonda = (user?.company?.name || '').toUpperCase().includes('БОНД')
+
+  async function handleKpiSave(e: React.FormEvent) {
+    e.preventDefault()
+    setKpiSaving(true)
+    setKpiError('')
+    try {
+      const entryData = {
+        entry_date: kpiForm.entry_date,
+        client_name: kpiForm.client_name,
+        amo_link: kpiForm.amo_link || undefined,
+        product: kpiForm.product,
+        comment: kpiForm.comment || undefined,
+      }
+      if (editingKpi) {
+        await updateKpiEntry(supabase, editingKpi.id, entryData)
+      } else {
+        await createKpiEntry(supabase, { ...entryData, user_id: user.id, period_id: period.id })
+      }
+      const targetUserId = effectiveUserId(user.id)
+      const data = await getKpiEntries(supabase, targetUserId, period.id)
+      setKpiEntries(data)
+      setShowKpiForm(false)
+      setEditingKpi(null)
+      setKpiForm(EMPTY_KPI_FORM)
+    } catch (err: any) {
+      setKpiError(err.message || 'Ошибка при сохранении')
+    } finally {
+      setKpiSaving(false)
+    }
+  }
+
+  async function handleKpiDelete(entryId: string) {
+    if (!confirm('Удалить запись KPI?')) return
+    try {
+      await deleteKpiEntry(supabase, entryId)
+      const targetUserId = effectiveUserId(user.id)
+      const data = await getKpiEntries(supabase, targetUserId, period.id)
+      setKpiEntries(data)
+    } catch (err: any) {
+      alert(err.message || 'Ошибка удаления')
+    }
+  }
+
+  function openKpiEdit(entry: any) {
+    setEditingKpi(entry)
+    setKpiForm({
+      entry_date: entry.entry_date,
+      client_name: entry.client_name,
+      amo_link: entry.amo_link || '',
+      product: entry.product || 'Чек-Ап',
+      comment: entry.comment || '',
+    })
+    setShowKpiForm(true)
+    setKpiError('')
+  }
+
+  function openKpiNew() {
+    setEditingKpi(null)
+    setKpiForm(EMPTY_KPI_FORM)
+    setShowKpiForm(true)
+    setKpiError('')
+  }
 
   if (loading) {
     return (
@@ -390,6 +488,159 @@ export default function MeetingsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* KPI записи — БОНДА */}
+          {isBonda && (
+            <div className="mt-8">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-heading font-bold text-white">KPI записи</h2>
+                  <p className="text-xs text-white/40 mt-0.5">
+                    Встречи и чек-апы · {kpiEntries.length} записей · {new Set(kpiEntries.map((e: any) => e.client_name?.toLowerCase().trim())).size} уник. клиентов
+                  </p>
+                </div>
+                {!showKpiForm && user?.role === 'manager' && !isViewingAs && (
+                  <button onClick={openKpiNew}
+                    className="flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 transition-colors">
+                    <Plus size={16} />
+                    Новая запись
+                  </button>
+                )}
+              </div>
+
+              {/* KPI Form */}
+              {showKpiForm && (
+                <div className="mb-6 rounded-xl glass p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-bold text-white">
+                      {editingKpi ? 'Редактировать запись' : 'Новая запись'}
+                    </h3>
+                    <button onClick={() => { setShowKpiForm(false); setEditingKpi(null); setKpiForm(EMPTY_KPI_FORM) }}
+                      className="rounded-lg p-1.5 text-blue-400 hover:bg-white/5">
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  {kpiError && (
+                    <div className="mb-3 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400">{kpiError}</div>
+                  )}
+
+                  <form onSubmit={handleKpiSave}>
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-3">
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-1">Дата *</label>
+                        <input type="date" required value={kpiForm.entry_date}
+                          onChange={(e) => setKpiForm({ ...kpiForm, entry_date: e.target.value })}
+                          onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none date-input-clean cursor-pointer" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-1">Клиент *</label>
+                        <input type="text" required value={kpiForm.client_name}
+                          onChange={(e) => setKpiForm({ ...kpiForm, client_name: e.target.value })}
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                          placeholder="Компания" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-1">Продукт</label>
+                        <CustomSelect value={kpiForm.product} onChange={(v) => setKpiForm({ ...kpiForm, product: v })} options={KPI_PRODUCT_OPTIONS} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-1">AMO CRM</label>
+                        <input type="text" value={kpiForm.amo_link}
+                          onChange={(e) => setKpiForm({ ...kpiForm, amo_link: e.target.value })}
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                          placeholder="https://..." />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-1">Комментарий</label>
+                        <input type="text" value={kpiForm.comment}
+                          onChange={(e) => setKpiForm({ ...kpiForm, comment: e.target.value })}
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                          placeholder="Заметка..." />
+                      </div>
+                    </div>
+                    <button type="submit" disabled={kpiSaving}
+                      className="flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-50 transition-colors">
+                      {kpiSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                      {editingKpi ? 'Сохранить' : 'Добавить'}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* KPI Entries Table */}
+              <div className="rounded-xl glass overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-white/10 bg-white/5">
+                      <th className="px-3 py-3 text-left text-xs font-semibold text-white">Дата</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold text-white">Клиент</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold text-white">Продукт</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold text-white">AMO</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold text-white">Комментарий</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold text-white"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {kpiEntries.length > 0 ? kpiEntries.map((entry: any) => (
+                      <tr key={entry.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                        <td className="px-3 py-2.5 text-xs text-white">
+                          {entry.entry_date ? new Date(entry.entry_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '—'}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold text-white bg-emerald-500">
+                              {entry.client_name?.charAt(0)?.toUpperCase() || '?'}
+                            </div>
+                            <span className="text-xs font-medium text-white">{entry.client_name}</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-white/10 text-blue-400">
+                            {entry.product || '—'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {entry.amo_link ? (
+                            <a href={entry.amo_link} target="_blank" rel="noopener noreferrer"
+                              className="text-blue-400 hover:text-blue-300 flex items-center gap-1 text-xs">
+                              <ExternalLink size={12} /> AMO
+                            </a>
+                          ) : (
+                            <span className="text-xs text-white/20">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 text-xs text-white/50 max-w-[180px] truncate">{entry.comment || '—'}</td>
+                        <td className="px-3 py-2.5">
+                          {user?.role === 'manager' && !isViewingAs && (
+                            <div className="flex items-center justify-end gap-1">
+                              <button onClick={() => openKpiEdit(entry)}
+                                className="rounded p-1.5 text-blue-400 hover:bg-white/5 transition-colors">
+                                <Pencil size={13} />
+                              </button>
+                              <button onClick={() => handleKpiDelete(entry.id)}
+                                className="rounded p-1.5 text-red-400 hover:bg-red-50/10 transition-colors">
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-6 text-center text-xs text-white/30">
+                          <ClipboardCheck className="w-6 h-6 mx-auto mb-1.5 text-white/10" />
+                          Нет записей за этот период
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           </>)}
         </div>
       </main>
