@@ -340,42 +340,51 @@ export async function getSalaryHistory(supabase: SupabaseClient, userId: string,
 
 // ======== Team (for ROP/Director) ========
 
-export async function getTeamProgress(supabase: SupabaseClient, _companyId: string, periodId: string) {
-  const [usersRes, periodRes] = await Promise.all([
+export async function getTeamProgress(supabase: SupabaseClient, _companyId: string, _periodId: string) {
+  // Load all active periods (each company has its own)
+  const [usersRes, periodsRes] = await Promise.all([
     supabase
       .from('users')
-      .select('id, full_name, role, position_id, company:companies(id, name), position:positions(name, motivation_schemas(*))')
+      .select('id, full_name, role, position_id, company_id, company:companies(id, name), position:positions(name, motivation_schemas(*))')
       .eq('is_active', true)
       .in('role', ['manager', 'rop']),
     supabase
       .from('periods')
-      .select('year, month')
-      .eq('id', periodId)
-      .single(),
+      .select('*')
+      .eq('status', 'active'),
   ])
 
   const users = usersRes.data
-  const period = periodRes.data
+  const allActivePeriods = periodsRes.data || []
   if (!users || users.length === 0) return []
+
+  // Map company_id → active period
+  const periodByCompany = new Map<string, any>()
+  for (const p of allActivePeriods) {
+    periodByCompany.set(p.company_id, p)
+  }
+
+  const allPeriodIds = allActivePeriods.map((p: any) => p.id)
+  if (allPeriodIds.length === 0) return []
 
   const userIds = users.map((u: any) => u.id)
 
   const [dealsRes, meetingsRes, plansRes] = await Promise.all([
     supabase
       .from('deals')
-      .select('user_id, client_name, revenue, forecast_revenue, units, status, equipment_margin, created_at')
-      .eq('period_id', periodId)
+      .select('user_id, client_name, revenue, forecast_revenue, units, status, equipment_margin, product_type, subscription_period, created_at')
+      .in('period_id', allPeriodIds)
       .in('user_id', userIds)
       .order('created_at', { ascending: false }),
     supabase
       .from('meetings')
       .select('user_id, date, new_completed, repeat_completed, scheduled, invoiced_sum, paid_sum')
-      .eq('period_id', periodId)
+      .in('period_id', allPeriodIds)
       .in('user_id', userIds),
     supabase
       .from('individual_plans')
       .select('*')
-      .eq('period_id', periodId)
+      .in('period_id', allPeriodIds)
       .in('user_id', userIds),
   ])
 
@@ -408,8 +417,9 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
     const meetings = meetingsByUser.get(user.id) || []
     const plan = plansByUser.get(user.id)
     const allSchemas = user.position?.motivation_schemas || []
-    const schema = period
-      ? findSchemaForPeriod(allSchemas, period.year, period.month)
+    const userPeriod = periodByCompany.get(user.company_id)
+    const schema = userPeriod
+      ? findSchemaForPeriod(allSchemas, userPeriod.year, userPeriod.month)
       : allSchemas[0]
     const config = schema?.config || {}
     const baseSalary = schema?.base_salary || 0
@@ -434,12 +444,18 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
     const invoicedSum = meetings.reduce((s: number, m: any) => s + (m.invoiced_sum || 0), 0)
     const paidSum = meetings.reduce((s: number, m: any) => s + (m.paid_sum || 0), 0)
 
+    // БОНДА product counts
+    const fdCount = deals.filter((d: any) => d.product_type === 'findir').length
+    const biCount = deals.filter((d: any) => d.product_type === 'bonda_bi').length
+    const otCount = deals.filter((d: any) => d.product_type === 'one_time_service').length
+
     // Последние 5 сделок для превью
     const recentDeals = deals.slice(0, 5).map((d: any) => ({
       client_name: d.client_name,
       revenue: Number(d.revenue),
       status: d.status,
       units: d.units,
+      product_type: d.product_type,
     }))
 
     return {
@@ -477,12 +493,17 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
       paid_sum: paidSum,
       // Оклад
       base_salary: baseSalary,
+      // БОНДА products
+      fd_count: fdCount,
+      bi_count: biCount,
+      ot_count: otCount,
     }
   })
 
   teamData.sort((a, b) => {
-    const aPct = a.revenue_plan > 0 ? a.revenue_fact / a.revenue_plan : 0
-    const bPct = b.revenue_plan > 0 ? b.revenue_fact / b.revenue_plan : 0
+    // Sort by revenue % for ИННО, by deals count for БОНДА
+    const aPct = a.revenue_plan > 0 ? a.revenue_fact / a.revenue_plan : (a.deals_total / 10)
+    const bPct = b.revenue_plan > 0 ? b.revenue_fact / b.revenue_plan : (b.deals_total / 10)
     return bPct - aPct
   })
 

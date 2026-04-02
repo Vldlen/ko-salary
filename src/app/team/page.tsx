@@ -27,9 +27,9 @@ export default function TeamPage() {
   const [team, setTeam] = useState<any[]>([])
   const [companyFilter, setCompanyFilter] = useState<CompanyFilter>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [periodId, setPeriodId] = useState<string | null>(null)
+  const [periods, setPeriods] = useState<Record<string, string>>({}) // company_id → period_id
 
-  // KPI data for БОНДА managers (loaded on expand)
+  // KPI data for managers (loaded on expand)
   const [kpiData, setKpiData] = useState<Record<string, { entries: any[]; approvals: any[] }>>({})
   const [kpiLoading, setKpiLoading] = useState<string | null>(null)
 
@@ -45,11 +45,20 @@ export default function TeamPage() {
           return
         }
 
-        const activePeriod = await getActivePeriod(supabase, currentUser.company_id)
-        if (!activePeriod) { setLoading(false); return }
+        // Load all active periods for all companies
+        const { data: allPeriods } = await supabase
+          .from('periods')
+          .select('id, company_id')
+          .eq('status', 'active')
 
-        setPeriodId(activePeriod.id)
-        const teamData = await getTeamProgress(supabase, currentUser.company_id, activePeriod.id)
+        const periodMap: Record<string, string> = {}
+        for (const p of (allPeriods || [])) {
+          periodMap[p.company_id] = p.id
+        }
+        setPeriods(periodMap)
+
+        const activePeriod = await getActivePeriod(supabase, currentUser.company_id)
+        const teamData = await getTeamProgress(supabase, currentUser.company_id, activePeriod?.id || '')
         setTeam(teamData)
       } catch (err) {
         console.error('Team load error:', err)
@@ -60,14 +69,20 @@ export default function TeamPage() {
     load()
   }, [supabase, router])
 
-  // Load KPI data for a БОНДА user when expanding
-  async function loadKpiForUser(userId: string) {
-    if (!periodId || kpiData[userId]) return
+  // Find period_id for a manager by their company_id
+  function getPeriodForUser(companyId: string): string | null {
+    return periods[companyId] || null
+  }
+
+  // Load KPI data for a user when expanding
+  async function loadKpiForUser(userId: string, companyId: string) {
+    const pid = getPeriodForUser(companyId)
+    if (!pid || kpiData[userId]) return
     setKpiLoading(userId)
     try {
       const [entries, approvals] = await Promise.all([
-        getKpiEntries(supabase, userId, periodId),
-        getKpiApprovals(supabase, userId, periodId),
+        getKpiEntries(supabase, userId, pid),
+        getKpiApprovals(supabase, userId, pid),
       ])
       setKpiData(prev => ({ ...prev, [userId]: { entries, approvals } }))
     } catch (err) {
@@ -77,12 +92,13 @@ export default function TeamPage() {
     }
   }
 
-  async function handleToggleApproval(managerId: string, kpiType: string) {
-    if (!periodId || !user) return
+  async function handleToggleApproval(managerId: string, kpiType: string, companyId: string) {
+    const pid = getPeriodForUser(companyId)
+    if (!pid || !user) return
     try {
-      await toggleKpiApproval(supabase, managerId, periodId, kpiType, user.id)
+      await toggleKpiApproval(supabase, managerId, pid, kpiType, user.id)
       // Reload approvals
-      const approvals = await getKpiApprovals(supabase, managerId, periodId)
+      const approvals = await getKpiApprovals(supabase, managerId, pid)
       setKpiData(prev => ({
         ...prev,
         [managerId]: { ...prev[managerId], approvals },
@@ -92,11 +108,11 @@ export default function TeamPage() {
     }
   }
 
-  function handleExpand(userId: string, isBondaCompany: boolean) {
+  function handleExpand(userId: string, companyId: string) {
     const isExpanding = expandedId !== userId
     setExpandedId(isExpanding ? userId : null)
-    if (isExpanding && isBondaCompany) {
-      loadKpiForUser(userId)
+    if (isExpanding) {
+      loadKpiForUser(userId, companyId)
     }
   }
 
@@ -232,7 +248,7 @@ export default function TeamPage() {
                 <div key={m.id} className="glass rounded-xl overflow-hidden">
                   {/* Header — always visible */}
                   <button
-                    onClick={() => handleExpand(m.id, isBondaCompany)}
+                    onClick={() => handleExpand(m.id, m.company_id)}
                     className="w-full px-5 py-4 flex items-center justify-between hover:bg-white/5 transition text-left"
                   >
                     <div className="flex items-center gap-3">
@@ -359,38 +375,60 @@ export default function TeamPage() {
                           </div>
                         </div>
 
-                        {/* Точки + Маржа */}
+                        {/* Точки / Маржа (ИННО) или Продукты (БОНДА) */}
                         <div className="bg-white/5 rounded-lg p-3">
-                          <p className="text-[10px] text-white/30 uppercase tracking-wider mb-2">Точки / Маржа</p>
-                          <div className="space-y-1 text-xs">
-                            <div className="flex justify-between">
-                              <span className="text-emerald-400/70">Оплачено</span>
-                              <span className="text-emerald-400 font-medium">{m.units_fact} шт.</span>
-                            </div>
-                            {m.units_waiting > 0 && (
-                              <div className="flex justify-between">
-                                <span className="text-amber-400/70">Ждёт оплаты</span>
-                                <span className="text-amber-400 font-medium">{m.units_waiting} шт.</span>
+                          {isBondaCompany ? (
+                            <>
+                              <p className="text-[10px] text-white/30 uppercase tracking-wider mb-2">Продукты</p>
+                              <div className="space-y-1 text-xs">
+                                <div className="flex justify-between">
+                                  <span className="text-emerald-400/70">ФинДир</span>
+                                  <span className="text-emerald-400 font-medium">{m.fd_count} шт.</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-blue-400/70">Bonda BI</span>
+                                  <span className="text-blue-400 font-medium">{m.bi_count} шт.</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-orange-400/70">Разовые</span>
+                                  <span className="text-orange-400 font-medium">{m.ot_count} шт.</span>
+                                </div>
                               </div>
-                            )}
-                            {m.units_plan > 0 && (
-                              <div className="flex justify-between">
-                                <span className="text-white/30">План</span>
-                                <span className="text-white/50 font-medium">{m.units_plan} шт.</span>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-[10px] text-white/30 uppercase tracking-wider mb-2">Точки / Маржа</p>
+                              <div className="space-y-1 text-xs">
+                                <div className="flex justify-between">
+                                  <span className="text-emerald-400/70">Оплачено</span>
+                                  <span className="text-emerald-400 font-medium">{m.units_fact} шт.</span>
+                                </div>
+                                {m.units_waiting > 0 && (
+                                  <div className="flex justify-between">
+                                    <span className="text-amber-400/70">Ждёт оплаты</span>
+                                    <span className="text-amber-400 font-medium">{m.units_waiting} шт.</span>
+                                  </div>
+                                )}
+                                {m.units_plan > 0 && (
+                                  <div className="flex justify-between">
+                                    <span className="text-white/30">План</span>
+                                    <span className="text-white/50 font-medium">{m.units_plan} шт.</span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between pt-1 border-t border-white/5">
+                                  <span className="text-orange-400/70">Маржа оборуд.</span>
+                                  <span className="text-orange-400 font-medium">{formatMoney(m.margin_fact)}</span>
+                                </div>
                               </div>
-                            )}
-                            <div className="flex justify-between pt-1 border-t border-white/5">
-                              <span className="text-orange-400/70">Маржа оборуд.</span>
-                              <span className="text-orange-400 font-medium">{formatMoney(m.margin_fact)}</span>
-                            </div>
-                          </div>
+                            </>
+                          )}
                         </div>
                       </div>
 
-                      {/* БОНДА: KPI Approvals */}
-                      {isBondaCompany && (
+                      {/* KPI Approvals */}
+                      {(
                         <div className="mb-5">
-                          <p className="text-[10px] text-white/30 uppercase tracking-wider mb-2">KPI — БОНДА</p>
+                          <p className="text-[10px] text-white/30 uppercase tracking-wider mb-2">KPI{isBondaCompany ? ' — БОНДА' : ''}</p>
                           <div className="bg-white/5 rounded-lg p-4">
                             {kpiLoading === m.id ? (
                               <div className="flex items-center gap-2 text-sm text-white/40">
@@ -414,7 +452,7 @@ export default function TeamPage() {
                                 {/* Approval checkboxes */}
                                 {isJunior ? (
                                   <button
-                                    onClick={() => handleToggleApproval(m.id, 'attestation')}
+                                    onClick={() => handleToggleApproval(m.id, 'attestation', m.company_id)}
                                     className="flex items-center gap-2 text-sm hover:bg-white/5 rounded-lg px-2 py-1.5 -mx-2 transition w-full text-left"
                                   >
                                     {kpiData[m.id].approvals.some((a: any) => a.kpi_type === 'attestation')
@@ -425,7 +463,7 @@ export default function TeamPage() {
                                   </button>
                                 ) : (
                                   <button
-                                    onClick={() => handleToggleApproval(m.id, 'conversion_approved')}
+                                    onClick={() => handleToggleApproval(m.id, 'conversion_approved', m.company_id)}
                                     className="flex items-center gap-2 text-sm hover:bg-white/5 rounded-lg px-2 py-1.5 -mx-2 transition w-full text-left"
                                   >
                                     {kpiData[m.id].approvals.some((a: any) => a.kpi_type === 'conversion_approved')
