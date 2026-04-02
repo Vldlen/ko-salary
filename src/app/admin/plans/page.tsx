@@ -183,7 +183,7 @@ export default function AdminPlansPage() {
             <div className="glass rounded-2xl overflow-hidden">
               <div className="px-5 py-4 border-b border-white/10 bg-blue-500/10">
                 <h2 className="text-lg font-heading font-bold text-blue-400">ИННО</h2>
-                <p className="text-xs text-white/40">Выручка, Штуки, MRR</p>
+                <p className="text-xs text-white/40">Выручка, Штуки</p>
               </div>
 
               {innoUsers.length === 0 ? (
@@ -220,7 +220,7 @@ export default function AdminPlansPage() {
                             {saving === u.id ? '' : savedId === u.id ? 'Готово' : 'Сохр.'}
                           </button>
                         </div>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-[10px] text-white/30 mb-0.5">Выручка ₽</label>
                             <input type="number" value={plan.revenue_plan || ''}
@@ -232,13 +232,6 @@ export default function AdminPlansPage() {
                             <label className="block text-[10px] text-white/30 mb-0.5">Штуки</label>
                             <input type="number" value={plan.units_plan || ''}
                               onChange={e => updatePlan(u.id, 'units_plan', Number(e.target.value))}
-                              placeholder="0"
-                              className="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white outline-none focus:border-blue-400/50" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] text-white/30 mb-0.5">MRR ₽</label>
-                            <input type="number" value={plan.mrr_plan || ''}
-                              onChange={e => updatePlan(u.id, 'mrr_plan', Number(e.target.value))}
                               placeholder="0"
                               className="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white outline-none focus:border-blue-400/50" />
                           </div>
