@@ -14,15 +14,17 @@ import { getCurrentUser, getActivePeriod, getMeetings, upsertMeeting, getKpiEntr
 
 type MeetingField = 'scheduled' | 'new_completed' | 'repeat_completed' | 'mentor' | 'next_day' | 'rescheduled' | 'invoiced_sum' | 'paid_sum'
 
-const ROW_CONFIG: { key: MeetingField; label: string; isMoney?: boolean }[] = [
-  { key: 'scheduled', label: 'Назначенных на утро' },
-  { key: 'new_completed', label: 'Проведенных новых' },
-  { key: 'repeat_completed', label: 'Проведенных повторных' },
-  { key: 'mentor', label: 'Встреч как ментор' },
-  { key: 'next_day', label: 'Встреч на завтра' },
-  { key: 'rescheduled', label: 'Перенесённых' },
-  { key: 'invoiced_sum', label: 'Выставленные счета ₽', isMoney: true },
-  { key: 'paid_sum', label: 'Оплаченные счета ₽', isMoney: true },
+type RowConfig = { key: MeetingField; label: string; bondaLabel?: string; isMoney?: boolean }
+
+const ROW_CONFIG: RowConfig[] = [
+  { key: 'scheduled', label: 'Назначенных на утро', bondaLabel: 'Встречи на сегодня' },
+  { key: 'new_completed', label: 'Проведенных новых', bondaLabel: 'Проведено новых' },
+  { key: 'repeat_completed', label: 'Проведенных повторных', bondaLabel: 'Проведено повторных' },
+  { key: 'mentor', label: 'Встреч как ментор', bondaLabel: 'Назначено check-up' },
+  { key: 'next_day', label: 'Встреч на завтра', bondaLabel: 'Разобрано check-up' },
+  { key: 'rescheduled', label: 'Перенесённых', bondaLabel: 'Перенесённых' },
+  { key: 'invoiced_sum', label: 'Выставленные счета ₽', bondaLabel: 'Выставленные счета ₽', isMoney: true },
+  { key: 'paid_sum', label: 'Оплаченные счета ₽', bondaLabel: 'Оплаченные счета ₽', isMoney: true },
 ]
 
 const ALL_FIELDS: MeetingField[] = ROW_CONFIG.map(r => r.key)
@@ -439,7 +441,7 @@ export default function MeetingsPage() {
                         'sticky left-0 z-10 py-2 px-3 font-medium text-white border-r border-white/10 whitespace-nowrap text-xs',
                         isMoney ? 'bg-[#0f1a1a]' : 'bg-[#111827]'
                       )}>
-                        {row.label}
+                        {isBonda && row.bondaLabel ? row.bondaLabel : row.label}
                       </td>
 
                       {allDays.map((date) => {

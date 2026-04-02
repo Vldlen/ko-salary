@@ -45,7 +45,7 @@ export default function TeamPage() {
           return
         }
 
-        const activePeriod = await getActivePeriod(supabase)
+        const activePeriod = await getActivePeriod(supabase, currentUser.company_id)
         if (!activePeriod) { setLoading(false); return }
 
         setPeriodId(activePeriod.id)
