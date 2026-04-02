@@ -219,3 +219,37 @@ export async function updatePeriodStatusByMonth(supabase: SupabaseClient, year: 
   if (error) throw error
   return data
 }
+
+// ======== Individual Plans ========
+
+export async function getIndividualPlans(supabase: SupabaseClient, periodId: string) {
+  const { data, error } = await supabase
+    .from('individual_plans')
+    .select('*')
+    .eq('period_id', periodId)
+
+  if (error) throw error
+  return data || []
+}
+
+export async function upsertIndividualPlan(supabase: SupabaseClient, plan: {
+  user_id: string
+  period_id: string
+  company_id: string
+  revenue_plan?: number | null
+  units_plan?: number | null
+  mrr_plan?: number | null
+  findir_plan?: number | null
+}) {
+  const { data, error } = await supabase
+    .from('individual_plans')
+    .upsert(
+      { ...plan, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id,period_id' }
+    )
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}

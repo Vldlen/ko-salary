@@ -143,6 +143,19 @@ export interface OneTimePayment {
   created_at: string
 }
 
+export interface IndividualPlan {
+  id: string
+  user_id: string
+  period_id: string
+  company_id: string
+  revenue_plan: number | null     // ИННО: план выручки
+  units_plan: number | null       // ИННО + БОНДА: план штук
+  mrr_plan: number | null         // ИННО: план MRR
+  findir_plan: number | null      // БОНДА: план ФИНДИРов
+  created_at: string
+  updated_at: string
+}
+
 // Aggregated views
 export interface ManagerSummary {
   user: User

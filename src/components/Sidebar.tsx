@@ -8,7 +8,7 @@ import { useSupabase } from '@/lib/supabase/hooks'
 import type { UserRole } from '@/types/database'
 import {
   LayoutDashboard, Handshake, CalendarDays, Wallet,
-  TrendingUp, Users, Settings, Building2, UserCog, CalendarRange, LogOut, Menu, X
+  TrendingUp, Users, Settings, Building2, UserCog, CalendarRange, Target, LogOut, Menu, X
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -27,6 +27,7 @@ const managerLinks = [
 
 const ropLinks = [
   { href: '/team', label: 'Команда', icon: Users },
+  { href: '/admin/plans', label: 'Планы', icon: Target },
 ]
 
 const adminLinks = [
