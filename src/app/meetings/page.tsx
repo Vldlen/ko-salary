@@ -122,7 +122,8 @@ export default function MeetingsPage() {
       return
     }
 
-    const isBondaCompany = (user.company?.name || '').toUpperCase().includes('БОНД')
+    const viewCompanyName = isViewingAs ? (viewAsUser?.company?.name || '') : (user.company?.name || '')
+    const isBondaCompany = viewCompanyName.toUpperCase().includes('БОНД')
 
     async function loadMeetings() {
       try {
@@ -256,7 +257,8 @@ export default function MeetingsPage() {
   }, [])
 
   // === KPI handlers ===
-  const isBonda = (user?.company?.name || '').toUpperCase().includes('БОНД')
+  const viewCompName = isViewingAs ? (viewAsUser?.company?.name || '') : (user?.company?.name || '')
+  const isBonda = viewCompName.toUpperCase().includes('БОНД')
 
   async function handleKpiSave(e: React.FormEvent) {
     e.preventDefault()
@@ -394,7 +396,7 @@ export default function MeetingsPage() {
             <table className="text-xs border-collapse w-max">
               <thead>
                 <tr>
-                  <th className="sticky left-0 z-20 bg-white/10 text-white text-left py-2 px-3 font-semibold min-w-[200px] border-r border-white/20">
+                  <th className="sticky left-0 z-20 bg-[#151929] text-white text-left py-2 px-3 font-semibold min-w-[200px] border-r border-white/20">
                     Показатель
                   </th>
                   {allDays.map((date) => {
@@ -412,7 +414,7 @@ export default function MeetingsPage() {
                       </th>
                     )
                   })}
-                  <th className="bg-white/15 text-white text-center py-1.5 px-2 font-semibold min-w-[60px]">
+                  <th className="sticky right-0 z-20 bg-[#151929] text-white text-center py-1.5 px-2 font-semibold min-w-[70px] border-l-2 border-white/20">
                     Итого
                   </th>
                 </tr>
@@ -432,8 +434,8 @@ export default function MeetingsPage() {
                       )}
                     >
                       <td className={cn(
-                        'sticky left-0 z-10 py-2 px-3 font-medium text-white/80 border-r border-white/10 whitespace-nowrap text-xs',
-                        isMoney ? 'bg-emerald-500/10' : isEven ? 'bg-white/5' : 'bg-white/2'
+                        'sticky left-0 z-10 py-2 px-3 font-medium text-white border-r border-white/10 whitespace-nowrap text-xs',
+                        isMoney ? 'bg-[#0f1a1a]' : 'bg-[#111827]'
                       )}>
                         {row.label}
                       </td>
@@ -473,8 +475,8 @@ export default function MeetingsPage() {
                       })}
 
                       <td className={cn(
-                        'py-1.5 px-2 text-center font-bold text-xs border-l-2 border-white/20',
-                        isMoney ? 'text-emerald-400' : 'text-white'
+                        'sticky right-0 z-10 py-1.5 px-2 text-center font-bold text-xs border-l-2 border-white/20',
+                        isMoney ? 'text-emerald-400 bg-[#0f1a1a]' : 'text-white bg-[#111827]'
                       )}>
                         {(() => {
                           const total = allDays.reduce((s, d) => s + (parseInt(cellValues[cellKey(d, row.key)]) || 0), 0)
