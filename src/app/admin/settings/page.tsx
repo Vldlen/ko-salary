@@ -280,29 +280,6 @@ export default function AdminSettingsPage() {
                           </div>
                         </div>
 
-                        {/* Plans */}
-                        <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">Планы</h3>
-                        <div className="grid grid-cols-3 gap-4 mb-6">
-                          <div>
-                            <label className="block text-xs text-white/40 mb-1">План выручки ₽</label>
-                            <input type="number" value={cfg.revenue_plan}
-                              onChange={e => updateConfig(schema.id, 'revenue_plan', Number(e.target.value))}
-                              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
-                          </div>
-                          <div>
-                            <label className="block text-xs text-white/40 mb-1">План штук</label>
-                            <input type="number" value={cfg.units_plan}
-                              onChange={e => updateConfig(schema.id, 'units_plan', Number(e.target.value))}
-                              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
-                          </div>
-                          <div>
-                            <label className="block text-xs text-white/40 mb-1">План встреч</label>
-                            <input type="number" value={cfg.meetings_plan}
-                              onChange={e => updateConfig(schema.id, 'meetings_plan', Number(e.target.value))}
-                              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
-                          </div>
-                        </div>
-
                         {/* Percents */}
                         <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">Проценты от дохода</h3>
                         <div className="grid grid-cols-2 gap-4 mb-6">

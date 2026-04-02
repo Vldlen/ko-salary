@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, UserCog, Plus, X, Check, Ban, Copy, RefreshCw, Pencil } from 'lucide-react'
+import { Loader2, UserCog, Plus, X, Check, Ban, Copy, RefreshCw, Pencil, Trash2 } from 'lucide-react'
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import { cn, generatePassword } from '@/lib/utils'
@@ -121,6 +121,21 @@ export default function AdminUsersPage() {
       const fired_at = new Date().toISOString()
       await updateUserProfile(supabase, userId, { is_active: false, fired_at })
       setUsers(users.map(u => u.id === userId ? { ...u, is_active: false, fired_at } : u))
+    } catch (err: any) { alert('Ошибка: ' + err.message) }
+  }
+
+  async function deleteUser(userId: string, name: string) {
+    if (!confirm(`Удалить ${name} и ВСЕ его данные (сделки, встречи, ЗП)? Это необратимо!`)) return
+    if (!confirm('Точно удалить? Данные нельзя будет восстановить.')) return
+    try {
+      const res = await fetch('/api/admin/delete-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId }),
+      })
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || 'Ошибка')
+      setUsers(users.filter(u => u.id !== userId))
     } catch (err: any) { alert('Ошибка: ' + err.message) }
   }
 
@@ -491,6 +506,13 @@ export default function AdminUsersPage() {
                             <Check className="w-3.5 h-3.5" />
                           </button>
                         )}
+                        <button
+                          onClick={() => deleteUser(u.id, u.full_name)}
+                          className="text-xs font-medium px-2.5 py-1.5 rounded-lg transition text-white/20 hover:text-red-400 hover:bg-red-500/10"
+                          title="Удалить полностью"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </td>
                   </tr>
