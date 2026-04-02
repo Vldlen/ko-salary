@@ -29,6 +29,7 @@ export default function SalaryPage() {
       try {
         const currentUser = await getCurrentUser(supabase)
         if (!currentUser) { router.push('/login'); return }
+        if (currentUser.role === 'founder') { router.push('/team'); return }
         setUser(currentUser)
       } catch (err) {
         console.error('Salary load error:', err)

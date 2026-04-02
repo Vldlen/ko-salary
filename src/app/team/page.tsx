@@ -51,7 +51,7 @@ export default function TeamPage() {
         if (!currentUser) { router.push('/login'); return }
         setUser(currentUser)
 
-        if (!['rop', 'director', 'admin'].includes(currentUser.role)) {
+        if (!['rop', 'director', 'admin', 'founder'].includes(currentUser.role)) {
           router.push('/dashboard')
           return
         }

@@ -40,7 +40,7 @@ export default function AdminPlansPage() {
     try {
       const user = await getCurrentUser(supabase)
       if (!user) { router.push('/login'); return }
-      if (!['admin', 'director', 'rop'].includes(user.role)) { router.push('/dashboard'); return }
+      if (!['admin', 'director', 'rop', 'founder'].includes(user.role)) { router.push('/dashboard'); return }
       setCurrentUser(user)
 
       const [usersData, companiesData, periodsData] = await Promise.all([

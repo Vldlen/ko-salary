@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'director' | 'rop' | 'manager'
+export type UserRole = 'admin' | 'director' | 'rop' | 'manager' | 'founder'
 export type PeriodStatus = 'draft' | 'active' | 'closed'
 export type DealStatus = 'prospect' | 'negotiation' | 'waiting_payment' | 'paid' | 'cancelled'
 export type PaymentType = 'bonus' | 'deduction'

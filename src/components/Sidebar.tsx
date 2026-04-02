@@ -51,11 +51,14 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
   }
 
   // Собираем секции по роли
-  const sections: LinkSection[] = [
-    { title: '', links: managerLinks },
-  ]
+  const sections: LinkSection[] = []
 
-  if (['rop', 'director', 'admin'].includes(role)) {
+  // Founder only sees leadership section
+  if (role !== 'founder') {
+    sections.push({ title: '', links: managerLinks })
+  }
+
+  if (['rop', 'director', 'admin', 'founder'].includes(role)) {
     sections.push({ title: 'Руководство', links: leaderLinks })
   }
   if (['admin', 'director'].includes(role)) {
@@ -65,7 +68,8 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
   const roleLabel =
     role === 'admin' ? 'Администратор' :
     role === 'director' ? 'Директор по продажам' :
-    role === 'rop' ? 'РОП' : 'Менеджер'
+    role === 'rop' ? 'РОП' :
+    role === 'founder' ? 'Фаундер' : 'Менеджер'
 
   const sidebarContent = (
     <>

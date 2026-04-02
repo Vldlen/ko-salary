@@ -32,10 +32,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // If logged in and on login page, redirect to dashboard
+  // If logged in and on login page, redirect to appropriate page
   if (user && request.nextUrl.pathname === '/login') {
+    // Check user role — founder goes to /team, others to /dashboard
+    const { data: profile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
+    url.pathname = profile?.role === 'founder' ? '/team' : '/dashboard'
     return NextResponse.redirect(url)
   }
 

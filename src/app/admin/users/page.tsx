@@ -15,6 +15,7 @@ const ROLES = [
   { value: 'manager', label: 'Менеджер' },
   { value: 'rop', label: 'РОП' },
   { value: 'director', label: 'Директор по продажам' },
+  { value: 'founder', label: 'Фаундер' },
   { value: 'admin', label: 'Администратор' },
 ]
 

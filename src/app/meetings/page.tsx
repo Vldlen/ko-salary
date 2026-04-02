@@ -106,6 +106,7 @@ export default function MeetingsPage() {
       try {
         const currentUser = await getCurrentUser(supabase)
         if (!currentUser) { router.push('/login'); return }
+        if (currentUser.role === 'founder') { router.push('/team'); return }
         setUser(currentUser)
       } catch (err) {
         console.error('Meetings load error:', err)

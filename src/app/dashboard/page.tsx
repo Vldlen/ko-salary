@@ -33,6 +33,8 @@ export default function DashboardPage() {
       try {
         const currentUser = await getCurrentUser(supabase)
         if (!currentUser) { router.push('/login'); return }
+        // Founder has no personal data — redirect to team
+        if (currentUser.role === 'founder') { router.push('/team'); return }
         setUser(currentUser)
       } catch (err) {
         console.error(err)
