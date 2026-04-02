@@ -53,8 +53,8 @@ export default function ForecastPage() {
   useEffect(() => {
     if (!user) return
 
-    // Admin without viewAs — show empty (director/rop see own data)
-    if (user.role === 'admin' && !isViewingAs) {
+    // Admin/director/rop without viewAs — show empty
+    if (['admin', 'director', 'rop'].includes(user.role) && !isViewingAs) {
       setDeals([])
       setPeriod(null)
       return
@@ -123,8 +123,8 @@ export default function ForecastPage() {
         <div className="p-6">
           <ViewAsBar userRole={user?.role || 'manager'} />
 
-          {/* Empty prompt for admin without viewAs */}
-          {user?.role === 'admin' && !isViewingAs && (
+          {/* Empty prompt for admin/director/rop without viewAs */}
+          {['admin', 'director', 'rop'].includes(user?.role) && !isViewingAs && (
             <div className="glass rounded-2xl p-12 text-center">
               <Eye className="w-12 h-12 text-white/15 mx-auto mb-4" />
               <h2 className="text-lg font-heading font-bold text-white mb-2">Выберите менеджера</h2>
@@ -132,7 +132,7 @@ export default function ForecastPage() {
             </div>
           )}
 
-          {(isViewingAs || user?.role !== 'admin') && (<>
+          {(isViewingAs || !['admin', 'director', 'rop'].includes(user?.role)) && (<>
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-1">
               <TrendingUp className="w-6 h-6 text-blue-400" />

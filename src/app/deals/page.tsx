@@ -107,8 +107,8 @@ export default function DealsPage() {
     const targetUserId = effectiveUserId(user.id)
     const targetCompanyId = effectiveCompanyId(user.company_id)
 
-    // Admin without viewAs — show empty (director/rop see own data)
-    if (user.role === 'admin' && !isViewingAs) {
+    // Admin/director/rop without viewAs — show empty
+    if (['admin', 'director', 'rop'].includes(user.role) && !isViewingAs) {
       setDeals([])
       setPeriod(null)
       return
@@ -350,7 +350,7 @@ export default function DealsPage() {
           </div>
 
           {/* Empty prompt for admin without viewAs */}
-          {user?.role === 'admin' && !isViewingAs && (
+          {['admin', 'director', 'rop'].includes(user?.role) && !isViewingAs && (
             <div className="glass rounded-2xl p-12 text-center">
               <Eye className="w-12 h-12 text-white/15 mx-auto mb-4" />
               <h2 className="text-lg font-heading font-bold text-white mb-2">Выберите менеджера</h2>

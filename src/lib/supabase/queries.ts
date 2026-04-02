@@ -372,7 +372,7 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
   const [dealsRes, meetingsRes, plansRes] = await Promise.all([
     supabase
       .from('deals')
-      .select('user_id, client_name, revenue, forecast_revenue, units, status, equipment_margin, product_type, subscription_period, created_at')
+      .select('user_id, client_name, revenue, forecast_revenue, units, status, equipment_margin, product_type, subscription_period, planned_payment_date, notes, mrr, created_at')
       .in('period_id', allPeriodIds)
       .in('user_id', userIds)
       .order('created_at', { ascending: false }),
@@ -458,6 +458,21 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
       product_type: d.product_type,
     }))
 
+    // Unpaid deals for forecast tab
+    const forecastDeals = deals
+      .filter((d: any) => d.status !== 'paid' && d.status !== 'cancelled')
+      .map((d: any) => ({
+        client_name: d.client_name,
+        revenue: Number(d.revenue),
+        mrr: Number(d.mrr || 0),
+        units: d.units,
+        status: d.status,
+        product_type: d.product_type,
+        equipment_margin: Number(d.equipment_margin || 0),
+        planned_payment_date: d.planned_payment_date,
+        notes: d.notes,
+      }))
+
     return {
       id: user.id,
       name: user.full_name,
@@ -497,6 +512,9 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
       fd_count: fdCount,
       bi_count: biCount,
       ot_count: otCount,
+      // Forecast (unpaid deals)
+      forecast_deals: forecastDeals,
+      revenue_no_invoice: noInvoiceDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0),
     }
   })
 
