@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Eye } from 'lucide-react'
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
+import ViewAsBar from '@/components/ViewAsBar'
 import { cn, formatMoney } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
+import { useViewAs } from '@/lib/view-as-context'
 import { getCurrentUser, getActivePeriod, getMeetings, upsertMeeting } from '@/lib/supabase/queries'
 
 type MeetingField = 'scheduled' | 'new_completed' | 'repeat_completed' | 'mentor' | 'next_day' | 'rescheduled' | 'invoiced_sum' | 'paid_sum'
@@ -52,6 +54,7 @@ function getDaysInMonth(year: number, month: number): string[] {
 export default function MeetingsPage() {
   const supabase = useSupabase()
   const router = useRouter()
+  const { viewAsUser, effectiveUserId, effectiveCompanyId, isViewingAs } = useViewAs()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [period, setPeriod] = useState<any>(null)
@@ -63,18 +66,43 @@ export default function MeetingsPage() {
 
   const cellKey = (date: string, field: MeetingField) => `${date}__${field}`
 
+  // Load current user once
   useEffect(() => {
     async function load() {
       try {
         const currentUser = await getCurrentUser(supabase)
         if (!currentUser) { router.push('/login'); return }
         setUser(currentUser)
+      } catch (err) {
+        console.error('Meetings load error:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [supabase, router])
 
-        const activePeriod = await getActivePeriod(supabase, currentUser.company_id)
-        if (!activePeriod) { setLoading(false); return }
+  // Load meetings data — re-runs when viewAsUser changes
+  useEffect(() => {
+    if (!user) return
+    const targetUserId = effectiveUserId(user.id)
+    const targetCompanyId = effectiveCompanyId(user.company_id)
+
+    // Admin/director/rop without viewAs — show empty
+    if (['admin', 'director', 'rop'].includes(user.role) && !isViewingAs) {
+      setMeetings([])
+      setPeriod(null)
+      setCellValues({})
+      return
+    }
+
+    async function loadMeetings() {
+      try {
+        const activePeriod = await getActivePeriod(supabase, targetCompanyId)
+        if (!activePeriod) { setPeriod(null); setMeetings([]); setCellValues({}); return }
         setPeriod(activePeriod)
 
-        const meetingsData = await getMeetings(supabase, currentUser.id, activePeriod.id)
+        const meetingsData = await getMeetings(supabase, targetUserId, activePeriod.id)
         setMeetings(meetingsData || [])
 
         // Initialize cell values
@@ -90,12 +118,10 @@ export default function MeetingsPage() {
         setCellValues(initial)
       } catch (err) {
         console.error('Meetings load error:', err)
-      } finally {
-        setLoading(false)
       }
     }
-    load()
-  }, [supabase, router])
+    loadMeetings()
+  }, [supabase, user, viewAsUser, effectiveUserId, effectiveCompanyId, isViewingAs])
 
   const handleChange = useCallback((key: string, value: string) => {
     const clean = value.replace(/\D/g, '')
@@ -222,9 +248,23 @@ export default function MeetingsPage() {
 
       <main className="flex-1 overflow-auto">
         <div className="p-6">
+          <ViewAsBar userRole={user?.role || 'manager'} />
+
+          {/* Empty prompt for admin without viewAs */}
+          {['admin', 'director', 'rop'].includes(user?.role) && !isViewingAs && (
+            <div className="glass rounded-2xl p-12 text-center">
+              <Eye className="w-12 h-12 text-white/15 mx-auto mb-4" />
+              <h2 className="text-lg font-heading font-bold text-white mb-2">Выберите менеджера</h2>
+              <p className="text-sm text-white/40">Нажмите «Выбрать менеджера» чтобы просмотреть его встречи</p>
+            </div>
+          )}
+
+          {(isViewingAs || !['admin', 'director', 'rop'].includes(user?.role)) && (<>
           <div className="mb-6">
             <h1 className="font-heading text-2xl font-bold text-white">Встречи</h1>
-            <p className="text-blue-400 text-sm mt-1">{monthName}</p>
+            <p className="text-blue-400 text-sm mt-1">
+              {monthName}{isViewingAs ? ` — ${viewAsUser?.full_name}` : ''}
+            </p>
           </div>
 
           {/* Summary cards */}
@@ -307,9 +347,10 @@ export default function MeetingsPage() {
                               ref={(el) => { inputRefs.current[key] = el }}
                               type="text"
                               inputMode="numeric"
+                              readOnly={isViewingAs}
                               value={cellValues[key] ?? ''}
-                              onChange={(e) => handleChange(key, e.target.value)}
-                              onBlur={() => handleBlur(key)}
+                              onChange={(e) => !isViewingAs && handleChange(key, e.target.value)}
+                              onBlur={() => !isViewingAs && handleBlur(key)}
                               onKeyDown={(e) => handleKeyDown(e, date, field, allDays)}
                               onFocus={(e) => e.target.select()}
                               className={cn(
@@ -341,6 +382,7 @@ export default function MeetingsPage() {
               </tbody>
             </table>
           </div>
+          </>)}
         </div>
       </main>
     </div>

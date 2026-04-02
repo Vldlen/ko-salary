@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronDown, Plus, Loader2, X, Pencil, Trash2, Check, Calendar } from 'lucide-react'
+import { ChevronDown, Plus, Loader2, X, Pencil, Trash2, Check, Calendar, Eye } from 'lucide-react'
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
+import ViewAsBar from '@/components/ViewAsBar'
 import { formatMoney, getDealStatusLabel, getDealStatusColor, cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
+import { useViewAs } from '@/lib/view-as-context'
 import { getCurrentUser, getActivePeriod, getDeals, createDeal, updateDeal } from '@/lib/supabase/queries'
 
 const STATUS_FILTERS = [
@@ -44,6 +46,7 @@ function calcMargin(sellPrice: string, buyPrice: string): number {
 export default function DealsPage() {
   const supabase = useSupabase()
   const router = useRouter()
+  const { viewAsUser, effectiveUserId, effectiveCompanyId, isViewingAs } = useViewAs()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [period, setPeriod] = useState<any>(null)
@@ -61,19 +64,13 @@ export default function DealsPage() {
   const [paidPopup, setPaidPopup] = useState<{ dealId: string; rect: DOMRect } | null>(null)
   const [paidDate, setPaidDate] = useState(new Date().toISOString().slice(0, 10))
 
+  // Load current user once
   useEffect(() => {
     async function load() {
       try {
         const currentUser = await getCurrentUser(supabase)
         if (!currentUser) { router.push('/login'); return }
         setUser(currentUser)
-
-        const activePeriod = await getActivePeriod(supabase, currentUser.company_id)
-        if (!activePeriod) { setLoading(false); return }
-        setPeriod(activePeriod)
-
-        const dealsData = await getDeals(supabase, currentUser.id, activePeriod.id)
-        setDeals(dealsData)
       } catch (err) {
         console.error('Deals load error:', err)
       } finally {
@@ -83,15 +80,32 @@ export default function DealsPage() {
     load()
   }, [supabase, router])
 
-  // Re-fetch when filter changes
+  // Load deals — re-runs when viewAsUser changes
   useEffect(() => {
-    if (!user || !period) return
-    async function reload() {
-      const dealsData = await getDeals(supabase, user.id, period.id, selectedStatus)
-      setDeals(dealsData)
+    if (!user) return
+    const targetUserId = effectiveUserId(user.id)
+    const targetCompanyId = effectiveCompanyId(user.company_id)
+
+    // Admin/director/rop without viewAs — show empty
+    if (['admin', 'director', 'rop'].includes(user.role) && !isViewingAs) {
+      setDeals([])
+      setPeriod(null)
+      return
     }
-    reload()
-  }, [selectedStatus, user, period, supabase])
+
+    async function loadDeals() {
+      try {
+        const activePeriod = await getActivePeriod(supabase, targetCompanyId)
+        if (!activePeriod) { setPeriod(null); setDeals([]); return }
+        setPeriod(activePeriod)
+        const dealsData = await getDeals(supabase, targetUserId, activePeriod.id, selectedStatus)
+        setDeals(dealsData)
+      } catch (err) {
+        console.error('Deals load error:', err)
+      }
+    }
+    loadDeals()
+  }, [supabase, user, viewAsUser, effectiveUserId, effectiveCompanyId, isViewingAs, selectedStatus])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -123,7 +137,8 @@ export default function DealsPage() {
       }
 
       // Refresh
-      const dealsData = await getDeals(supabase, user.id, period.id, selectedStatus)
+      const targetUserId = effectiveUserId(user.id)
+      const dealsData = await getDeals(supabase, targetUserId, period.id, selectedStatus)
       setDeals(dealsData)
       setShowForm(false)
       setEditingDeal(null)
@@ -140,7 +155,8 @@ export default function DealsPage() {
     try {
       const { error } = await supabase.from('deals').delete().eq('id', dealId)
       if (error) throw error
-      const dealsData = await getDeals(supabase, user.id, period.id, selectedStatus)
+      const targetUserId = effectiveUserId(user.id)
+      const dealsData = await getDeals(supabase, targetUserId, period.id, selectedStatus)
       setDeals(dealsData)
     } catch (err: any) {
       alert(err.message || 'Ошибка удаления')
@@ -157,7 +173,8 @@ export default function DealsPage() {
     }
     try {
       await updateDeal(supabase, dealId, { status: newStatus, paid_at: null })
-      const dealsData = await getDeals(supabase, user.id, period.id, selectedStatus)
+      const targetUserId = effectiveUserId(user.id)
+      const dealsData = await getDeals(supabase, targetUserId, period.id, selectedStatus)
       setDeals(dealsData)
     } catch (err: any) {
       alert(err.message || 'Ошибка смены статуса')
@@ -168,7 +185,8 @@ export default function DealsPage() {
     if (!paidPopup) return
     try {
       await updateDeal(supabase, paidPopup.dealId, { status: 'paid', paid_at: paidDate })
-      const dealsData = await getDeals(supabase, user.id, period.id, selectedStatus)
+      const targetUserId = effectiveUserId(user.id)
+      const dealsData = await getDeals(supabase, targetUserId, period.id, selectedStatus)
       setDeals(dealsData)
       setPaidPopup(null)
     } catch (err: any) {
@@ -228,8 +246,13 @@ export default function DealsPage() {
 
       <main className="flex-1 overflow-auto">
         <div className="p-8">
+          <ViewAsBar userRole={user?.role || 'manager'} />
+
           <div className="mb-8 flex items-center justify-between">
-            <h1 className="font-heading text-3xl font-bold text-white">Сделки</h1>
+            <div>
+              <h1 className="font-heading text-3xl font-bold text-white">Сделки</h1>
+              {isViewingAs && <p className="text-white/40 text-sm mt-1">Сделки — {viewAsUser?.full_name}</p>}
+            </div>
             <div className="flex items-center gap-2 rounded-lg glass px-4 py-2">
               <span className="text-sm font-medium text-white">
                 {period ? `${['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'][period.month-1]} ${period.year}` : '...'}
@@ -270,8 +293,17 @@ export default function DealsPage() {
             ))}
           </div>
 
+          {/* Empty prompt for admin without viewAs */}
+          {['admin', 'director', 'rop'].includes(user?.role) && !isViewingAs && (
+            <div className="glass rounded-2xl p-12 text-center">
+              <Eye className="w-12 h-12 text-white/15 mx-auto mb-4" />
+              <h2 className="text-lg font-heading font-bold text-white mb-2">Выберите менеджера</h2>
+              <p className="text-sm text-white/40">Нажмите «Выбрать менеджера» чтобы просмотреть его сделки</p>
+            </div>
+          )}
+
           {/* New/Edit Deal Form — only for managers */}
-          {showForm && user?.role === 'manager' && (
+          {showForm && user?.role === 'manager' && !isViewingAs && (
             <div className="mb-8 rounded-2xl glass p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-white">
@@ -478,8 +510,8 @@ export default function DealsPage() {
             </table>
           </div>
 
-          {/* Add button — only for managers */}
-          {!showForm && user?.role === 'manager' && (
+          {/* Add button — only for managers viewing own data */}
+          {!showForm && user?.role === 'manager' && !isViewingAs && (
             <button onClick={openNew}
               className="flex items-center gap-2 rounded-2xl bg-blue-500 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-600">
               <Plus size={20} />

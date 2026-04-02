@@ -2,39 +2,32 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, Wallet, TrendingUp } from 'lucide-react'
+import { Loader2, Wallet, TrendingUp, Eye } from 'lucide-react'
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
+import ViewAsBar from '@/components/ViewAsBar'
 import { formatMoney, getMonthName, cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
+import { useViewAs } from '@/lib/view-as-context'
 import { getCurrentUser, getActivePeriod, getSalaryResult, getSalaryHistory } from '@/lib/supabase/queries'
 
 export default function SalaryPage() {
   const supabase = useSupabase()
   const router = useRouter()
+  const { viewAsUser, effectiveUserId, effectiveCompanyId, isViewingAs } = useViewAs()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [period, setPeriod] = useState<any>(null)
   const [salary, setSalary] = useState<any>(null)
   const [history, setHistory] = useState<any[]>([])
 
+  // Load current user once
   useEffect(() => {
     async function load() {
       try {
         const currentUser = await getCurrentUser(supabase)
         if (!currentUser) { router.push('/login'); return }
         setUser(currentUser)
-
-        const activePeriod = await getActivePeriod(supabase, currentUser.company_id)
-        if (!activePeriod) { setLoading(false); return }
-        setPeriod(activePeriod)
-
-        const [salaryData, historyData] = await Promise.all([
-          getSalaryResult(supabase, currentUser.id, activePeriod.id),
-          getSalaryHistory(supabase, currentUser.id),
-        ])
-        setSalary(salaryData)
-        setHistory(historyData)
       } catch (err) {
         console.error('Salary load error:', err)
       } finally {
@@ -43,6 +36,39 @@ export default function SalaryPage() {
     }
     load()
   }, [supabase, router])
+
+  // Load salary data — re-runs when viewAsUser changes
+  useEffect(() => {
+    if (!user) return
+    const targetUserId = effectiveUserId(user.id)
+    const targetCompanyId = effectiveCompanyId(user.company_id)
+
+    // Admin/director/rop without viewAs — show empty
+    if (['admin', 'director', 'rop'].includes(user.role) && !isViewingAs) {
+      setSalary(null)
+      setPeriod(null)
+      setHistory([])
+      return
+    }
+
+    async function loadSalary() {
+      try {
+        const activePeriod = await getActivePeriod(supabase, targetCompanyId)
+        if (!activePeriod) { setPeriod(null); setSalary(null); setHistory([]); return }
+        setPeriod(activePeriod)
+
+        const [salaryData, historyData] = await Promise.all([
+          getSalaryResult(supabase, targetUserId, activePeriod.id),
+          getSalaryHistory(supabase, targetUserId),
+        ])
+        setSalary(salaryData)
+        setHistory(historyData)
+      } catch (err) {
+        console.error('Salary load error:', err)
+      }
+    }
+    loadSalary()
+  }, [supabase, user, viewAsUser, effectiveUserId, effectiveCompanyId, isViewingAs])
 
   if (loading) {
     return (
@@ -72,7 +98,21 @@ export default function SalaryPage() {
 
       <main className="flex-1 p-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-heading font-bold text-white mb-6">Расчёт зарплаты</h1>
+          <ViewAsBar userRole={user?.role || 'manager'} />
+
+          {/* Empty prompt for admin without viewAs */}
+          {['admin', 'director', 'rop'].includes(user?.role) && !isViewingAs && (
+            <div className="glass rounded-2xl p-12 text-center">
+              <Eye className="w-12 h-12 text-white/15 mx-auto mb-4" />
+              <h2 className="text-lg font-heading font-bold text-white mb-2">Выберите менеджера</h2>
+              <p className="text-sm text-white/40">Нажмите «Выбрать менеджера» чтобы просмотреть расчёт ЗП</p>
+            </div>
+          )}
+
+          {(isViewingAs || !['admin', 'director', 'rop'].includes(user?.role)) && (<>
+          <h1 className="text-2xl font-heading font-bold text-white mb-1">Расчёт зарплаты</h1>
+          {isViewingAs && <p className="text-white/40 text-sm mb-6">ЗП — {viewAsUser?.full_name}</p>}
+          {!isViewingAs && <div className="mb-6" />}
 
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="glass rounded-2xl p-6 flex flex-col items-center justify-center">
@@ -129,6 +169,7 @@ export default function SalaryPage() {
               </div>
             </div>
           )}
+          </>)}
         </div>
       </main>
     </div>

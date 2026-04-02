@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, TrendingUp, ChevronDown, ChevronRight } from 'lucide-react'
+import { Loader2, TrendingUp, ChevronDown, ChevronRight, Eye } from 'lucide-react'
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
+import ViewAsBar from '@/components/ViewAsBar'
 import { cn, formatMoney, getDealStatusLabel, getDealStatusColor } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
+import { useViewAs } from '@/lib/view-as-context'
 import { getCurrentUser, getActivePeriod, getForecastDeals } from '@/lib/supabase/queries'
 
 const FORECAST_STATUSES = ['no_invoice', 'waiting_payment']
@@ -20,6 +22,7 @@ function formatDate(dateStr: string | null): string {
 export default function ForecastPage() {
   const supabase = useSupabase()
   const router = useRouter()
+  const { viewAsUser, effectiveUserId, effectiveCompanyId, isViewingAs } = useViewAs()
   const [user, setUser] = useState<any>(null)
   const [period, setPeriod] = useState<any>(null)
   const [deals, setDeals] = useState<any[]>([])
@@ -30,35 +33,13 @@ export default function ForecastPage() {
     setExpandedGroups(prev => ({ ...prev, [status]: !prev[status] }))
   }
 
+  // Load current user once
   useEffect(() => {
     async function load() {
       try {
         const currentUser = await getCurrentUser(supabase)
         if (!currentUser) { router.push('/login'); return }
         setUser(currentUser)
-
-        const activePeriod = await getActivePeriod(supabase)
-        if (!activePeriod) { setLoading(false); return }
-        setPeriod(activePeriod)
-
-        const isManager = currentUser.role === 'manager'
-        const data = await getForecastDeals(
-          supabase,
-          activePeriod.id,
-          isManager ? currentUser.id : undefined
-        )
-
-        if (!isManager && data.length > 0) {
-          const userIds = Array.from(new Set(data.map((d: any) => d.user_id)))
-          const { data: usersData } = await supabase
-            .from('users')
-            .select('id, full_name')
-            .in('id', userIds)
-          const userMap = new Map((usersData || []).map((u: any) => [u.id, u.full_name]))
-          data.forEach((d: any) => { d.user_name = userMap.get(d.user_id) || '—' })
-        }
-
-        setDeals(data)
       } catch (err) {
         console.error('Forecast load error:', err)
       } finally {
@@ -67,6 +48,41 @@ export default function ForecastPage() {
     }
     load()
   }, [supabase, router])
+
+  // Load forecast data — re-runs when viewAsUser changes
+  useEffect(() => {
+    if (!user) return
+
+    // Admin/director/rop without viewAs — show empty
+    if (['admin', 'director', 'rop'].includes(user.role) && !isViewingAs) {
+      setDeals([])
+      setPeriod(null)
+      return
+    }
+
+    const targetUserId = effectiveUserId(user.id)
+    const targetCompanyId = effectiveCompanyId(user.company_id)
+
+    async function loadForecast() {
+      try {
+        const activePeriod = await getActivePeriod(supabase, targetCompanyId)
+        if (!activePeriod) { setPeriod(null); setDeals([]); return }
+        setPeriod(activePeriod)
+
+        // When viewing as a manager, load only their deals
+        const data = await getForecastDeals(
+          supabase,
+          activePeriod.id,
+          targetUserId
+        )
+
+        setDeals(data)
+      } catch (err) {
+        console.error('Forecast load error:', err)
+      }
+    }
+    loadForecast()
+  }, [supabase, user, viewAsUser, effectiveUserId, effectiveCompanyId, isViewingAs])
 
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-400" /></div>
@@ -96,7 +112,7 @@ export default function ForecastPage() {
     units: deals.filter(d => d.status === status).reduce((s, d) => s + (d.units || 0), 0),
   }))
 
-  const showUserColumn = user?.role !== 'manager'
+  const showUserColumn = !isViewingAs && user?.role !== 'manager'
 
   return (
     <MobileRestricted>
@@ -105,12 +121,26 @@ export default function ForecastPage() {
 
       <main className="flex-1 overflow-auto">
         <div className="p-6">
+          <ViewAsBar userRole={user?.role || 'manager'} />
+
+          {/* Empty prompt for admin without viewAs */}
+          {['admin', 'director', 'rop'].includes(user?.role) && !isViewingAs && (
+            <div className="glass rounded-2xl p-12 text-center">
+              <Eye className="w-12 h-12 text-white/15 mx-auto mb-4" />
+              <h2 className="text-lg font-heading font-bold text-white mb-2">Выберите менеджера</h2>
+              <p className="text-sm text-white/40">Нажмите «Выбрать менеджера» чтобы просмотреть прогноз</p>
+            </div>
+          )}
+
+          {(isViewingAs || !['admin', 'director', 'rop'].includes(user?.role)) && (<>
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-1">
               <TrendingUp className="w-6 h-6 text-blue-400" />
               <h1 className="font-heading text-2xl font-bold text-white">Прогноз продаж</h1>
             </div>
-            <p className="text-blue-400 text-sm">{monthName} • Неоплаченные сделки текущего периода</p>
+            <p className="text-blue-400 text-sm">
+              {monthName} • {isViewingAs ? viewAsUser?.full_name : 'Неоплаченные сделки текущего периода'}
+            </p>
           </div>
 
           {/* Summary cards */}
@@ -205,6 +235,7 @@ export default function ForecastPage() {
               Нет неоплаченных сделок в текущем периоде
             </div>
           )}
+          </>)}
         </div>
       </main>
     </div>
