@@ -138,6 +138,8 @@ export default function MeetingsPage() {
         if (isBondaCompany) {
           const kpiData = await getKpiEntries(supabase, targetUserId, activePeriod.id)
           setKpiEntries(kpiData)
+        } else {
+          setKpiEntries([])
         }
 
         // Initialize cell values

@@ -77,8 +77,9 @@ export default function DealsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  // Detect БОНДА company
-  const isBonda = user?.company?.name?.toUpperCase()?.includes('БОНД') || false
+  // Detect БОНДА company (учитываем viewAs)
+  const viewCompanyName = isViewingAs ? (viewAsUser?.company?.name || '') : (user?.company?.name || '')
+  const isBonda = viewCompanyName.toUpperCase().includes('БОНД')
 
   // Payment date popup state
   const [paidPopup, setPaidPopup] = useState<{ dealId: string; rect: DOMRect } | null>(null)
