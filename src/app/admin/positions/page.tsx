@@ -15,7 +15,7 @@ import {
 } from '@/lib/supabase/admin-queries'
 import type { MotivationConfig } from '@/types/database'
 
-const DEFAULT_CONFIG: MotivationConfig = {
+const DEFAULT_CONFIG_INNO: MotivationConfig = {
   revenue_plan: 500000,
   units_plan: 10,
   meetings_plan: 20,
@@ -25,6 +25,36 @@ const DEFAULT_CONFIG: MotivationConfig = {
   kpi_quantity: { enabled: true, description: 'Количественный KPI (штуки)', max_amount: 10000 },
   margin_bonus: { enabled: true, description: 'Маржа с оборудования', percent: 0.094 },
   attestation: { enabled: false, bonus_amount: 5000 },
+}
+
+const DEFAULT_CONFIG_BONDA: MotivationConfig = {
+  revenue_plan: 0,
+  units_plan: 0,
+  meetings_plan: 20,
+  revenue_percent: 0,
+  mrr_percent: 0,
+  kpi_quality: { enabled: false, description: '', max_amount: 0, conversion_threshold: 0 },
+  kpi_quantity: { enabled: false, description: '', max_amount: 0 },
+  margin_bonus: { enabled: false, description: '', percent: 0 },
+  attestation: { enabled: true, bonus_amount: 10000 },
+  // БОНДА
+  kpi_max_amount: 10000,
+  kpi_entries_target: 12,
+  kpi_entries_target_junior: 5,
+  fd_threshold: 4,
+  fd_percent_low: 0.075,
+  fd_percent_high: 0.15,
+  one_time_service_percent: 0.10,
+  bi_percents: { month: 0.5, quarter: 1.0, half_year: 1.5, year: 2.0 },
+}
+
+function getDefaultConfig(companyName?: string): MotivationConfig {
+  if (companyName?.toUpperCase().includes('БОНД')) return DEFAULT_CONFIG_BONDA
+  return DEFAULT_CONFIG_INNO
+}
+
+function isBondaCompany(companyName?: string): boolean {
+  return !!companyName?.toUpperCase().includes('БОНД')
 }
 
 function formatNum(n: number): string {
@@ -98,8 +128,9 @@ export default function AdminPositionsPage() {
     return [...schemas].sort((a: any, b: any) => b.valid_from.localeCompare(a.valid_from))
   }
 
-  function startEdit(schema: any) {
-    const config = { ...DEFAULT_CONFIG, ...schema.config }
+  function startEdit(schema: any, companyName?: string) {
+    const defaults = getDefaultConfig(companyName)
+    const config = { ...defaults, ...schema.config }
     setEditConfigs(prev => ({
       ...prev,
       [schema.id]: {
@@ -119,7 +150,7 @@ export default function AdminPositionsPage() {
     setExpandedPos(posId)
     const pos = positions.find((p: any) => p.id === posId)
     const schema = getActiveSchema(pos)
-    if (schema) startEdit(schema)
+    if (schema) startEdit(schema, pos?.company?.name)
   }
 
   function updateConfig(schemaId: string, path: string, value: any) {
@@ -171,12 +202,13 @@ export default function AdminPositionsPage() {
         })
       }
 
+      const posDefaults = getDefaultConfig(pos?.company?.name)
       await createMotivationSchema(supabase, {
         position_id: positionId,
         name: newSchemaForm.name,
         base_salary: newSchemaForm.base_salary,
         valid_from: newSchemaForm.valid_from,
-        config: activeSchema?.config || DEFAULT_CONFIG as any,
+        config: activeSchema?.config || posDefaults as any,
       })
       const posData = await getPositions(supabase)
       setPositions(posData)
@@ -258,7 +290,9 @@ export default function AdminPositionsPage() {
                 const activeSchema = getActiveSchema(pos)
                 const allSchemas = getAllSchemas(pos)
                 const edit = activeSchema ? editConfigs[activeSchema.id] : null
-                const cfg: MotivationConfig = edit?.config || (activeSchema ? { ...DEFAULT_CONFIG, ...activeSchema.config } : DEFAULT_CONFIG)
+                const posDefaults = getDefaultConfig(pos.company?.name)
+                const cfg: MotivationConfig = edit?.config || (activeSchema ? { ...posDefaults, ...activeSchema.config } : posDefaults)
+                const isBonda = isBondaCompany(pos.company?.name)
 
                 return (
                   <div key={pos.id} className="glass rounded-2xl overflow-hidden">
@@ -286,9 +320,19 @@ export default function AdminPositionsPage() {
                       <div className="flex items-center gap-3">
                         {activeSchema && (
                           <div className="flex gap-2">
-                            {activeSchema.config?.kpi_quality?.enabled && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">KPI кач.</span>}
-                            {activeSchema.config?.kpi_quantity?.enabled && <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">KPI кол.</span>}
-                            {activeSchema.config?.margin_bonus?.enabled && <span className="text-[10px] bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full">Маржа</span>}
+                            {isBonda ? (
+                              <>
+                                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">ФД {((activeSchema.config?.fd_percent_high || 0.15) * 100).toFixed(1)}%</span>
+                                <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">KPI {activeSchema.config?.kpi_max_amount || 10000}₽</span>
+                                <span className="text-[10px] bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full">Разовые {((activeSchema.config?.one_time_service_percent || 0.10) * 100)}%</span>
+                              </>
+                            ) : (
+                              <>
+                                {activeSchema.config?.kpi_quality?.enabled && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">KPI кач.</span>}
+                                {activeSchema.config?.kpi_quantity?.enabled && <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">KPI кол.</span>}
+                                {activeSchema.config?.margin_bonus?.enabled && <span className="text-[10px] bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full">Маржа</span>}
+                              </>
+                            )}
                           </div>
                         )}
                         {isExpanded ? <ChevronUp className="w-5 h-5 text-white/30" /> : <ChevronDown className="w-5 h-5 text-white/30" />}
@@ -377,107 +421,215 @@ export default function AdminPositionsPage() {
                               </div>
                             </div>
 
-                            {/* Meetings plan (общий для должности) */}
+                            {/* План встреч (общий) */}
                             <div className="mb-6">
-                              <label className="block text-xs text-white/40 mb-1">План встреч (на месяц, для всех сотрудников должности)</label>
+                              <label className="block text-xs text-white/40 mb-1">План встреч (на месяц)</label>
                               <input type="number" value={cfg.meetings_plan}
                                 onChange={e => updateConfig(activeSchema.id, 'meetings_plan', Number(e.target.value))}
                                 className="w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
                             </div>
 
-                            {/* KPI Quality */}
-                            <div className="glass rounded-xl p-4 mb-4">
-                              <div className="flex items-center gap-3 mb-3">
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                  <input type="checkbox" checked={cfg.kpi_quality.enabled}
-                                    onChange={e => updateConfig(activeSchema.id, 'kpi_quality.enabled', e.target.checked)}
-                                    className="sr-only peer" />
-                                  <div className="w-9 h-5 bg-white/10 peer-checked:bg-emerald-500 rounded-full transition after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
-                                </label>
-                                <span className="text-sm font-medium text-white">KPI качественный</span>
-                                <span className="text-xs text-white/30">(конверсия встреч)</span>
-                              </div>
-                              {cfg.kpi_quality.enabled && (
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <label className="block text-xs text-white/40 mb-1">Макс. бонус ₽</label>
-                                    <input type="number" value={cfg.kpi_quality.max_amount}
-                                      onChange={e => updateConfig(activeSchema.id, 'kpi_quality.max_amount', Number(e.target.value))}
-                                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                            {isBonda ? (
+                              <>
+                                {/* === БОНДА settings === */}
+                                <p className="text-xs text-white/30 uppercase tracking-wider mb-3">Пуш-бонус ФинДир</p>
+                                <div className="glass rounded-xl p-4 mb-4">
+                                  <div className="grid grid-cols-3 gap-4">
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">Порог повышения ставки (шт. ФД)</label>
+                                      <input type="number" value={cfg.fd_threshold ?? 4}
+                                        onChange={e => updateConfig(activeSchema.id, 'fd_threshold', Number(e.target.value))}
+                                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">% ФД до порога</label>
+                                      <input type="number" step="0.001" value={cfg.fd_percent_low ?? 0.075}
+                                        onChange={e => updateConfig(activeSchema.id, 'fd_percent_low', Number(e.target.value))}
+                                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                      <p className="text-[10px] text-white/20 mt-0.5">0.075 = 7.5%</p>
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">% ФД после порога</label>
+                                      <input type="number" step="0.001" value={cfg.fd_percent_high ?? 0.15}
+                                        onChange={e => updateConfig(activeSchema.id, 'fd_percent_high', Number(e.target.value))}
+                                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                      <p className="text-[10px] text-white/20 mt-0.5">0.15 = 15%</p>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <label className="block text-xs text-white/40 mb-1">Порог конверсии %</label>
-                                    <input type="number" value={cfg.kpi_quality.conversion_threshold}
-                                      onChange={e => updateConfig(activeSchema.id, 'kpi_quality.conversion_threshold', Number(e.target.value))}
-                                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                </div>
+
+                                <p className="text-xs text-white/30 uppercase tracking-wider mb-3">Bonda BI проценты по периодам</p>
+                                <div className="glass rounded-xl p-4 mb-4">
+                                  <div className="grid grid-cols-4 gap-4">
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">Месяц</label>
+                                      <input type="number" step="0.1" value={cfg.bi_percents?.month ?? 0.5}
+                                        onChange={e => updateConfig(activeSchema.id, 'bi_percents.month', Number(e.target.value))}
+                                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">Квартал</label>
+                                      <input type="number" step="0.1" value={cfg.bi_percents?.quarter ?? 1.0}
+                                        onChange={e => updateConfig(activeSchema.id, 'bi_percents.quarter', Number(e.target.value))}
+                                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">Полгода</label>
+                                      <input type="number" step="0.1" value={cfg.bi_percents?.half_year ?? 1.5}
+                                        onChange={e => updateConfig(activeSchema.id, 'bi_percents.half_year', Number(e.target.value))}
+                                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">Год</label>
+                                      <input type="number" step="0.1" value={cfg.bi_percents?.year ?? 2.0}
+                                        onChange={e => updateConfig(activeSchema.id, 'bi_percents.year', Number(e.target.value))}
+                                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                    </div>
                                   </div>
                                 </div>
-                              )}
-                            </div>
 
-                            {/* KPI Quantity */}
-                            <div className="glass rounded-xl p-4 mb-4">
-                              <div className="flex items-center gap-3 mb-3">
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                  <input type="checkbox" checked={cfg.kpi_quantity.enabled}
-                                    onChange={e => updateConfig(activeSchema.id, 'kpi_quantity.enabled', e.target.checked)}
-                                    className="sr-only peer" />
-                                  <div className="w-9 h-5 bg-white/10 peer-checked:bg-blue-500 rounded-full transition after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
-                                </label>
-                                <span className="text-sm font-medium text-white">KPI количественный</span>
-                                <span className="text-xs text-white/30">(штуки)</span>
-                              </div>
-                              {cfg.kpi_quantity.enabled && (
-                                <div>
-                                  <label className="block text-xs text-white/40 mb-1">Макс. бонус ₽</label>
-                                  <input type="number" value={cfg.kpi_quantity.max_amount}
-                                    onChange={e => updateConfig(activeSchema.id, 'kpi_quantity.max_amount', Number(e.target.value))}
-                                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                <p className="text-xs text-white/30 uppercase tracking-wider mb-3">Разовые услуги</p>
+                                <div className="glass rounded-xl p-4 mb-4">
+                                  <div>
+                                    <label className="block text-xs text-white/40 mb-1">% за разовые услуги</label>
+                                    <input type="number" step="0.01" value={cfg.one_time_service_percent ?? 0.10}
+                                      onChange={e => updateConfig(activeSchema.id, 'one_time_service_percent', Number(e.target.value))}
+                                      className="w-48 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                    <p className="text-[10px] text-white/20 mt-0.5">0.10 = 10%</p>
+                                  </div>
                                 </div>
-                              )}
-                            </div>
 
-                            {/* Margin Bonus */}
-                            <div className="glass rounded-xl p-4 mb-4">
-                              <div className="flex items-center gap-3 mb-3">
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                  <input type="checkbox" checked={cfg.margin_bonus.enabled}
-                                    onChange={e => updateConfig(activeSchema.id, 'margin_bonus.enabled', e.target.checked)}
-                                    className="sr-only peer" />
-                                  <div className="w-9 h-5 bg-white/10 peer-checked:bg-orange-500 rounded-full transition after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
-                                </label>
-                                <span className="text-sm font-medium text-white">Маржа с оборудования</span>
-                              </div>
-                              {cfg.margin_bonus.enabled && (
-                                <div>
-                                  <label className="block text-xs text-white/40 mb-1">Процент маржи (0.094 = 9.4%)</label>
-                                  <input type="number" step="0.001" value={cfg.margin_bonus.percent}
-                                    onChange={e => updateConfig(activeSchema.id, 'margin_bonus.percent', Number(e.target.value))}
-                                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                <p className="text-xs text-white/30 uppercase tracking-wider mb-3">KPI</p>
+                                <div className="glass rounded-xl p-4 mb-6">
+                                  <div className="grid grid-cols-3 gap-4">
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">Бонус за KPI ₽</label>
+                                      <input type="number" value={cfg.kpi_max_amount ?? 10000}
+                                        onChange={e => updateConfig(activeSchema.id, 'kpi_max_amount', Number(e.target.value))}
+                                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">Порог записей (менеджер)</label>
+                                      <input type="number" value={cfg.kpi_entries_target ?? 12}
+                                        onChange={e => updateConfig(activeSchema.id, 'kpi_entries_target', Number(e.target.value))}
+                                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">Порог записей (младший)</label>
+                                      <input type="number" value={cfg.kpi_entries_target_junior ?? 5}
+                                        onChange={e => updateConfig(activeSchema.id, 'kpi_entries_target_junior', Number(e.target.value))}
+                                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                    </div>
+                                  </div>
+                                  <div className="mt-4 flex items-center gap-3">
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                      <input type="checkbox" checked={cfg.attestation.enabled}
+                                        onChange={e => updateConfig(activeSchema.id, 'attestation.enabled', e.target.checked)}
+                                        className="sr-only peer" />
+                                      <div className="w-9 h-5 bg-white/10 peer-checked:bg-purple-500 rounded-full transition after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                                    </label>
+                                    <span className="text-sm font-medium text-white">Аттестация (галочка руководителя)</span>
+                                  </div>
                                 </div>
-                              )}
-                            </div>
+                              </>
+                            ) : (
+                              <>
+                                {/* === ИННО settings === */}
+                                {/* KPI Quality */}
+                                <div className="glass rounded-xl p-4 mb-4">
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                      <input type="checkbox" checked={cfg.kpi_quality.enabled}
+                                        onChange={e => updateConfig(activeSchema.id, 'kpi_quality.enabled', e.target.checked)}
+                                        className="sr-only peer" />
+                                      <div className="w-9 h-5 bg-white/10 peer-checked:bg-emerald-500 rounded-full transition after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                                    </label>
+                                    <span className="text-sm font-medium text-white">KPI качественный</span>
+                                    <span className="text-xs text-white/30">(конверсия встреч)</span>
+                                  </div>
+                                  {cfg.kpi_quality.enabled && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <label className="block text-xs text-white/40 mb-1">Макс. бонус ₽</label>
+                                        <input type="number" value={cfg.kpi_quality.max_amount}
+                                          onChange={e => updateConfig(activeSchema.id, 'kpi_quality.max_amount', Number(e.target.value))}
+                                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs text-white/40 mb-1">Порог конверсии %</label>
+                                        <input type="number" value={cfg.kpi_quality.conversion_threshold}
+                                          onChange={e => updateConfig(activeSchema.id, 'kpi_quality.conversion_threshold', Number(e.target.value))}
+                                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
 
-                            {/* Attestation */}
-                            <div className="glass rounded-xl p-4 mb-6">
-                              <div className="flex items-center gap-3 mb-3">
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                  <input type="checkbox" checked={cfg.attestation.enabled}
-                                    onChange={e => updateConfig(activeSchema.id, 'attestation.enabled', e.target.checked)}
-                                    className="sr-only peer" />
-                                  <div className="w-9 h-5 bg-white/10 peer-checked:bg-purple-500 rounded-full transition after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
-                                </label>
-                                <span className="text-sm font-medium text-white">Аттестация</span>
-                              </div>
-                              {cfg.attestation.enabled && (
-                                <div>
-                                  <label className="block text-xs text-white/40 mb-1">Бонус за аттестацию ₽</label>
-                                  <input type="number" value={cfg.attestation.bonus_amount}
-                                    onChange={e => updateConfig(activeSchema.id, 'attestation.bonus_amount', Number(e.target.value))}
-                                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                {/* KPI Quantity */}
+                                <div className="glass rounded-xl p-4 mb-4">
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                      <input type="checkbox" checked={cfg.kpi_quantity.enabled}
+                                        onChange={e => updateConfig(activeSchema.id, 'kpi_quantity.enabled', e.target.checked)}
+                                        className="sr-only peer" />
+                                      <div className="w-9 h-5 bg-white/10 peer-checked:bg-blue-500 rounded-full transition after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                                    </label>
+                                    <span className="text-sm font-medium text-white">KPI количественный</span>
+                                    <span className="text-xs text-white/30">(штуки)</span>
+                                  </div>
+                                  {cfg.kpi_quantity.enabled && (
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">Макс. бонус ₽</label>
+                                      <input type="number" value={cfg.kpi_quantity.max_amount}
+                                        onChange={e => updateConfig(activeSchema.id, 'kpi_quantity.max_amount', Number(e.target.value))}
+                                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
+
+                                {/* Margin Bonus */}
+                                <div className="glass rounded-xl p-4 mb-4">
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                      <input type="checkbox" checked={cfg.margin_bonus.enabled}
+                                        onChange={e => updateConfig(activeSchema.id, 'margin_bonus.enabled', e.target.checked)}
+                                        className="sr-only peer" />
+                                      <div className="w-9 h-5 bg-white/10 peer-checked:bg-orange-500 rounded-full transition after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                                    </label>
+                                    <span className="text-sm font-medium text-white">Маржа с оборудования</span>
+                                  </div>
+                                  {cfg.margin_bonus.enabled && (
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">Процент маржи (0.094 = 9.4%)</label>
+                                      <input type="number" step="0.001" value={cfg.margin_bonus.percent}
+                                        onChange={e => updateConfig(activeSchema.id, 'margin_bonus.percent', Number(e.target.value))}
+                                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Attestation */}
+                                <div className="glass rounded-xl p-4 mb-6">
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                      <input type="checkbox" checked={cfg.attestation.enabled}
+                                        onChange={e => updateConfig(activeSchema.id, 'attestation.enabled', e.target.checked)}
+                                        className="sr-only peer" />
+                                      <div className="w-9 h-5 bg-white/10 peer-checked:bg-purple-500 rounded-full transition after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                                    </label>
+                                    <span className="text-sm font-medium text-white">Аттестация</span>
+                                  </div>
+                                  {cfg.attestation.enabled && (
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">Бонус за аттестацию ₽</label>
+                                      <input type="number" value={cfg.attestation.bonus_amount}
+                                        onChange={e => updateConfig(activeSchema.id, 'attestation.bonus_amount', Number(e.target.value))}
+                                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                    </div>
+                                  )}
+                                </div>
+                              </>
+                            )}
 
                             {/* Save */}
                             <div className="flex items-center justify-between">

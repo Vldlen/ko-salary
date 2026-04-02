@@ -19,11 +19,11 @@ export interface Position {
 }
 
 export interface MotivationConfig {
-  // Планы
+  // Планы (ИННО)
   revenue_plan: number        // план выручки (₽)
   units_plan: number          // план по штукам
   meetings_plan: number       // план встреч
-  // Проценты от дохода
+  // Проценты от дохода (ИННО)
   revenue_percent: number     // % от выручки
   mrr_percent: number         // % от MRR
   // KPI качественный (конверсия встреч)
@@ -39,7 +39,7 @@ export interface MotivationConfig {
     description: string
     max_amount: number
   }
-  // Маржа с оборудования
+  // Маржа с оборудования (ИННО)
   margin_bonus: {
     enabled: boolean
     description: string
@@ -49,6 +49,20 @@ export interface MotivationConfig {
   attestation: {
     enabled: boolean
     bonus_amount: number      // бонус за сданную аттестацию
+  }
+  // === БОНДА-specific ===
+  kpi_max_amount?: number           // бонус за KPI (по умолчанию 10000)
+  kpi_entries_target?: number       // порог KPI записей для менеджера (12)
+  kpi_entries_target_junior?: number // порог KPI записей для младшего (5)
+  fd_threshold?: number             // порог переключения ставки ФД (4 шт)
+  fd_percent_low?: number           // % ФД до порога (0.075 = 7.5%)
+  fd_percent_high?: number          // % ФД после порога (0.15 = 15%)
+  one_time_service_percent?: number // % за разовые услуги (0.10 = 10%)
+  bi_percents?: {                   // проценты Bonda BI по периодам
+    month: number
+    quarter: number
+    half_year: number
+    year: number
   }
 }
 
