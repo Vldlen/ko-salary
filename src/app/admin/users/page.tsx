@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, UserCog, Plus, X, Check, Ban, Copy, Eye, EyeOff, Pencil } from 'lucide-react'
+import { Loader2, UserCog, Plus, X, Check, Ban, Copy, RefreshCw, Pencil } from 'lucide-react'
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
-import { cn } from '@/lib/utils'
+import { cn, generatePassword } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { getCurrentUser } from '@/lib/supabase/queries'
 import { getUsers, getCompanies, getPositions, updateUserProfile } from '@/lib/supabase/admin-queries'
@@ -28,7 +28,6 @@ export default function AdminUsersPage() {
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [createdCreds, setCreatedCreds] = useState<{ login: string; password: string; name: string } | null>(null)
   const [editUser, setEditUser] = useState<any>(null)
@@ -162,6 +161,17 @@ export default function AdminUsersPage() {
     } finally {
       setEditSaving(false)
     }
+  }
+
+  async function resetUserPassword(userId: string) {
+    if (!confirm('Сгенерировать новый пароль?')) return
+    try {
+      const newPassword = generatePassword()
+      await updateUserProfile(supabase, userId, { password_plain: newPassword } as any)
+      setUsers(users.map(u => u.id === userId ? { ...u, password_plain: newPassword } : u))
+      copyToClipboard(newPassword, `pass-${userId}`)
+      alert(`Новый пароль: ${newPassword}\n(уже скопирован)`)
+    } catch (err: any) { alert('Ошибка: ' + err.message) }
   }
 
   function copyToClipboard(text: string, id: string) {
@@ -361,24 +371,24 @@ export default function AdminUsersPage() {
           )}
 
           {/* Users table */}
-          <div className="glass rounded-2xl overflow-x-auto">
-            <table className="w-full min-w-[900px]">
+          <div className="glass rounded-2xl overflow-hidden">
+            <table className="w-full table-fixed">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Сотрудник</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Логин</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Пароль</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Роль</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Компания</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Статус</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-white/50 uppercase tracking-wider">Действия</th>
+                  <th className="w-[22%] px-3 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Сотрудник</th>
+                  <th className="w-[15%] px-3 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Логин</th>
+                  <th className="w-[8%] px-3 py-3 text-center text-xs font-semibold text-white/50 uppercase tracking-wider">Пароль</th>
+                  <th className="w-[12%] px-3 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Роль</th>
+                  <th className="w-[12%] px-3 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Компания</th>
+                  <th className="w-[13%] px-3 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Статус</th>
+                  <th className="w-[18%] px-3 py-3 text-right text-xs font-semibold text-white/50 uppercase tracking-wider">Действия</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((u: any) => (
                   <tr key={u.id} className="border-b border-white/5 hover:bg-white/5 transition">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
                           {u.full_name?.charAt(0) || '?'}
                         </div>
@@ -388,31 +398,28 @@ export default function AdminUsersPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <code className="text-sm font-mono text-blue-400">{u.login || '—'}</code>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-1">
+                        <code className="text-sm font-mono text-blue-400 truncate">{u.login || '—'}</code>
                         {u.login && (
                           <button onClick={() => copyToClipboard(u.login, `login-${u.id}`)}
-                            className="text-white/30 hover:text-white transition p-0.5">
+                            className="text-white/30 hover:text-white transition p-0.5 shrink-0">
                             {copiedId === `login-${u.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                           </button>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
+                    <td className="px-3 py-3">
+                      <div className="flex items-center justify-center gap-1">
                         {u.password_plain ? (
                           <>
-                            <code className="text-sm font-mono text-white/60">
-                              {showPasswords[u.id] ? u.password_plain : '•••••••'}
-                            </code>
-                            <button onClick={() => setShowPasswords(prev => ({ ...prev, [u.id]: !prev[u.id] }))}
-                              className="text-white/30 hover:text-white transition p-0.5">
-                              {showPasswords[u.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                            </button>
                             <button onClick={() => copyToClipboard(u.password_plain, `pass-${u.id}`)}
-                              className="text-white/30 hover:text-white transition p-0.5">
+                              className="text-white/30 hover:text-white transition p-1" title="Скопировать пароль">
                               {copiedId === `pass-${u.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                            <button onClick={() => resetUserPassword(u.id)}
+                              className="text-white/30 hover:text-orange-400 transition p-1" title="Сменить пароль">
+                              <RefreshCw className="w-3.5 h-3.5" />
                             </button>
                           </>
                         ) : (
@@ -420,7 +427,7 @@ export default function AdminUsersPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3">
                       <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full',
                         u.role === 'admin' ? 'bg-purple-500/20 text-purple-300' :
                         u.role === 'director' ? 'bg-blue-500/20 text-blue-300' :
@@ -430,8 +437,8 @@ export default function AdminUsersPage() {
                         {ROLES.find(r => r.value === u.role)?.label || u.role}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-white/70 whitespace-nowrap">{u.company?.name || '—'}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3 text-sm text-white/70 truncate">{u.company?.name || '—'}</td>
+                    <td className="px-3 py-3">
                       {(() => {
                         const status = getUserStatus(u)
                         return (
@@ -489,7 +496,7 @@ export default function AdminUsersPage() {
                   </tr>
                 ))}
                 {users.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-white/40">Нет сотрудников</td></tr>
+                  <tr><td colSpan={7} className="px-3 py-8 text-center text-white/40">Нет сотрудников</td></tr>
                 )}
               </tbody>
             </table>

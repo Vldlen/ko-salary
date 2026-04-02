@@ -61,6 +61,7 @@ export async function updateUserProfile(supabase: SupabaseClient, userId: string
   role?: string
   company_id?: string | null
   position_id?: string | null
+  password_plain?: string
   is_active?: boolean
   fired_at?: string | null
 }) {
