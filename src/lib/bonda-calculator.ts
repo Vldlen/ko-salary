@@ -15,8 +15,8 @@ const PERIOD_MONTHS: Record<string, number> = {
   year: 12,
 }
 
-// Проценты бонуса за Bonda BI по периодам
-const BI_PERCENT: Record<string, number> = {
+// Проценты бонуса за Bonda BI по периодам (дефолт)
+const DEFAULT_BI_PERCENT: Record<string, number> = {
   month: 0.5,
   quarter: 1.0,
   half_year: 1.5,
@@ -35,6 +35,7 @@ export interface BondaCalcInput {
   fdPercentLow: number           // % до порога (0.075)
   fdPercentHigh: number          // % после порога (0.15)
   oneTimeServicePercent: number  // % за разовые услуги (0.10)
+  biPercents?: Record<string, number>  // проценты Bonda BI по периодам (из настроек должности)
 }
 
 export interface BondaCalcResult {
@@ -63,7 +64,10 @@ export function calculateBondaSalary(input: BondaCalcInput): BondaCalcResult {
     deals, kpiEntriesCount, kpiApprovals, baseSalary, isJunior,
     kpiMaxAmount, kpiEntriesTarget, fdThreshold,
     fdPercentLow, fdPercentHigh, oneTimeServicePercent,
+    biPercents,
   } = input
+
+  const BI_PERCENT = biPercents && Object.keys(biPercents).length > 0 ? biPercents : DEFAULT_BI_PERCENT
 
   const paidDeals = deals.filter(d => d.status === 'paid')
 

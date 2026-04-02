@@ -690,6 +690,7 @@ export async function getBondaDashboardData(supabase: SupabaseClient, userId: st
     fdPercentLow: config.fd_percent_low || 0.075,
     fdPercentHigh: config.fd_percent_high || 0.15,
     oneTimeServicePercent: config.one_time_service_percent || 0.10,
+    biPercents: config.bi_percents || undefined,
   })
 
   return {
