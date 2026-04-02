@@ -6,12 +6,18 @@ import { Plus, Loader2, X, Check, Trash2, Pencil, ClipboardCheck, ExternalLink }
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import ViewAsBar from '@/components/ViewAsBar'
+import CustomSelect from '@/components/CustomSelect'
 import { formatMoney, cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { useViewAs } from '@/lib/view-as-context'
 import { getCurrentUser, getActivePeriod, getKpiEntries, createKpiEntry, updateKpiEntry, deleteKpiEntry } from '@/lib/supabase/queries'
 
-const PRODUCT_OPTIONS = ['Чек-Ап', 'ФД', 'Bonda BI', 'Другое']
+const PRODUCT_OPTIONS = [
+  { value: 'Чек-Ап', label: 'Чек-Ап' },
+  { value: 'ФД', label: 'ФД' },
+  { value: 'Bonda BI', label: 'Bonda BI' },
+  { value: 'Другое', label: 'Другое' },
+]
 
 const EMPTY_FORM = {
   entry_date: new Date().toISOString().slice(0, 10),
@@ -221,7 +227,8 @@ export default function KpiPage() {
                     <label className="block text-sm font-medium text-white mb-1">Дата *</label>
                     <input type="date" required value={form.entry_date}
                       onChange={(e) => setForm({ ...form, entry_date: e.target.value })}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none" />
+                      onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none date-input-clean cursor-pointer" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-white mb-1">Клиент *</label>
@@ -235,12 +242,7 @@ export default function KpiPage() {
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-white mb-1">Продукт</label>
-                    <select value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none">
-                      {PRODUCT_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
+                    <CustomSelect value={form.product} onChange={(v) => setForm({ ...form, product: v })} options={PRODUCT_OPTIONS} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-white mb-1">Ссылка AMO CRM</label>

@@ -6,6 +6,7 @@ import { ChevronDown, Plus, Loader2, X, Pencil, Trash2, Check, Calendar, Eye } f
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import ViewAsBar from '@/components/ViewAsBar'
+import CustomSelect from '@/components/CustomSelect'
 import { formatMoney, getDealStatusLabel, getDealStatusColor, getProductTypeLabel, getSubscriptionPeriodLabel, cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { useViewAs } from '@/lib/view-as-context'
@@ -384,12 +385,7 @@ export default function DealsPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-white mb-1">Статус</label>
-                    <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none">
-                      {STATUS_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
+                    <CustomSelect value={form.status} onChange={(v) => setForm({ ...form, status: v })} options={STATUS_OPTIONS} />
                   </div>
                 </div>
 
@@ -399,22 +395,12 @@ export default function DealsPage() {
                     <div className="grid grid-cols-3 gap-4 mb-4">
                       <div>
                         <label className="block text-sm font-medium text-white mb-1">Тип продукта *</label>
-                        <select value={form.product_type} onChange={(e) => setForm({ ...form, product_type: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none">
-                          {PRODUCT_TYPE_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </select>
+                        <CustomSelect value={form.product_type} onChange={(v) => setForm({ ...form, product_type: v })} options={PRODUCT_TYPE_OPTIONS} />
                       </div>
                       {form.product_type !== 'one_time_service' && (
                         <div>
                           <label className="block text-sm font-medium text-white mb-1">Период подписки</label>
-                          <select value={form.subscription_period} onChange={(e) => setForm({ ...form, subscription_period: e.target.value })}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none">
-                            {SUBSCRIPTION_PERIOD_OPTIONS.map((opt) => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                          </select>
+                          <CustomSelect value={form.subscription_period} onChange={(v) => setForm({ ...form, subscription_period: v })} options={SUBSCRIPTION_PERIOD_OPTIONS} />
                         </div>
                       )}
                       <div>
@@ -437,7 +423,8 @@ export default function DealsPage() {
                         <label className="block text-sm font-medium text-white mb-1">Планируемая дата оплаты</label>
                         <input type="date" value={form.planned_payment_date}
                           onChange={(e) => setForm({ ...form, planned_payment_date: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none" />
+                          onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none date-input-clean cursor-pointer" />
                       </div>
                     </div>
                   </>
@@ -505,7 +492,8 @@ export default function DealsPage() {
                         <label className="block text-sm font-medium text-white mb-1">Планируемая дата оплаты</label>
                         <input type="date" value={form.planned_payment_date}
                           onChange={(e) => setForm({ ...form, planned_payment_date: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none" />
+                          onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none date-input-clean cursor-pointer" />
                       </div>
                     </div>
                   </>
@@ -680,7 +668,8 @@ export default function DealsPage() {
                 type="date"
                 value={paidDate}
                 onChange={(e) => setPaidDate(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none mb-4"
+                onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none mb-4 date-input-clean cursor-pointer"
               />
               <div className="flex gap-3">
                 <button onClick={() => setPaidPopup(null)}

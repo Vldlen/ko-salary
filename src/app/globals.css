@@ -91,3 +91,17 @@ table td {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
 }
+
+/* Hide native date input calendar icon */
+.date-input-clean::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+.date-input-clean::-webkit-inner-spin-button,
+.date-input-clean::-webkit-clear-button {
+  display: none;
+}
