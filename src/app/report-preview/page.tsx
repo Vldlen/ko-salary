@@ -215,7 +215,7 @@ export default function ReportPreviewPage() {
         const teamData = await getTeamProgress(supabase, currentUser.company_id, activePeriod?.id || '')
 
         // We also need raw deals for MRR — fetch them
-        const allPeriodIds = [...new Set(teamData.map((m: any) => m.company_id))].map(() => activePeriod?.id).filter(Boolean)
+        const allPeriodIds = Array.from(new Set(teamData.map((m: any) => m.company_id))).map(() => activePeriod?.id).filter(Boolean)
 
         // Fetch deals for all managers to get MRR
         const userIds = teamData.map((m: any) => m.id)
