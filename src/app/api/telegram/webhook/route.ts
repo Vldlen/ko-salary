@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sendMessage, sendTeamReport } from '@/lib/telegram'
+import { sendMessage, sendTeamReport, sendCompanyReport, sendStatusText } from '@/lib/telegram'
 
 const SECRET_TOKEN = process.env.TELEGRAM_SECRET_TOKEN!
 const ALLOWED_CHAT_IDS = (process.env.TELEGRAM_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean)
@@ -33,12 +33,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    // Strip bot username from commands (e.g. /report@pulse_ko_bot → /report)
+    const command = text.split('@')[0].toLowerCase()
+
     // Commands
-    if (text === '/report' || text === '/report@' + (process.env.TELEGRAM_BOT_USERNAME || '')) {
+    if (command === '/report') {
       await sendTeamReport(chatId)
-    } else if (text === '/start') {
-      await sendMessage(chatId, `👋 Пульс КО бот\n\nID этого чата: <code>${chatId}</code>\n\nКоманды:\n/report — текущий отчёт по команде`)
-    } else if (text === '/chatid') {
+    } else if (command === '/inno') {
+      await sendCompanyReport(chatId, 'inno')
+    } else if (command === '/bonda') {
+      await sendCompanyReport(chatId, 'bonda')
+    } else if (command === '/status') {
+      await sendStatusText(chatId)
+    } else if (command === '/start' || command === '/help') {
+      await sendMessage(chatId, [
+        '👋 <b>Пульс КО · бот</b>',
+        '',
+        '📊 <b>Команды:</b>',
+        '/report — полный отчёт (ИННО + БОНДА)',
+        '/inno — отчёт только ИННО',
+        '/bonda — отчёт только БОНДА',
+        '/status — краткая сводка текстом',
+        '',
+        `💬 ID чата: <code>${chatId}</code>`,
+      ].join('\n'))
+    } else if (command === '/chatid') {
       await sendMessage(chatId, `Chat ID: <code>${chatId}</code>`)
     }
 
