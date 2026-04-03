@@ -755,7 +755,7 @@ export async function getBondaDashboardData(supabase: SupabaseClient, userId: st
 // ======== ИННО real-time salary calculation ========
 
 export async function getInnoDashboardData(supabase: SupabaseClient, userId: string, periodId: string) {
-  const [dealsRes, meetingsRes, paymentsRes, userRes, planRes, periodRes] = await Promise.all([
+  const [dealsRes, meetingsRes, paymentsRes, kpiEntriesRes, kpiApprovalsRes, userRes, planRes, periodRes] = await Promise.all([
     supabase
       .from('deals')
       .select('*')
@@ -769,6 +769,16 @@ export async function getInnoDashboardData(supabase: SupabaseClient, userId: str
       .eq('period_id', periodId),
     supabase
       .from('one_time_payments')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('period_id', periodId),
+    supabase
+      .from('kpi_entries')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('period_id', periodId),
+    supabase
+      .from('kpi_approvals')
       .select('*')
       .eq('user_id', userId)
       .eq('period_id', periodId),
@@ -793,6 +803,8 @@ export async function getInnoDashboardData(supabase: SupabaseClient, userId: str
   const deals = dealsRes.data || []
   const meetings = meetingsRes.data || []
   const oneTimePayments = paymentsRes.data || []
+  const kpiEntries = kpiEntriesRes.data || []
+  const kpiApprovals = (kpiApprovalsRes.data || []).map((a: any) => a.kpi_type)
   const posData = userRes.data?.position as any
   const allSchemas = Array.isArray(posData) ? posData[0]?.motivation_schemas : posData?.motivation_schemas
   const period = periodRes.data
@@ -803,6 +815,9 @@ export async function getInnoDashboardData(supabase: SupabaseClient, userId: str
     : allSchemas?.[0]
 
   if (!schema) return null
+
+  const positionName = (Array.isArray(posData) ? posData[0]?.name : posData?.name) || ''
+  const isJunior = positionName.toLowerCase().includes('младш')
 
   const { calculateSalary } = await import('@/lib/salary-calculator')
 
@@ -815,13 +830,19 @@ export async function getInnoDashboardData(supabase: SupabaseClient, userId: str
       revenue_plan: individualPlan.revenue_plan,
       units_plan: individualPlan.units_plan,
     } : undefined,
+    kpiEntriesCount: kpiEntries.length,
+    kpiApprovals,
+    isJunior,
   })
 
   return {
     deals,
     meetings,
+    kpiEntries,
+    kpiApprovals,
     salary: calcResult,
     schema,
     individualPlan,
+    isJunior,
   }
 }

@@ -112,8 +112,8 @@ export default function SalaryPage() {
   const innoBreakdown = s.breakdown || {} as any
   const innoItems = [
     { label: 'Оклад', value: Number(s.base_salary), max: Number(s.base_salary) || 80000 },
-    { label: 'KPI качество (презентации/встречи)', value: Number(s.kpi_quality), max: 10000 },
-    { label: 'KPI количество (конверсия/аттестация)', value: Number(s.kpi_quantity), max: 10000 },
+    { label: 'KPI качество (конверсия/аттестация)', value: Number(s.kpi_quality), max: 10000 },
+    { label: 'KPI количество (встречи/презентации)', value: Number(s.kpi_quantity), max: 10000 },
     { label: `Пуш-бонус${s.multiplier !== undefined && s.multiplier !== 1 ? ` (x${s.multiplier})` : ''}`, value: Number(s.push_bonus), max: Math.max(Number(s.push_bonus), 30000) },
     { label: 'Услуги внедрения (10%)', value: Number(s.implementation_bonus), max: Math.max(Number(s.implementation_bonus), 5000) },
     { label: 'Маржа с оборудования (10%)', value: Number(s.margin_bonus), max: Math.max(Number(s.margin_bonus), 10000) },

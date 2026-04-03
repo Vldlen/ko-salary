@@ -9,6 +9,10 @@ interface CalcInput {
     revenue_plan?: number | null
     units_plan?: number | null
   }
+  // KPI binary (как у БОНДА): записи + одобрение
+  kpiEntriesCount?: number
+  kpiApprovals?: string[]  // ['attestation', 'conversion_approved']
+  isJunior?: boolean
 }
 
 interface CalcResult {
@@ -41,6 +45,10 @@ interface CalcResult {
     one_time_bonuses: number
     one_time_deductions: number
     multiplier_tier: string
+    kpi_entries_count: number
+    kpi_entries_target: number
+    kpi_approval_type: string
+    kpi_approval_done: boolean
   }
 }
 
@@ -110,22 +118,26 @@ export function calculateSalary(input: CalcInput): CalcResult {
   const meetingsPlan = config.meetings_plan
   const meetingsPercent = meetingsPlan > 0 ? meetingsFact / meetingsPlan : 0
 
-  // --- KPI Quality (meetings-based) ---
+  // --- KPI (бинарный, как у БОНДА) ---
+  const kpiEntriesCount = input.kpiEntriesCount ?? 0
+  const kpiApprovals = input.kpiApprovals ?? []
+  const isJunior = input.isJunior ?? false
+
+  // KPI Quality = одобрение руководителем (аттестация для младшего, конверсия для менеджера)
+  const kpiApprovalType = isJunior ? 'attestation' : 'conversion_approved'
   let kpiQuality = 0
   if (config.kpi_quality.enabled) {
-    kpiQuality = Math.min(
-      meetingsPercent * config.kpi_quality.max_amount,
-      config.kpi_quality.max_amount
-    )
+    kpiQuality = kpiApprovals.includes(kpiApprovalType) ? config.kpi_quality.max_amount : 0
   }
 
-  // --- KPI Quantity (units-based) ---
+  // KPI Quantity = записи (встречи/презентации): достиг порога → полный бонус
+  const kpiEntriesTarget = isJunior
+    ? (config.kpi_entries_target_junior ?? 5)
+    : (config.kpi_entries_target ?? 20)
+
   let kpiQuantity = 0
   if (config.kpi_quantity.enabled) {
-    kpiQuantity = Math.min(
-      unitsPercent * config.kpi_quantity.max_amount,
-      config.kpi_quantity.max_amount
-    )
+    kpiQuantity = kpiEntriesCount >= kpiEntriesTarget ? config.kpi_quantity.max_amount : 0
   }
 
   // --- Push-bonus: % от MRR нового клиента по периоду подписки ---
@@ -249,6 +261,10 @@ export function calculateSalary(input: CalcInput): CalcResult {
       one_time_bonuses: oneTimeBonuses,
       one_time_deductions: oneTimeDeductions,
       multiplier_tier: multiplierLabel,
+      kpi_entries_count: kpiEntriesCount,
+      kpi_entries_target: kpiEntriesTarget,
+      kpi_approval_type: kpiApprovalType,
+      kpi_approval_done: kpiApprovals.includes(kpiApprovalType),
     }
   }
 }
