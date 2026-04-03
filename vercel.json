@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/telegram/cron",
-      "schedule": "0 12 * * 1-5"
+      "schedule": "0 15 * * 1-5"
     }
   ]
 }
