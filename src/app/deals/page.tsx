@@ -25,10 +25,15 @@ const STATUS_OPTIONS = [
   { value: 'paid', label: 'Оплачено' },
 ]
 
-const PRODUCT_TYPE_OPTIONS = [
+const PRODUCT_TYPE_OPTIONS_BONDA = [
   { value: 'findir', label: 'ФинДир (ФД)' },
   { value: 'bonda_bi', label: 'Bonda BI' },
   { value: 'one_time_service', label: 'Разовая услуга' },
+]
+
+const PRODUCT_TYPE_OPTIONS_INNO = [
+  { value: 'inno_license', label: 'Лицензия inno clouds' },
+  { value: 'inno_implementation', label: 'Услуги внедрения' },
 ]
 
 const SUBSCRIPTION_PERIOD_OPTIONS = [
@@ -48,7 +53,7 @@ const EMPTY_FORM = {
   status: 'no_invoice',
   planned_payment_date: '',
   notes: '',
-  product_type: 'findir',
+  product_type: '',
   subscription_period: 'month',
   amo_link: '',
 }
@@ -151,6 +156,8 @@ export default function DealsPage() {
         dealData.mrr = 0
         dealData.equipment_margin = 0
       } else {
+        dealData.product_type = form.product_type || 'inno_license'
+        dealData.subscription_period = form.product_type === 'inno_implementation' ? null : form.subscription_period
         dealData.mrr = Number(form.mrr) || 0
         dealData.units = Number(form.units) || 1
         dealData.equipment_sell_price = Number(form.equipment_sell_price) || 0
@@ -397,9 +404,9 @@ export default function DealsPage() {
                     <div className="grid grid-cols-3 gap-4 mb-4">
                       <div>
                         <label className="block text-sm font-medium text-white mb-1">Тип продукта *</label>
-                        <CustomSelect value={form.product_type} onChange={(v) => setForm({ ...form, product_type: v })} options={PRODUCT_TYPE_OPTIONS} />
+                        <CustomSelect value={form.product_type || (isBonda ? 'findir' : 'inno_license')} onChange={(v) => setForm({ ...form, product_type: v })} options={isBonda ? PRODUCT_TYPE_OPTIONS_BONDA : PRODUCT_TYPE_OPTIONS_INNO} />
                       </div>
-                      {form.product_type !== 'one_time_service' && (
+                      {form.product_type !== 'one_time_service' && form.product_type !== 'inno_implementation' && (
                         <div>
                           <label className="block text-sm font-medium text-white mb-1">Период подписки</label>
                           <CustomSelect value={form.subscription_period} onChange={(v) => setForm({ ...form, subscription_period: v })} options={SUBSCRIPTION_PERIOD_OPTIONS} />

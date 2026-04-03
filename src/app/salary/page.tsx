@@ -9,7 +9,7 @@ import ViewAsBar from '@/components/ViewAsBar'
 import { formatMoney, getMonthName, cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { useViewAs } from '@/lib/view-as-context'
-import { getCurrentUser, getActivePeriod, getSalaryResult, getSalaryHistory, getBondaDashboardData } from '@/lib/supabase/queries'
+import { getCurrentUser, getActivePeriod, getSalaryHistory, getBondaDashboardData, getInnoDashboardData } from '@/lib/supabase/queries'
 
 export default function SalaryPage() {
   const supabase = useSupabase()
@@ -72,12 +72,12 @@ export default function SalaryPage() {
           setBondaData(data)
           setSalary(null)
         } else {
-          // ИННО: from salary_results table
-          const [salaryData, historyData] = await Promise.all([
-            getSalaryResult(supabase, targetUserId, activePeriod.id),
+          // ИННО: real-time calculation
+          const [innoData, historyData] = await Promise.all([
+            getInnoDashboardData(supabase, targetUserId, activePeriod.id),
             getSalaryHistory(supabase, targetUserId),
           ])
-          setSalary(salaryData)
+          setSalary(innoData?.salary || null)
           setBondaData(null)
           setHistory(historyData)
         }
@@ -108,12 +108,15 @@ export default function SalaryPage() {
   ] : []
 
   // ИННО salary breakdown
-  const s = salary || { base_salary: 0, kpi_quality: 0, kpi_quantity: 0, margin_bonus: 0, extra_bonus: 0, deduction: 0, total: 0, forecast_total: 0 }
+  const s = salary || { base_salary: 0, kpi_quality: 0, kpi_quantity: 0, push_bonus: 0, implementation_bonus: 0, margin_bonus: 0, extra_bonus: 0, deduction: 0, multiplier: 1, total: 0, forecast_total: 0, breakdown: {} as any }
+  const innoBreakdown = s.breakdown || {} as any
   const innoItems = [
     { label: 'Оклад', value: Number(s.base_salary), max: Number(s.base_salary) || 80000 },
-    { label: 'KPI качественный (встречи)', value: Number(s.kpi_quality), max: 15000 },
-    { label: 'KPI количественный (точки)', value: Number(s.kpi_quantity), max: 10000 },
-    { label: 'Маржа с оборудования', value: Number(s.margin_bonus), max: 15000 },
+    { label: 'KPI качество (презентации/встречи)', value: Number(s.kpi_quality), max: 10000 },
+    { label: 'KPI количество (конверсия/аттестация)', value: Number(s.kpi_quantity), max: 10000 },
+    { label: `Пуш-бонус${s.multiplier !== undefined && s.multiplier !== 1 ? ` (x${s.multiplier})` : ''}`, value: Number(s.push_bonus), max: Math.max(Number(s.push_bonus), 30000) },
+    { label: 'Услуги внедрения (10%)', value: Number(s.implementation_bonus), max: Math.max(Number(s.implementation_bonus), 5000) },
+    { label: 'Маржа с оборудования (10%)', value: Number(s.margin_bonus), max: Math.max(Number(s.margin_bonus), 10000) },
     { label: 'Разовый бонус', value: Number(s.extra_bonus), max: Number(s.extra_bonus) || 5000 },
     { label: 'Депремирование', value: Number(s.deduction), max: 0, negative: true },
   ]
@@ -202,6 +205,32 @@ export default function SalaryPage() {
               <span className="text-2xl font-bold text-blue-400">{formatMoney(totalSalary)}</span>
             </div>
           </div>
+
+          {/* ИННО: multiplier and plan info */}
+          {!isBonda && salary && innoBreakdown.multiplier_tier && (
+            <div className="glass rounded-2xl p-6 mb-6">
+              <h2 className="text-lg font-heading font-semibold text-white mb-4">Множитель и план</h2>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-white/5 rounded-xl p-4">
+                  <p className="text-xs text-white/40 mb-1">Выполнение плана (лицензии)</p>
+                  <p className="text-lg font-bold text-white">{innoBreakdown.units_percent || 0}%</p>
+                  <p className="text-xs text-white/30">{innoBreakdown.units_fact || 0} / {innoBreakdown.units_plan || 0} шт.</p>
+                </div>
+                <div className="bg-white/5 rounded-xl p-4">
+                  <p className="text-xs text-white/40 mb-1">Множитель пуш-бонуса</p>
+                  <p className={cn('text-lg font-bold', s.multiplier >= 1 ? 'text-emerald-400' : s.multiplier > 0 ? 'text-blue-400' : 'text-red-400')}>
+                    x{s.multiplier}
+                  </p>
+                  <p className="text-xs text-white/30">{innoBreakdown.multiplier_tier}</p>
+                </div>
+                <div className="bg-white/5 rounded-xl p-4">
+                  <p className="text-xs text-white/40 mb-1">Пуш-бонус до множителя</p>
+                  <p className="text-lg font-bold text-white">{formatMoney(innoBreakdown.push_bonus_raw || 0)}</p>
+                  <p className="text-xs text-white/30">после: {formatMoney(Number(s.push_bonus))}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* БОНДА: breakdown by product */}
           {isBonda && breakdown && (breakdown.fd_deals?.length > 0 || breakdown.bi_deals?.length > 0 || breakdown.one_time_deals?.length > 0) && (

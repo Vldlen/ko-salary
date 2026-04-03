@@ -16,15 +16,31 @@ import {
 import type { MotivationConfig } from '@/types/database'
 
 const DEFAULT_CONFIG_INNO: MotivationConfig = {
-  revenue_plan: 500000,
-  units_plan: 10,
+  revenue_plan: 840000,
+  units_plan: 20,
   meetings_plan: 20,
   revenue_percent: 0,
   mrr_percent: 0,
-  kpi_quality: { enabled: true, description: 'Качественный KPI (конверсия встреч)', max_amount: 15000, conversion_threshold: 30 },
-  kpi_quantity: { enabled: true, description: 'Количественный KPI (штуки)', max_amount: 10000 },
-  margin_bonus: { enabled: true, description: 'Маржа с оборудования', percent: 0.094 },
-  attestation: { enabled: false, bonus_amount: 5000 },
+  kpi_quality: { enabled: true, description: 'KPI: Презентации inno (уникальные встречи)', max_amount: 10000, conversion_threshold: 35 },
+  kpi_quantity: { enabled: true, description: 'KPI: Конверсия встреча-продажа', max_amount: 10000 },
+  margin_bonus: { enabled: true, description: 'Маржа с оборудования (10%)', percent: 0.10 },
+  attestation: { enabled: true, bonus_amount: 10000 },
+  // ИННО push-bonus
+  push_bonus_percents: { month: 0.50, quarter: 0.80, half_year: 1.10, year: 1.50 },
+  implementation_percent: 0.10,
+  // Пороговые множители
+  threshold_multipliers: {
+    min_percent: 70,
+    tiers: [
+      { from: 0, to: 69, multiplier: 0 },
+      { from: 70, to: 100, multiplier: 1 },
+      { from: 101, to: 120, multiplier: 1.2 },
+      { from: 121, to: 999, multiplier: 1.5 },
+    ],
+  },
+  // KPI entries
+  kpi_entries_target: 20,
+  kpi_entries_target_junior: 5,
 }
 
 const DEFAULT_CONFIG_BONDA: MotivationConfig = {
@@ -609,7 +625,7 @@ export default function AdminPositionsPage() {
                                 </div>
 
                                 {/* Attestation */}
-                                <div className="glass rounded-xl p-4 mb-6">
+                                <div className="glass rounded-xl p-4 mb-4">
                                   <div className="flex items-center gap-3 mb-3">
                                     <label className="relative inline-flex items-center cursor-pointer">
                                       <input type="checkbox" checked={cfg.attestation.enabled}
@@ -627,6 +643,111 @@ export default function AdminPositionsPage() {
                                         className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
                                     </div>
                                   )}
+                                </div>
+
+                                {/* Push-bonus percents */}
+                                <div className="glass rounded-xl p-4 mb-4">
+                                  <p className="text-sm font-medium text-white mb-3">Пуш-бонус (% от MRR по периоду подписки)</p>
+                                  <div className="grid grid-cols-4 gap-3">
+                                    {[
+                                      { key: 'month', label: 'Месяц' },
+                                      { key: 'quarter', label: 'Квартал' },
+                                      { key: 'half_year', label: 'Полгода' },
+                                      { key: 'year', label: 'Год' },
+                                    ].map(p => (
+                                      <div key={p.key}>
+                                        <label className="block text-xs text-white/40 mb-1">{p.label}</label>
+                                        <input type="number" step="0.01"
+                                          value={(cfg.push_bonus_percents as any)?.[p.key] ?? 0}
+                                          onChange={e => updateConfig(activeSchema.id, `push_bonus_percents.${p.key}`, Number(e.target.value))}
+                                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                        <p className="text-[10px] text-white/20 mt-0.5">{Math.round(((cfg.push_bonus_percents as any)?.[p.key] ?? 0) * 100)}%</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Implementation percent */}
+                                <div className="glass rounded-xl p-4 mb-4">
+                                  <p className="text-sm font-medium text-white mb-3">Услуги по внедрению</p>
+                                  <div>
+                                    <label className="block text-xs text-white/40 mb-1">Процент от выручки (0.10 = 10%)</label>
+                                    <input type="number" step="0.01" value={cfg.implementation_percent ?? 0.10}
+                                      onChange={e => updateConfig(activeSchema.id, 'implementation_percent', Number(e.target.value))}
+                                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                  </div>
+                                </div>
+
+                                {/* Threshold multipliers */}
+                                <div className="glass rounded-xl p-4 mb-4">
+                                  <p className="text-sm font-medium text-white mb-3">Пороговые множители</p>
+                                  <div className="mb-3">
+                                    <label className="block text-xs text-white/40 mb-1">Мин. порог начисления (%)</label>
+                                    <input type="number" value={cfg.threshold_multipliers?.min_percent ?? 70}
+                                      onChange={e => updateConfig(activeSchema.id, 'threshold_multipliers.min_percent', Number(e.target.value))}
+                                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                  </div>
+                                  <div className="space-y-2">
+                                    {(cfg.threshold_multipliers?.tiers || [
+                                      { from: 0, to: 69, multiplier: 0 },
+                                      { from: 70, to: 100, multiplier: 1 },
+                                      { from: 101, to: 120, multiplier: 1.2 },
+                                      { from: 121, to: 999, multiplier: 1.5 },
+                                    ]).map((tier: any, idx: number) => (
+                                      <div key={idx} className="grid grid-cols-3 gap-2 items-center">
+                                        <div className="flex items-center gap-1">
+                                          <input type="number" value={tier.from}
+                                            onChange={e => {
+                                              const tiers = [...(cfg.threshold_multipliers?.tiers || [])]
+                                              tiers[idx] = { ...tiers[idx], from: Number(e.target.value) }
+                                              updateConfig(activeSchema.id, 'threshold_multipliers.tiers', tiers)
+                                            }}
+                                            className="w-16 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white outline-none" />
+                                          <span className="text-xs text-white/30">–</span>
+                                          <input type="number" value={tier.to}
+                                            onChange={e => {
+                                              const tiers = [...(cfg.threshold_multipliers?.tiers || [])]
+                                              tiers[idx] = { ...tiers[idx], to: Number(e.target.value) }
+                                              updateConfig(activeSchema.id, 'threshold_multipliers.tiers', tiers)
+                                            }}
+                                            className="w-16 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white outline-none" />
+                                          <span className="text-xs text-white/30">%</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-xs text-white/30">x</span>
+                                          <input type="number" step="0.1" value={tier.multiplier}
+                                            onChange={e => {
+                                              const tiers = [...(cfg.threshold_multipliers?.tiers || [])]
+                                              tiers[idx] = { ...tiers[idx], multiplier: Number(e.target.value) }
+                                              updateConfig(activeSchema.id, 'threshold_multipliers.tiers', tiers)
+                                            }}
+                                            className="w-16 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white outline-none" />
+                                        </div>
+                                        <span className={cn('text-xs font-medium', tier.multiplier === 0 ? 'text-red-400' : tier.multiplier >= 1.2 ? 'text-emerald-400' : 'text-white/50')}>
+                                          {tier.multiplier === 0 ? 'Без бонуса' : `Множитель ${tier.multiplier}`}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* KPI entries targets */}
+                                <div className="glass rounded-xl p-4 mb-6">
+                                  <p className="text-sm font-medium text-white mb-3">KPI записи (целевое кол-во)</p>
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">Менеджер (презентации)</label>
+                                      <input type="number" value={cfg.kpi_entries_target ?? 20}
+                                        onChange={e => updateConfig(activeSchema.id, 'kpi_entries_target', Number(e.target.value))}
+                                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-white/40 mb-1">Младший (встречи)</label>
+                                      <input type="number" value={cfg.kpi_entries_target_junior ?? 5}
+                                        onChange={e => updateConfig(activeSchema.id, 'kpi_entries_target_junior', Number(e.target.value))}
+                                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none" />
+                                    </div>
+                                  </div>
                                 </div>
                               </>
                             )}

@@ -2,7 +2,7 @@ export type UserRole = 'admin' | 'director' | 'rop' | 'manager' | 'founder'
 export type PeriodStatus = 'draft' | 'active' | 'closed'
 export type DealStatus = 'prospect' | 'negotiation' | 'waiting_payment' | 'paid' | 'cancelled'
 export type PaymentType = 'bonus' | 'deduction'
-export type ProductType = 'findir' | 'bonda_bi' | 'one_time_service'
+export type ProductType = 'findir' | 'bonda_bi' | 'one_time_service' | 'inno_license' | 'inno_implementation'
 export type SubscriptionPeriod = 'month' | 'quarter' | 'half_year' | 'year'
 
 export interface Company {
@@ -49,6 +49,23 @@ export interface MotivationConfig {
   attestation: {
     enabled: boolean
     bonus_amount: number      // бонус за сданную аттестацию
+  }
+  // === ИННО push-bonus ===
+  push_bonus_percents?: {            // % от MRR нового клиента по периоду подписки
+    month: number                    // 0.50 = 50%
+    quarter: number                  // 0.80 = 80%
+    half_year: number                // 1.10 = 110%
+    year: number                     // 1.50 = 150%
+  }
+  implementation_percent?: number    // % за услуги внедрения (0.10 = 10%)
+  // === Пороговые множители (ИННО) ===
+  threshold_multipliers?: {
+    min_percent: number              // порог начисления (70 = 70%)
+    tiers: Array<{                   // множители по диапазонам
+      from: number                   // от % (включительно)
+      to: number                     // до % (включительно, 999 = бесконечность)
+      multiplier: number             // множитель (0, 1, 1.2, 1.5)
+    }>
   }
   // === БОНДА-specific ===
   kpi_max_amount?: number           // бонус за KPI (по умолчанию 10000)

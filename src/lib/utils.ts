@@ -50,6 +50,8 @@ export function getProductTypeLabel(type: string): string {
     findir: 'ФинДир',
     bonda_bi: 'Bonda BI',
     one_time_service: 'Разовая услуга',
+    inno_license: 'Лицензия inno',
+    inno_implementation: 'Внедрение',
   }
   return labels[type] || type
 }

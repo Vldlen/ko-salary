@@ -744,3 +744,77 @@ export async function getBondaDashboardData(supabase: SupabaseClient, userId: st
     units_plan: individualPlan?.units_plan || 0,
   }
 }
+
+// ======== ИННО real-time salary calculation ========
+
+export async function getInnoDashboardData(supabase: SupabaseClient, userId: string, periodId: string) {
+  const [dealsRes, meetingsRes, paymentsRes, userRes, planRes, periodRes] = await Promise.all([
+    supabase
+      .from('deals')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('period_id', periodId)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('meetings')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('period_id', periodId),
+    supabase
+      .from('one_time_payments')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('period_id', periodId),
+    supabase
+      .from('users')
+      .select('position_id, position:positions(name, motivation_schemas(*))')
+      .eq('id', userId)
+      .single(),
+    supabase
+      .from('individual_plans')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('period_id', periodId)
+      .single(),
+    supabase
+      .from('periods')
+      .select('year, month')
+      .eq('id', periodId)
+      .single(),
+  ])
+
+  const deals = dealsRes.data || []
+  const meetings = meetingsRes.data || []
+  const oneTimePayments = paymentsRes.data || []
+  const posData = userRes.data?.position as any
+  const allSchemas = Array.isArray(posData) ? posData[0]?.motivation_schemas : posData?.motivation_schemas
+  const period = periodRes.data
+  const individualPlan = planRes.data
+
+  const schema = period
+    ? findSchemaForPeriod(allSchemas, period.year, period.month)
+    : allSchemas?.[0]
+
+  if (!schema) return null
+
+  const { calculateSalary } = await import('@/lib/salary-calculator')
+
+  const calcResult = calculateSalary({
+    schema,
+    deals,
+    meetings,
+    oneTimePayments,
+    individualPlan: individualPlan ? {
+      revenue_plan: individualPlan.revenue_plan,
+      units_plan: individualPlan.units_plan,
+    } : undefined,
+  })
+
+  return {
+    deals,
+    meetings,
+    salary: calcResult,
+    schema,
+    individualPlan,
+  }
+}
