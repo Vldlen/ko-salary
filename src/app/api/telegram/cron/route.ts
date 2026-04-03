@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sendTeamReport } from '../webhook/route'
+import { sendTeamReport } from '@/lib/telegram'
 
 // Vercel Cron sends GET with Authorization header
 export async function GET(request: NextRequest) {
