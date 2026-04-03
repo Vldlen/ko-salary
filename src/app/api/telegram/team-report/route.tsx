@@ -145,12 +145,28 @@ function rankColor(i: number): string {
   return 'rgba(255,255,255,0.3)'
 }
 
+// Forecast color: lighter/desaturated version with dashed pattern effect
+function forecastColor(baseColor: string): string {
+  const map: Record<string, string> = {
+    '#4ade80': '#2d7a4d',  // green → muted green
+    '#60a5fa': '#3b6b9e',  // blue → muted blue
+    '#fbbf24': '#8a6d1a',  // yellow → muted gold
+    '#f87171': '#8a3d3d',  // red → muted red
+    '#a78bfa': '#6b5b9e',  // purple → muted purple
+  }
+  return map[baseColor] || 'rgba(255,255,255,0.15)'
+}
+
 function MetricBar({ factPct, forecastPct, color }: { factPct: number; forecastPct: number; color: string }) {
+  const clampedFact = Math.min(100, factPct)
+  const clampedForecast = Math.min(100 - clampedFact, forecastPct)
   return (
     <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden', display: 'flex' }}>
-      <div style={{ height: 6, width: `${Math.min(100, factPct)}%`, background: color, borderRadius: factPct > 0 && forecastPct === 0 ? '3px' : '3px 0 0 3px' }} />
-      {forecastPct > 0 && (
-        <div style={{ height: 6, width: `${Math.min(100 - Math.min(100, factPct), forecastPct)}%`, background: color, opacity: 0.35, borderRadius: '0 3px 3px 0' }} />
+      {clampedFact > 0 && (
+        <div style={{ height: 6, width: `${clampedFact}%`, background: color, borderRadius: clampedForecast > 0 ? '3px 0 0 3px' : '3px' }} />
+      )}
+      {clampedForecast > 0 && (
+        <div style={{ height: 6, width: `${clampedForecast}%`, background: forecastColor(color), borderRadius: clampedFact > 0 ? '0 3px 3px 0' : '3px', borderLeft: clampedFact > 0 ? '1px solid rgba(0,0,0,0.3)' : 'none' }} />
       )}
     </div>
   )
@@ -193,7 +209,7 @@ function InnoImage({ members, periodLabel }: { members: MemberData[]; periodLabe
           <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>факт</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <div style={{ width: 8, height: 4, borderRadius: 2, background: '#60a5fa', opacity: 0.35 }} />
+          <div style={{ width: 8, height: 4, borderRadius: 2, background: '#3b6b9e' }} />
           <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>прогноз</span>
         </div>
       </div>
@@ -288,7 +304,7 @@ function BondaImage({ members, periodLabel }: { members: MemberData[]; periodLab
           <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>факт</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <div style={{ width: 8, height: 4, borderRadius: 2, background: '#a78bfa', opacity: 0.35 }} />
+          <div style={{ width: 8, height: 4, borderRadius: 2, background: '#6b5b9e' }} />
           <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>прогноз</span>
         </div>
       </div>
