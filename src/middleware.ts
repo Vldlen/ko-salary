@@ -25,8 +25,8 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Allow public API endpoints
-  if (request.nextUrl.pathname.startsWith('/api/report-data') || request.nextUrl.pathname.startsWith('/api/telegram')) {
+  // Allow API endpoints (telegram bot, cron)
+  if (request.nextUrl.pathname.startsWith('/api/')) {
     return supabaseResponse
   }
 

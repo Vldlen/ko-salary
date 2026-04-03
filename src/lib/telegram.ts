@@ -27,45 +27,63 @@ export async function sendMessage(chatId: string, text: string) {
   })
 }
 
-// Generate and send team report to a chat
-export async function sendTeamReport(chatId: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'http://localhost:3000'
+function getBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  return 'http://localhost:3000'
+}
 
-  // Get JSON data for caption
+// Send both ИННО and БОНДА report images to a chat
+export async function sendTeamReport(chatId: string) {
+  const baseUrl = getBaseUrl()
+
+  // Get JSON data to check if there are members
   const jsonRes = await fetch(`${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&format=json`)
   const data = await jsonRes.json()
 
-  if (!data.members || data.members.length === 0) {
+  if ((!data.inno || data.inno.length === 0) && (!data.bonda || data.bonda.length === 0)) {
     await sendMessage(chatId, '⚠️ Нет данных для отчёта')
     return
   }
 
-  // Build caption
-  const pct = data.total.pct
-  const emoji = pct >= 100 ? '🟢' : pct >= 75 ? '🔵' : pct >= 50 ? '🟡' : '🔴'
-  const fmt = (n: number) => new Intl.NumberFormat('ru-RU').format(Math.round(n))
+  const fmt = (n: number) => {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+    if (n >= 1000) return `${Math.round(n / 1000)}K`
+    return String(Math.round(n))
+  }
 
-  let caption = `${emoji} <b>Пульс КО — ${data.period}</b>\n\n`
-  caption += `💰 Выручка: <b>${fmt(data.total.fact)} ₽</b> / ${fmt(data.total.plan)} ₽ (${pct}%)\n`
-  caption += `📊 Прогноз: <b>${fmt(data.total.fact + data.total.forecast)} ₽</b>\n`
-  caption += `📋 Сделок оплач.: <b>${data.members.reduce((s: number, m: any) => s + m.deals_paid, 0)}</b>\n`
-  caption += `🤝 Встреч: <b>${data.members.reduce((s: number, m: any) => s + m.meetings_fact, 0)}</b>\n`
+  // Send ИННО report
+  if (data.inno && data.inno.length > 0) {
+    const totalPlan = data.inno.reduce((s: number, m: any) => s + m.revenue_plan, 0)
+    const totalFact = data.inno.reduce((s: number, m: any) => s + m.revenue_fact, 0)
+    const totalForecast = data.inno.reduce((s: number, m: any) => s + m.revenue_forecast, 0)
+    const pct = totalPlan > 0 ? Math.round(totalFact / totalPlan * 100) : 0
+    const emoji = pct >= 90 ? '🟢' : pct >= 70 ? '🔵' : pct >= 50 ? '🟡' : '🔴'
 
-  // Send image
-  const imageUrl = `${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}`
+    const caption = `${emoji} <b>ИННО · Пульс КО</b>\n💰 Факт: ${fmt(totalFact)} / ${fmt(totalPlan)} (${pct}%)\n📊 Прогноз: +${fmt(totalForecast)}`
 
-  try {
-    await sendPhoto(chatId, imageUrl, caption)
-  } catch (err) {
-    // If image fails, send text-only
-    caption += '\n\n👥 <b>По менеджерам:</b>\n'
-    for (const m of data.members) {
-      const mPct = m.revenue_plan > 0 ? Math.round(m.revenue_fact / m.revenue_plan * 100) : 0
-      const mEmoji = mPct >= 100 ? '✅' : mPct >= 50 ? '🔹' : '🔸'
-      caption += `${mEmoji} ${m.name} — ${fmt(m.revenue_fact)} ₽ (${mPct}%)\n`
+    const imageUrl = `${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&company=inno`
+
+    try {
+      await sendPhoto(chatId, imageUrl, caption)
+    } catch {
+      await sendMessage(chatId, caption)
     }
-    await sendMessage(chatId, caption)
+  }
+
+  // Send БОНДА report
+  if (data.bonda && data.bonda.length > 0) {
+    const totalFact = data.bonda.reduce((s: number, m: any) => s + m.revenue_fact, 0)
+    const totalForecast = data.bonda.reduce((s: number, m: any) => s + m.revenue_forecast, 0)
+
+    const caption = `🟣 <b>БОНДА · Пульс КО</b>\n💰 Выручка: ${fmt(totalFact)}\n📊 Прогноз: +${fmt(totalForecast)}`
+
+    const imageUrl = `${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&company=bonda`
+
+    try {
+      await sendPhoto(chatId, imageUrl, caption)
+    } catch {
+      await sendMessage(chatId, caption)
+    }
   }
 }
