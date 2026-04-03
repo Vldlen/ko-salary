@@ -10,7 +10,7 @@ import { formatMoney, getMonthName, getDealStatusLabel, getDealStatusColor } fro
 import { cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { useViewAs } from '@/lib/view-as-context'
-import { getCurrentUser, getActivePeriod, getDashboardData, getBondaDashboardData, getPreviousPeriodComparison } from '@/lib/supabase/queries'
+import { getCurrentUser, getActivePeriod, getInnoDashboardData, getBondaDashboardData, getPreviousPeriodComparison } from '@/lib/supabase/queries'
 import {
   Wallet, TrendingUp, Handshake, CalendarDays,
   Target, BarChart3, ChevronRight, Loader2, Eye
@@ -75,11 +75,25 @@ export default function DashboardPage() {
           setBondaData(bData)
           setData(null)
         } else {
-          const [dashData, prevData] = await Promise.all([
-            getDashboardData(supabase, targetUserId, activePeriod.id),
-            getPreviousPeriodComparison(supabase, targetUserId, { year: activePeriod.year, month: activePeriod.month }),
+          const [innoData, prevData] = await Promise.all([
+            getInnoDashboardData(supabase, targetUserId, activePeriod.id),
+            getPreviousPeriodComparison(supabase, targetUserId, { year: activePeriod.year, month: activePeriod.month }, targetCompanyId),
           ])
-          setData(dashData)
+          // Transform innoData to dashboard format
+          if (innoData) {
+            const sal = innoData.salary
+            const deals = innoData.deals || []
+            setData({
+              deals,
+              salary: sal,
+              schema: innoData.schema,
+              breakdown: sal.breakdown,
+              deals_count: deals.length,
+              recent_deals: deals.slice(0, 5),
+            })
+          } else {
+            setData(null)
+          }
           setBondaData(null)
           setPrevComparison(prevData)
         }
@@ -127,7 +141,7 @@ export default function DashboardPage() {
           {/* Dashboard content */}
           {data && (() => {
             const d = data
-            const salary = d.salary || { base_salary: 0, kpi_quality: 0, kpi_quantity: 0, margin_bonus: 0, total: 0, forecast_total: 0 }
+            const salary = d.salary || { base_salary: 0, kpi_quality: 0, kpi_quantity: 0, push_bonus: 0, implementation_bonus: 0, margin_bonus: 0, extra_bonus: 0, deduction: 0, multiplier: 1, total: 0, forecast_total: 0 }
 
             return (
               <>
@@ -229,13 +243,17 @@ export default function DashboardPage() {
                     <div className="space-y-3">
                       {[
                         { label: 'Оклад', value: salary.base_salary },
-                        { label: 'Качественный KPI', value: salary.kpi_quality },
-                        { label: 'Количественный KPI', value: salary.kpi_quantity },
-                        { label: 'Маржа с оборудования', value: salary.margin_bonus },
-                      ].map(item => (
+                        { label: 'KPI качество', value: salary.kpi_quality },
+                        { label: 'KPI количество', value: salary.kpi_quantity },
+                        { label: `Пуш-бонус${salary.multiplier !== undefined && salary.multiplier !== 1 ? ` (x${salary.multiplier})` : ''}`, value: salary.push_bonus },
+                        { label: 'Внедрение (10%)', value: salary.implementation_bonus },
+                        { label: 'Маржа оборудования', value: salary.margin_bonus },
+                        { label: 'Разовый бонус', value: salary.extra_bonus },
+                        ...(Number(salary.deduction) > 0 ? [{ label: 'Депремирование', value: -(salary.deduction) }] : []),
+                      ].filter(item => item.value !== 0 || item.label === 'Оклад').map(item => (
                         <div key={item.label} className="flex justify-between items-center py-2.5 border-b border-white/5">
                           <span className="text-sm text-white/50">{item.label}</span>
-                          <span className="text-sm font-semibold text-white">{formatMoney(Number(item.value))}</span>
+                          <span className={cn('text-sm font-semibold', Number(item.value) < 0 ? 'text-red-400' : 'text-white')}>{formatMoney(Number(item.value))}</span>
                         </div>
                       ))}
                       <div className="flex justify-between items-center pt-3 mt-1 border-t-2 border-white/10">

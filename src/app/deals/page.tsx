@@ -246,7 +246,7 @@ export default function DealsPage() {
       status: deal.status,
       planned_payment_date: deal.planned_payment_date || '',
       notes: deal.notes || '',
-      product_type: deal.product_type || 'findir',
+      product_type: deal.product_type || (isBonda ? 'findir' : 'inno_license'),
       subscription_period: deal.subscription_period || 'month',
       amo_link: deal.amo_link || '',
     })
@@ -439,6 +439,20 @@ export default function DealsPage() {
                   </>
                 ) : (
                   <>
+                    {/* ИННО: Тип продукта + Период подписки */}
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <label className="block text-sm font-medium text-white mb-1">Тип продукта *</label>
+                        <CustomSelect value={form.product_type || 'inno_license'} onChange={(v) => setForm({ ...form, product_type: v })} options={PRODUCT_TYPE_OPTIONS_INNO} />
+                      </div>
+                      {form.product_type !== 'inno_implementation' && (
+                        <div>
+                          <label className="block text-sm font-medium text-white mb-1">Период подписки</label>
+                          <CustomSelect value={form.subscription_period} onChange={(v) => setForm({ ...form, subscription_period: v })} options={SUBSCRIPTION_PERIOD_OPTIONS} />
+                        </div>
+                      )}
+                    </div>
+
                     {/* ИННО: Выручка + MRR + Точки + Оборудование */}
                     <div className="grid grid-cols-3 gap-4 mb-4">
                       <div>

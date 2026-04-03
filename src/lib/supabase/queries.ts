@@ -170,18 +170,25 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string,
 export async function getPreviousPeriodComparison(
   supabase: SupabaseClient,
   userId: string,
-  currentPeriod: { year: number; month: number }
+  currentPeriod: { year: number; month: number },
+  companyId?: string
 ) {
   // Find previous month
   const prevMonth = currentPeriod.month === 1 ? 12 : currentPeriod.month - 1
   const prevYear = currentPeriod.month === 1 ? currentPeriod.year - 1 : currentPeriod.year
 
-  // Get previous period
-  const { data: prevPeriod } = await supabase
+  // Get previous period (filter by company if provided)
+  let prevQuery = supabase
     .from('periods')
     .select('*')
     .eq('year', prevYear)
     .eq('month', prevMonth)
+
+  if (companyId) {
+    prevQuery = prevQuery.eq('company_id', companyId)
+  }
+
+  const { data: prevPeriod } = await prevQuery
     .limit(1)
     .single()
 

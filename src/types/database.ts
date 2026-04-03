@@ -1,6 +1,6 @@
 export type UserRole = 'admin' | 'director' | 'rop' | 'manager' | 'founder'
 export type PeriodStatus = 'draft' | 'active' | 'closed'
-export type DealStatus = 'prospect' | 'negotiation' | 'waiting_payment' | 'paid' | 'cancelled'
+export type DealStatus = 'no_invoice' | 'waiting_payment' | 'paid' | 'cancelled'
 export type PaymentType = 'bonus' | 'deduction'
 export type ProductType = 'findir' | 'bonda_bi' | 'one_time_service' | 'inno_license' | 'inno_implementation'
 export type SubscriptionPeriod = 'month' | 'quarter' | 'half_year' | 'year'
@@ -127,12 +127,15 @@ export interface Deal {
   units: number
   status: DealStatus
   equipment_margin: number
+  equipment_sell_price: number
+  equipment_buy_price: number
   is_forecast: boolean
   forecast_revenue: number | null
   forecast_close_date: string | null
   notes: string | null
   amo_link: string | null
-  // БОНДА-специфичные поля
+  planned_payment_date: string | null
+  paid_at: string | null
   product_type: ProductType | null
   subscription_period: SubscriptionPeriod | null
   created_at: string
@@ -171,6 +174,8 @@ export interface Meeting {
   mentor: number
   next_day: number
   rescheduled: number
+  invoiced_sum: number
+  paid_sum: number
   created_at: string
 }
 
