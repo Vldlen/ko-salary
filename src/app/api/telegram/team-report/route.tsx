@@ -373,7 +373,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: `No ${company} members found` }, { status: 404 })
   }
 
-  const imgHeight = 160 + members.length * 110 + 40
+  // Header(~100) + section title(30) + legend(30) + footer(50) + padding(56)
+  const chrome = 266
+  // ИННО: name row(40) + 3 metrics(24*3) + padding(24) = 136
+  // БОНДА: name row(40) + 2 metrics(24*2) + padding(24) = 112
+  const rowHeight = isInno ? 136 : 112
+  const imgHeight = chrome + members.length * rowHeight
 
   return new ImageResponse(
     isInno
