@@ -9,6 +9,12 @@ function verifyToken(request: NextRequest): boolean {
   return token === process.env.TELEGRAM_SECRET_TOKEN
 }
 
+// Get current time in Moscow timezone (UTC+3)
+function moscowNow(): Date {
+  const utc = new Date()
+  return new Date(utc.toLocaleString('en-US', { timeZone: 'Europe/Moscow' }))
+}
+
 function fmtK(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1000) return `${Math.round(n / 1000)}K`
@@ -57,7 +63,7 @@ async function getTeamData(): Promise<{ inno: MemberData[]; bonda: MemberData[];
   const allPeriodIds = periods.map(p => p.id)
   const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
   const firstPeriod = periods[0]
-  const now = new Date()
+  const now = moscowNow()
   const dayStr = now.getDate()
   const monShort = monthNames[now.getMonth()].toLowerCase().slice(0, 3)
   const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
@@ -161,12 +167,12 @@ function MetricBar({ factPct, forecastPct, color }: { factPct: number; forecastP
   const clampedFact = Math.min(100, factPct)
   const clampedForecast = Math.min(100 - clampedFact, forecastPct)
   return (
-    <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden', display: 'flex' }}>
+    <div style={{ flex: 1, height: 12, background: 'rgba(255,255,255,0.06)', borderRadius: 6, overflow: 'hidden', display: 'flex' }}>
       {clampedFact > 0 && (
-        <div style={{ height: 6, width: `${clampedFact}%`, background: color, borderRadius: clampedForecast > 0 ? '3px 0 0 3px' : '3px' }} />
+        <div style={{ height: 12, width: `${clampedFact}%`, background: color, borderRadius: clampedForecast > 0 ? '6px 0 0 6px' : '6px' }} />
       )}
       {clampedForecast > 0 && (
-        <div style={{ height: 6, width: `${clampedForecast}%`, background: forecastColor(color), borderRadius: clampedFact > 0 ? '0 3px 3px 0' : '3px', borderLeft: clampedFact > 0 ? '1px solid rgba(0,0,0,0.3)' : 'none' }} />
+        <div style={{ height: 12, width: `${clampedForecast}%`, background: forecastColor(color), borderRadius: clampedFact > 0 ? '0 6px 6px 0' : '6px', borderLeft: clampedFact > 0 ? '2px solid rgba(0,0,0,0.3)' : 'none' }} />
       )}
     </div>
   )
@@ -178,39 +184,39 @@ function InnoImage({ members, periodLabel }: { members: MemberData[]; periodLabe
   const totalPct = totalPlan > 0 ? Math.round(totalFact / totalPlan * 100) : 0
   const maxMrr = Math.max(...members.map(m => m.mrr + m.mrr_forecast), 1)
 
-  const now = new Date()
+  const now = moscowNow()
   const dateStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`
   const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} МСК`
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', background: 'linear-gradient(135deg, #0f0f23 0%, #1a1a35 100%)', padding: 28, fontFamily: 'sans-serif', color: 'white' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', background: 'linear-gradient(135deg, #0f0f23 0%, #1a1a35 100%)', padding: 56, fontFamily: 'sans-serif', color: 'white' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40, paddingBottom: 32, borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 18, fontWeight: 700 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 36, fontWeight: 700 }}>
             <span style={{ color: '#60a5fa' }}>ИННО</span>
             <span> · Пульс КО</span>
           </div>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 3 }}>{periodLabel}</span>
+          <span style={{ fontSize: 22, color: 'rgba(255,255,255,0.4)', marginTop: 6 }}>{periodLabel}</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-          <span style={{ fontSize: 28, fontWeight: 800, color: pctColor(totalPct) }}>{totalPct}%</span>
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>план выручки</span>
+          <span style={{ fontSize: 56, fontWeight: 800, color: pctColor(totalPct) }}>{totalPct}%</span>
+          <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 2 }}>план выручки</span>
         </div>
       </div>
 
       {/* Section title */}
-      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, fontWeight: 600 }}>Рейтинг менеджеров</span>
+      <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 3, marginBottom: 24, fontWeight: 600 }}>Рейтинг менеджеров</span>
 
       {/* Legend */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <div style={{ width: 8, height: 4, borderRadius: 2, background: '#60a5fa' }} />
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>факт</span>
+      <div style={{ display: 'flex', gap: 32, marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 16, height: 8, borderRadius: 4, background: '#60a5fa' }} />
+          <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.35)' }}>факт</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <div style={{ width: 8, height: 4, borderRadius: 2, background: '#3b6b9e' }} />
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>прогноз</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 16, height: 8, borderRadius: 4, background: '#3b6b9e' }} />
+          <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.35)' }}>прогноз</span>
         </div>
       </div>
 
@@ -225,45 +231,45 @@ function InnoImage({ members, periodLabel }: { members: MemberData[]; periodLabe
         const mrrForecastPctBar = maxMrr > 0 ? Math.round(m.mrr_forecast / maxMrr * 100) : 0
 
         return (
-          <div key={i} style={{ display: 'flex', flexDirection: 'column', padding: '12px 0', borderBottom: i < members.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', padding: '24px 0', borderBottom: i < members.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
             {/* Name row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-              <div style={{ width: 24, height: 24, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, background: rankBg(i), color: rankColor(i) }}>{i + 1}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, background: rankBg(i), color: rankColor(i) }}>{i + 1}</div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>{m.name}</span>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{m.position}</span>
+                <span style={{ fontSize: 26, fontWeight: 600 }}>{m.name}</span>
+                <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)' }}>{m.position}</span>
               </div>
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>встреч: <span style={{ color: 'white', fontWeight: 600 }}>{m.meetings_fact}</span></span>
+              <span style={{ fontSize: 22, color: 'rgba(255,255,255,0.5)' }}>встреч: <span style={{ color: 'white', fontWeight: 600 }}>{m.meetings_fact}</span></span>
             </div>
             {/* Выручка */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 36, marginBottom: 4 }}>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', width: 62 }}>Выручка</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginLeft: 72, marginBottom: 8 }}>
+              <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.35)', width: 124 }}>Выручка</span>
               <MetricBar factPct={revPct} forecastPct={revForecastPct} color={pctColor(revPct)} />
-              <span style={{ fontSize: 12, fontWeight: 700, width: 48, textAlign: 'right', color: pctColor(revPct) }}>{revPct}%</span>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', width: 90, textAlign: 'right' }}>{fmtK(m.revenue_fact)} / {fmtK(m.revenue_plan || 0)}</span>
+              <span style={{ fontSize: 22, fontWeight: 700, width: 96, textAlign: 'right', color: pctColor(revPct) }}>{revPct}%</span>
+              <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)', width: 180, textAlign: 'right' }}>{fmtK(m.revenue_fact)} / {fmtK(m.revenue_plan || 0)}</span>
             </div>
             {/* Точки */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 36, marginBottom: 4 }}>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', width: 62 }}>Точки</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginLeft: 72, marginBottom: 8 }}>
+              <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.35)', width: 124 }}>Точки</span>
               <MetricBar factPct={unitsPct} forecastPct={unitsForecastPct} color={pctColor(unitsPct)} />
-              <span style={{ fontSize: 12, fontWeight: 700, width: 48, textAlign: 'right', color: pctColor(unitsPct) }}>{unitsPct}%</span>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', width: 90, textAlign: 'right' }}>{m.units_fact} / {m.units_plan || 0}</span>
+              <span style={{ fontSize: 22, fontWeight: 700, width: 96, textAlign: 'right', color: pctColor(unitsPct) }}>{unitsPct}%</span>
+              <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)', width: 180, textAlign: 'right' }}>{m.units_fact} / {m.units_plan || 0}</span>
             </div>
             {/* MRR */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 36 }}>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', width: 62 }}>MRR</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginLeft: 72 }}>
+              <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.35)', width: 124 }}>MRR</span>
               <MetricBar factPct={mrrPctBar} forecastPct={mrrForecastPctBar} color="#4ade80" />
-              <span style={{ fontSize: 12, fontWeight: 700, width: 48, textAlign: 'right', color: mrrTotal > 0 ? '#4ade80' : 'rgba(255,255,255,0.2)' }}>{fmtK(m.mrr)}</span>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', width: 90, textAlign: 'right' }}>/ мес</span>
+              <span style={{ fontSize: 22, fontWeight: 700, width: 96, textAlign: 'right', color: mrrTotal > 0 ? '#4ade80' : 'rgba(255,255,255,0.2)' }}>{fmtK(m.mrr)}</span>
+              <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)', width: 180, textAlign: 'right' }}>/ мес</span>
             </div>
           </div>
         )
       })}
 
       {/* Footer */}
-      <div style={{ marginTop: 'auto', paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>Пульс КО · бот</span>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>{dateStr} {timeStr}</span>
+      <div style={{ marginTop: 'auto', paddingTop: 24, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.2)' }}>Пульс КО · бот</span>
+        <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.2)' }}>{dateStr} {timeStr}</span>
       </div>
     </div>
   )
@@ -274,38 +280,38 @@ function BondaImage({ members, periodLabel }: { members: MemberData[]; periodLab
   const maxRevenue = Math.max(...members.map(m => m.revenue_fact + m.revenue_forecast), 1)
   const maxMrr = Math.max(...members.map(m => m.mrr + m.mrr_forecast), 1)
 
-  const now = new Date()
+  const now = moscowNow()
   const dateStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`
   const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} МСК`
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', background: 'linear-gradient(135deg, #0f0f23 0%, #1a1a35 100%)', padding: 28, fontFamily: 'sans-serif', color: 'white' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', background: 'linear-gradient(135deg, #0f0f23 0%, #1a1a35 100%)', padding: 56, fontFamily: 'sans-serif', color: 'white' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40, paddingBottom: 32, borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 18, fontWeight: 700 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 36, fontWeight: 700 }}>
             <span style={{ color: '#a78bfa' }}>БОНДА</span>
             <span> · Пульс КО</span>
           </div>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 3 }}>{periodLabel}</span>
+          <span style={{ fontSize: 22, color: 'rgba(255,255,255,0.4)', marginTop: 6 }}>{periodLabel}</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-          <span style={{ fontSize: 28, fontWeight: 800, color: '#a78bfa' }}>{fmtK(totalRevenue)}</span>
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>выручка</span>
+          <span style={{ fontSize: 56, fontWeight: 800, color: '#a78bfa' }}>{fmtK(totalRevenue)}</span>
+          <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 2 }}>выручка</span>
         </div>
       </div>
 
-      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, fontWeight: 600 }}>Рейтинг менеджеров</span>
+      <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 3, marginBottom: 24, fontWeight: 600 }}>Рейтинг менеджеров</span>
 
       {/* Legend */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <div style={{ width: 8, height: 4, borderRadius: 2, background: '#a78bfa' }} />
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>факт</span>
+      <div style={{ display: 'flex', gap: 32, marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 16, height: 8, borderRadius: 4, background: '#a78bfa' }} />
+          <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.35)' }}>факт</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <div style={{ width: 8, height: 4, borderRadius: 2, background: '#6b5b9e' }} />
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>прогноз</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 16, height: 8, borderRadius: 4, background: '#6b5b9e' }} />
+          <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.35)' }}>прогноз</span>
         </div>
       </div>
 
@@ -317,37 +323,37 @@ function BondaImage({ members, periodLabel }: { members: MemberData[]; periodLab
         const mrrForecastPct = maxMrr > 0 ? Math.round(m.mrr_forecast / maxMrr * 100) : 0
 
         return (
-          <div key={i} style={{ display: 'flex', flexDirection: 'column', padding: '12px 0', borderBottom: i < members.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-              <div style={{ width: 24, height: 24, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, background: rankBg(i), color: rankColor(i) }}>{i + 1}</div>
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', padding: '24px 0', borderBottom: i < members.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, background: rankBg(i), color: rankColor(i) }}>{i + 1}</div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>{m.name}</span>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{m.position}</span>
+                <span style={{ fontSize: 26, fontWeight: 600 }}>{m.name}</span>
+                <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)' }}>{m.position}</span>
               </div>
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>встреч: <span style={{ color: 'white', fontWeight: 600 }}>{m.meetings_fact}</span></span>
+              <span style={{ fontSize: 22, color: 'rgba(255,255,255,0.5)' }}>встреч: <span style={{ color: 'white', fontWeight: 600 }}>{m.meetings_fact}</span></span>
             </div>
             {/* Выручка */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 36, marginBottom: 4 }}>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', width: 62 }}>Выручка</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginLeft: 72, marginBottom: 8 }}>
+              <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.35)', width: 124 }}>Выручка</span>
               <MetricBar factPct={revFactPct} forecastPct={revForecastPct} color="#a78bfa" />
-              <span style={{ fontSize: 12, fontWeight: 700, width: 48, textAlign: 'right', color: m.revenue_fact > 0 ? '#a78bfa' : 'rgba(255,255,255,0.2)' }}>{fmtK(m.revenue_fact)}</span>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', width: 90, textAlign: 'right' }}>ФД: {m.fd_count} · BI: {m.bi_count}</span>
+              <span style={{ fontSize: 22, fontWeight: 700, width: 96, textAlign: 'right', color: m.revenue_fact > 0 ? '#a78bfa' : 'rgba(255,255,255,0.2)' }}>{fmtK(m.revenue_fact)}</span>
+              <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)', width: 180, textAlign: 'right' }}>ФД: {m.fd_count} · BI: {m.bi_count}</span>
             </div>
             {/* MRR */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 36 }}>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', width: 62 }}>MRR</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginLeft: 72 }}>
+              <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.35)', width: 124 }}>MRR</span>
               <MetricBar factPct={mrrFactPct} forecastPct={mrrForecastPct} color="#4ade80" />
-              <span style={{ fontSize: 12, fontWeight: 700, width: 48, textAlign: 'right', color: m.mrr > 0 ? '#4ade80' : 'rgba(255,255,255,0.2)' }}>{fmtK(m.mrr)}</span>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', width: 90, textAlign: 'right' }}>/ мес</span>
+              <span style={{ fontSize: 22, fontWeight: 700, width: 96, textAlign: 'right', color: m.mrr > 0 ? '#4ade80' : 'rgba(255,255,255,0.2)' }}>{fmtK(m.mrr)}</span>
+              <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)', width: 180, textAlign: 'right' }}>/ мес</span>
             </div>
           </div>
         )
       })}
 
       {/* Footer */}
-      <div style={{ marginTop: 'auto', paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>Пульс КО · бот</span>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>{dateStr} {timeStr}</span>
+      <div style={{ marginTop: 'auto', paddingTop: 24, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.2)' }}>Пульс КО · бот</span>
+        <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.2)' }}>{dateStr} {timeStr}</span>
       </div>
     </div>
   )
@@ -373,17 +379,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: `No ${company} members found` }, { status: 404 })
   }
 
-  // Header(~100) + section title(30) + legend(30) + footer(50) + padding(56)
-  const chrome = 266
-  // ИННО: name row(40) + 3 metrics(24*3) + padding(24) = 136
-  // БОНДА: name row(40) + 2 metrics(24*2) + padding(24) = 112
-  const rowHeight = isInno ? 136 : 112
+  // 2x dimensions for high-res Telegram images
+  // Header(~200) + section title(60) + legend(60) + footer(100) + padding(112)
+  const chrome = 532
+  // ИННО: name row(80) + 3 metrics(48*3) + padding(48) = 272
+  // БОНДА: name row(80) + 2 metrics(48*2) + padding(48) = 224
+  const rowHeight = isInno ? 272 : 224
   const imgHeight = chrome + members.length * rowHeight
 
   return new ImageResponse(
     isInno
       ? <InnoImage members={members} periodLabel={periodLabel} />
       : <BondaImage members={members} periodLabel={periodLabel} />,
-    { width: 520, height: imgHeight }
+    { width: 1040, height: imgHeight }
   )
 }

@@ -64,7 +64,8 @@ export async function sendTeamReport(chatId: string) {
 
     const caption = `${emoji} <b>ИННО · Пульс КО</b>\n💰 Факт: ${fmt(totalFact)} / ${fmt(totalPlan)} (${pct}%)\n📊 Прогноз: +${fmt(totalForecast)}`
 
-    const imageUrl = `${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&company=inno`
+    const cb = Date.now()
+    const imageUrl = `${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&company=inno&_=${cb}`
 
     try {
       await sendPhoto(chatId, imageUrl, caption)
@@ -80,7 +81,8 @@ export async function sendTeamReport(chatId: string) {
 
     const caption = `🟣 <b>БОНДА · Пульс КО</b>\n💰 Выручка: ${fmt(totalFact)}\n📊 Прогноз: +${fmt(totalForecast)}`
 
-    const imageUrl = `${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&company=bonda`
+    const cb = Date.now()
+    const imageUrl = `${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&company=bonda&_=${cb}`
 
     try {
       await sendPhoto(chatId, imageUrl, caption)
@@ -115,7 +117,8 @@ export async function sendCompanyReport(chatId: string, company: 'inno' | 'bonda
     caption = `🟣 <b>БОНДА · Пульс КО</b>\n💰 Выручка: ${fmtK(totalFact)}\n📊 Прогноз: +${fmtK(totalForecast)}`
   }
 
-  const imageUrl = `${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&company=${company}`
+  const cb = Date.now()
+  const imageUrl = `${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&company=${company}&_=${cb}`
 
   try {
     await sendPhoto(chatId, imageUrl, caption)
