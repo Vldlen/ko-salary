@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendMessage, sendTeamReport, sendCompanyReport, sendStatusText } from '@/lib/telegram'
 
-export const runtime = 'edge'
-
 const SECRET_TOKEN = process.env.TELEGRAM_SECRET_TOKEN!
 const ALLOWED_CHAT_IDS = (process.env.TELEGRAM_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean)
 
@@ -28,39 +26,41 @@ export async function POST(request: NextRequest) {
     const text = message.text.trim()
 
     if (ALLOWED_CHAT_IDS.length > 0 && !ALLOWED_CHAT_IDS.includes(chatId)) {
-      sendMessage(chatId, '⛔ Этот чат не авторизован для получения отчётов.').catch(console.error)
+      await sendMessage(chatId, '⛔ Этот чат не авторизован для получения отчётов.')
       return NextResponse.json({ ok: true })
     }
 
     const command = text.split('@')[0].toLowerCase()
 
-    // Fire-and-forget: return 200 immediately, process in background
-    // This prevents Telegram from timing out and retrying
-    if (command === '/report') {
-      sendTeamReport(chatId).catch(console.error)
-    } else if (command === '/inno') {
-      sendCompanyReport(chatId, 'inno').catch(console.error)
-    } else if (command === '/bonda') {
-      sendCompanyReport(chatId, 'bonda').catch(console.error)
-    } else if (command === '/status') {
-      sendStatusText(chatId).catch(console.error)
-    } else if (command === '/start' || command === '/help') {
-      sendMessage(chatId, [
-        '👋 <b>Пульс КО · бот</b>',
-        '',
-        '📊 <b>Команды:</b>',
-        '/report — полный отчёт (ИННО + БОНДА)',
-        '/inno — отчёт только ИННО',
-        '/bonda — отчёт только БОНДА',
-        '/status — краткая сводка текстом',
-        '',
-        `💬 ID чата: <code>${chatId}</code>`,
-      ].join('\n')).catch(console.error)
-    } else if (command === '/chatid') {
-      sendMessage(chatId, `Chat ID: <code>${chatId}</code>`).catch(console.error)
+    try {
+      if (command === '/report') {
+        await sendTeamReport(chatId)
+      } else if (command === '/inno') {
+        await sendCompanyReport(chatId, 'inno')
+      } else if (command === '/bonda') {
+        await sendCompanyReport(chatId, 'bonda')
+      } else if (command === '/status') {
+        await sendStatusText(chatId)
+      } else if (command === '/start' || command === '/help') {
+        await sendMessage(chatId, [
+          '👋 <b>Пульс КО · бот</b>',
+          '',
+          '📊 <b>Команды:</b>',
+          '/report — полный отчёт (ИННО + БОНДА)',
+          '/inno — отчёт только ИННО',
+          '/bonda — отчёт только БОНДА',
+          '/status — краткая сводка текстом',
+          '',
+          `💬 ID чата: <code>${chatId}</code>`,
+        ].join('\n'))
+      } else if (command === '/chatid') {
+        await sendMessage(chatId, `Chat ID: <code>${chatId}</code>`)
+      }
+    } catch (err: any) {
+      console.error('Command execution error:', err)
+      await sendMessage(chatId, `❌ Ошибка: ${err.message || 'Unknown error'}`).catch(() => {})
     }
 
-    // Return immediately — Telegram gets 200 OK fast, no retries
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     console.error('Telegram webhook error:', err)
