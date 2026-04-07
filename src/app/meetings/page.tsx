@@ -90,6 +90,9 @@ export default function MeetingsPage() {
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({})
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'activities' | 'meetings'>('activities')
+
   // KPI entries state
   const [kpiEntries, setKpiEntries] = useState<any[]>([])
   const [showKpiForm, setShowKpiForm] = useState(false)
@@ -374,13 +377,43 @@ export default function MeetingsPage() {
 
           {(isViewingAs || !['admin', 'director', 'rop'].includes(user?.role)) && (<>
           <div className="mb-6">
-            <h1 className="font-heading text-2xl font-bold text-white">Встречи</h1>
-            <p className="text-blue-400 text-sm mt-1">
-              {monthName}{isViewingAs ? ` — ${viewAsUser?.full_name}` : ''}
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="font-heading text-2xl font-bold text-white">Встречи</h1>
+                <p className="text-blue-400 text-sm mt-1">
+                  {monthName}{isViewingAs ? ` — ${viewAsUser?.full_name}` : ''}
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* Summary cards */}
+          {/* Tabs */}
+          <div className="mb-6 flex items-center gap-1 rounded-2xl glass p-1.5">
+            <button
+              onClick={() => setActiveTab('activities')}
+              className={cn(
+                'flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors',
+                activeTab === 'activities' ? 'bg-blue-500 text-white' : 'text-blue-400 hover:bg-white/5'
+              )}
+            >
+              Активности
+            </button>
+            <button
+              onClick={() => setActiveTab('meetings')}
+              className={cn(
+                'flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors',
+                activeTab === 'meetings' ? 'bg-blue-500 text-white' : 'text-blue-400 hover:bg-white/5'
+              )}
+            >
+              Встречи
+              {kpiEntries.length > 0 && (
+                <span className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs">{kpiEntries.length}</span>
+              )}
+            </button>
+          </div>
+
+          {/* Summary cards — show on activities tab */}
+          {activeTab === 'activities' && (
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="rounded-xl glass p-4">
               <p className="text-xs text-blue-400 mb-1">Назначено</p>
@@ -396,7 +429,9 @@ export default function MeetingsPage() {
               <p className="text-2xl font-bold text-amber-600">{totalRescheduled}</p>
             </div>
           </div>
+          )}
 
+          {activeTab === 'activities' && (
           <div className="rounded-xl glass overflow-x-auto">
             <table className="text-xs border-collapse w-max">
               <thead>
@@ -495,14 +530,16 @@ export default function MeetingsPage() {
               </tbody>
             </table>
           </div>
+          )}
 
-          {/* KPI записи */}
-            <div className="mt-8">
+          {/* Встречи (KPI записи) */}
+          {activeTab === 'meetings' && (
+            <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-lg font-heading font-bold text-white">KPI записи</h2>
+                  <h2 className="text-lg font-heading font-bold text-white">Встречи</h2>
                   <p className="text-xs text-white/40 mt-0.5">
-                    Встречи и чек-апы · {kpiEntries.length} записей · {new Set(kpiEntries.map((e: any) => e.client_name?.toLowerCase().trim())).size} уник. клиентов
+                    {kpiEntries.length} записей · {new Set(kpiEntries.map((e: any) => e.client_name?.toLowerCase().trim())).size} уник. клиентов
                   </p>
                 </div>
                 {!showKpiForm && user?.role === 'manager' && !isViewingAs && (
@@ -645,6 +682,7 @@ export default function MeetingsPage() {
                 </table>
               </div>
             </div>
+          )}
 
           </>)}
         </div>
