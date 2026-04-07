@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -20,9 +21,18 @@ interface CustomSelectProps {
 
 export default function CustomSelect({ value, onChange, options, placeholder = 'Выбрать...', className }: CustomSelectProps) {
   const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 })
   const ref = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
 
   const selected = options.find(o => o.value === value)
+
+  const updatePos = useCallback(() => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setPos({ top: r.bottom + 4, left: r.left, width: r.width })
+    }
+  }, [])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -34,9 +44,22 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  useEffect(() => {
+    if (open) {
+      updatePos()
+      window.addEventListener('scroll', updatePos, true)
+      window.addEventListener('resize', updatePos)
+      return () => {
+        window.removeEventListener('scroll', updatePos, true)
+        window.removeEventListener('resize', updatePos)
+      }
+    }
+  }, [open, updatePos])
+
   return (
     <div ref={ref} className={cn('relative', className)}>
       <button
+        ref={btnRef}
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
@@ -57,13 +80,16 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
         <ChevronDown className={cn('w-4 h-4 text-white/40 transition-transform', open && 'rotate-180')} />
       </button>
 
-      {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-xl bg-[#1a1f35] border border-white/15 shadow-2xl overflow-hidden">
+      {open && typeof document !== 'undefined' && createPortal(
+        <div
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999 }}
+          className="rounded-xl bg-[#1a1f35] border border-white/15 shadow-2xl overflow-hidden"
+        >
           {options.map(opt => (
             <button
               key={opt.value}
               type="button"
-              onClick={() => { onChange(opt.value); setOpen(false) }}
+              onMouseDown={(e) => { e.preventDefault(); onChange(opt.value); setOpen(false) }}
               className={cn(
                 'w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition-colors',
                 opt.value === value
@@ -77,7 +103,8 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
               {opt.label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
