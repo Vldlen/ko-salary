@@ -2,7 +2,7 @@ export type UserRole = 'admin' | 'director' | 'rop' | 'manager' | 'founder'
 export type PeriodStatus = 'draft' | 'active' | 'closed'
 export type DealStatus = 'no_invoice' | 'waiting_payment' | 'paid' | 'cancelled'
 export type PaymentType = 'bonus' | 'deduction'
-export type ProductType = 'findir' | 'bonda_bi' | 'one_time_service' | 'inno_license' | 'inno_implementation'
+export type ProductType = 'findir' | 'bonda_bi' | 'one_time_service' | 'inno_license' | 'inno_implementation' | 'inno_content'
 export type SubscriptionPeriod = 'month' | 'quarter' | 'half_year' | 'year'
 
 export interface Company {

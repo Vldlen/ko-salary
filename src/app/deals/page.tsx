@@ -34,6 +34,7 @@ const PRODUCT_TYPE_OPTIONS_BONDA = [
 const PRODUCT_TYPE_OPTIONS_INNO = [
   { value: 'inno_license', label: 'Лицензия inno clouds' },
   { value: 'inno_implementation', label: 'Услуги внедрения' },
+  { value: 'inno_content', label: 'Генерация контента' },
 ]
 
 const SUBSCRIPTION_PERIOD_OPTIONS = [
@@ -366,6 +367,15 @@ export default function DealsPage() {
             </div>
           )}
 
+          {/* Add button — only for managers viewing own data */}
+          {!showForm && user?.role === 'manager' && !isViewingAs && (
+            <button onClick={openNew}
+              className="mb-6 flex items-center gap-2 rounded-2xl bg-blue-500 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-600">
+              <Plus size={20} />
+              Новая сделка
+            </button>
+          )}
+
           {/* New/Edit Deal Form — only for managers */}
           {showForm && user?.role === 'manager' && !isViewingAs && (
             <div className="mb-8 rounded-2xl glass p-6">
@@ -670,14 +680,6 @@ export default function DealsPage() {
             </table>
           </div>
 
-          {/* Add button — only for managers viewing own data */}
-          {!showForm && user?.role === 'manager' && !isViewingAs && (
-            <button onClick={openNew}
-              className="flex items-center gap-2 rounded-2xl bg-blue-500 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-600">
-              <Plus size={20} />
-              Новая сделка
-            </button>
-          )}
         </div>
 
         {/* Payment date popup */}

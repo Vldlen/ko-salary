@@ -167,13 +167,13 @@ export function calculateSalary(input: CalcInput): CalcResult {
     }
   }
 
-  // --- Услуги по внедрению: % от выручки ---
+  // --- Услуги по внедрению + генерация контента: % от выручки ---
   const implPercent = config.implementation_percent ?? 0.10
-  const implDeals = paidDeals.filter(d => d.product_type === 'inno_implementation')
+  const implDeals = paidDeals.filter(d => d.product_type === 'inno_implementation' || d.product_type === 'inno_content')
   const implRevenue = implDeals.reduce((sum, d) => sum + Number(d.revenue), 0)
   const implementationBonus = implRevenue * implPercent
 
-  const forecastImplDeals = forecastDeals.filter(d => d.product_type === 'inno_implementation')
+  const forecastImplDeals = forecastDeals.filter(d => d.product_type === 'inno_implementation' || d.product_type === 'inno_content')
   const forecastImplRevenue = forecastImplDeals.reduce((sum, d) => sum + Number(d.revenue), 0)
   const forecastImplementationBonus = forecastImplRevenue * implPercent
 

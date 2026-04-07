@@ -52,6 +52,7 @@ export function getProductTypeLabel(type: string): string {
     one_time_service: 'Разовая услуга',
     inno_license: 'Лицензия inno',
     inno_implementation: 'Внедрение',
+    inno_content: 'Контент',
   }
   return labels[type] || type
 }
