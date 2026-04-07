@@ -25,7 +25,9 @@ interface CalcResult {
   extra_bonus: number
   deduction: number
   multiplier: number
+  forecast_multiplier: number
   services_multiplier: number
+  forecast_services_multiplier: number
   total: number
   forecast_total: number
   breakdown: {
@@ -35,8 +37,10 @@ interface CalcResult {
     revenue_percent: number
     revenue_forecast_percent: number
     units_fact: number
+    units_forecast: number
     units_plan: number
     units_percent: number
+    units_forecast_percent: number
     meetings_fact: number
     meetings_plan: number
     meetings_percent: number
@@ -51,6 +55,9 @@ interface CalcResult {
     one_time_bonuses: number
     one_time_deductions: number
     multiplier_tier: string
+    forecast_multiplier: number
+    forecast_multiplier_tier: string
+    forecast_push_bonus_raw: number
     kpi_entries_count: number
     kpi_entries_target: number
     kpi_approval_type: string
@@ -115,10 +122,12 @@ export function calculateSalary(input: CalcInput): CalcResult {
   const revenuePercent = revenuePlan > 0 ? revenueFact / revenuePlan : 0
   const revenueForecastPercent = revenuePlan > 0 ? revenueForecast / revenuePlan : 0
 
-  // --- Units ---
+  // --- Units (лицензии) ---
   const unitsFact = paidDeals.reduce((sum, d) => sum + d.units, 0)
+  const unitsForecast = forecastDeals.reduce((sum, d) => sum + d.units, 0)
   const unitsPlan = individualPlan?.units_plan ?? config.units_plan
   const unitsPercent = unitsPlan > 0 ? unitsFact / unitsPlan : 0
+  const unitsForecastPercent = unitsPlan > 0 ? unitsForecast / unitsPlan : 0
 
   // --- Meetings ---
   const meetingsFact = meetings.reduce((sum, m) => sum + m.new_completed + m.repeat_completed, 0)
@@ -202,10 +211,15 @@ export function calculateSalary(input: CalcInput): CalcResult {
   const servicesThresholdConfig = config.threshold_multipliers || DEFAULT_THRESHOLD_TIERS
   const { multiplier: servicesMultiplier, label: servicesMultiplierLabel } = getMultiplier(servicesPctInt, servicesThresholdConfig)
 
+  // Прогнозный множитель услуг: по прогнозной выручке услуг
+  const forecastServicesPercent = servicesRevenuePlan > 0 ? forecastImplRevenue / servicesRevenuePlan : 0
+  const forecastServicesPctInt = Math.round(forecastServicesPercent * 100)
+  const { multiplier: forecastServicesMultiplier } = getMultiplier(forecastServicesPctInt, servicesThresholdConfig)
+
   const implementationBonusRaw = implRevenue * implPercent
   const implementationBonus = implementationBonusRaw * servicesMultiplier
   const forecastImplementationBonusRaw = forecastImplRevenue * implPercent
-  const forecastImplementationBonus = forecastImplementationBonusRaw * servicesMultiplier
+  const forecastImplementationBonus = forecastImplementationBonusRaw * forecastServicesMultiplier
 
   // --- Margin bonus (железо) ---
   let marginBonus = 0
@@ -234,9 +248,15 @@ export function calculateSalary(input: CalcInput): CalcResult {
   const primaryPct = unitsPlan > 0 ? unitsPctInt : revPctInt
   const { multiplier, label: multiplierLabel } = getMultiplier(primaryPct, thresholdConfig)
 
+  // Прогнозный множитель: считается по ПРОГНОЗНЫМ лицензиям (все неотменённые)
+  const unitsForecastPctInt = Math.round(unitsForecastPercent * 100)
+  const revForecastPctInt = Math.round(revenueForecastPercent * 100)
+  const forecastPrimaryPct = unitsPlan > 0 ? unitsForecastPctInt : revForecastPctInt
+  const { multiplier: forecastMultiplier, label: forecastMultiplierLabel } = getMultiplier(forecastPrimaryPct, thresholdConfig)
+
   // Множитель применяется к push-бонусу
   const pushBonus = pushBonusRaw * multiplier
-  const forecastPushBonus = forecastPushBonusRaw * multiplier
+  const forecastPushBonus = forecastPushBonusRaw * forecastMultiplier
 
   // --- One-time payments ---
   const oneTimeBonuses = oneTimePayments
@@ -271,7 +291,9 @@ export function calculateSalary(input: CalcInput): CalcResult {
     extra_bonus: Math.round(oneTimeBonuses),
     deduction: Math.round(oneTimeDeductions),
     multiplier,
+    forecast_multiplier: forecastMultiplier,
     services_multiplier: servicesMultiplier,
+    forecast_services_multiplier: forecastServicesMultiplier,
     total: Math.round(total),
     forecast_total: Math.round(forecastTotal),
     breakdown: {
@@ -281,8 +303,10 @@ export function calculateSalary(input: CalcInput): CalcResult {
       revenue_percent: Math.round(revenuePercent * 100),
       revenue_forecast_percent: Math.round(revenueForecastPercent * 100),
       units_fact: unitsFact,
+      units_forecast: unitsForecast,
       units_plan: unitsPlan,
       units_percent: Math.round(unitsPercent * 100),
+      units_forecast_percent: Math.round(unitsForecastPercent * 100),
       meetings_fact: meetingsFact,
       meetings_plan: meetingsPlan,
       meetings_percent: Math.round(meetingsPercent * 100),
@@ -297,6 +321,9 @@ export function calculateSalary(input: CalcInput): CalcResult {
       one_time_bonuses: oneTimeBonuses,
       one_time_deductions: oneTimeDeductions,
       multiplier_tier: multiplierLabel,
+      forecast_multiplier: forecastMultiplier,
+      forecast_multiplier_tier: forecastMultiplierLabel,
+      forecast_push_bonus_raw: Math.round(forecastPushBonusRaw),
       kpi_entries_count: kpiEntriesCount,
       kpi_entries_target: kpiEntriesTarget,
       kpi_approval_type: kpiApprovalType,

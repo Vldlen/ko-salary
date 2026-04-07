@@ -249,7 +249,7 @@ export default function TeamPage() {
                   <p className="text-xl font-bold text-white">{totalDealsPaid}</p>
                 </div>
                 <div className="rounded-xl glass p-4">
-                  <p className="text-xs text-white/40 mb-1">Точки (факт)</p>
+                  <p className="text-xs text-white/40 mb-1">Лицензии (факт)</p>
                   <p className="text-xl font-bold text-white">{totalUnitsFact}</p>
                   {totalUnitsP > 0 && <p className="text-[10px] text-white/30 mt-0.5">план: {totalUnitsP} ({Math.round(totalUnitsFact / totalUnitsP * 100)}%)</p>}
                 </div>
@@ -269,7 +269,7 @@ export default function TeamPage() {
                 <h2 className="text-sm font-semibold text-white mb-3">Общий прогресс</h2>
                 <div className="space-y-3">
                   <ProgressBar label="Выручка" value={totalRevFact} max={totalPlan} percent={avgRevPct} formatValue={formatMoney} />
-                  <ProgressBar label="Точки" value={totalUnitsFact} max={totalUnitsP} percent={totalUnitsP > 0 ? Math.round(totalUnitsFact / totalUnitsP * 100) : 0} />
+                  <ProgressBar label="Лицензии" value={totalUnitsFact} max={totalUnitsP} percent={totalUnitsP > 0 ? Math.round(totalUnitsFact / totalUnitsP * 100) : 0} />
                   <ProgressBar label="Встречи" value={totalMeetFact} max={totalMeetP} percent={totalMeetP > 0 ? Math.round(totalMeetFact / totalMeetP * 100) : 0} />
                 </div>
               </div>
@@ -332,7 +332,7 @@ export default function TeamPage() {
                         <div className="px-5 pb-5 border-t border-white/5 pt-4">
                           <div className="space-y-3 mb-5">
                             <ProgressBar label="Выручка" value={m.revenue_fact} max={m.revenue_plan} percent={revPct} formatValue={formatMoney} />
-                            <ProgressBar label="Точки" value={m.units_fact} max={m.units_plan} percent={unitsPct} />
+                            <ProgressBar label="Лицензии" value={m.units_fact} max={m.units_plan} percent={unitsPct} />
                             <ProgressBar label="Встречи" value={m.meetings_fact} max={m.meetings_plan} percent={meetPct} />
                           </div>
 
@@ -405,7 +405,7 @@ export default function TeamPage() {
                                 </>
                               ) : (
                                 <>
-                                  <p className="text-[10px] text-white/30 uppercase tracking-wider mb-2">Точки / Маржа</p>
+                                  <p className="text-[10px] text-white/30 uppercase tracking-wider mb-2">Лицензии / Маржа</p>
                                   <div className="space-y-1 text-xs">
                                     <div className="flex justify-between">
                                       <span className="text-emerald-400/70">Оплачено</span>
@@ -504,7 +504,7 @@ export default function TeamPage() {
                                     <tr className="border-b border-white/5">
                                       <th className="px-3 py-2 text-left text-white/30 font-medium">Клиент</th>
                                       <th className="px-3 py-2 text-right text-white/30 font-medium">Сумма</th>
-                                      <th className="px-3 py-2 text-right text-white/30 font-medium">Точки</th>
+                                      <th className="px-3 py-2 text-right text-white/30 font-medium">Лицензии</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -542,7 +542,7 @@ export default function TeamPage() {
                 <div className="rounded-xl glass p-4">
                   <p className="text-xs text-amber-400 mb-1">Ждёт оплаты</p>
                   <p className="text-xl font-bold text-amber-400">{formatMoney(totalRevWaiting)}</p>
-                  <p className="text-[10px] text-white/30 mt-0.5">{totalDealsWaiting} сделок • {totalUnitsWaiting} точек</p>
+                  <p className="text-[10px] text-white/30 mt-0.5">{totalDealsWaiting} сделок • {totalUnitsWaiting} лиц.</p>
                 </div>
                 <div className="rounded-xl glass p-4">
                   <p className="text-xs text-white/40 mb-1">Без счёта</p>
@@ -706,7 +706,7 @@ export default function TeamPage() {
                                     <th className="px-3 py-2.5 text-left text-white/30 font-medium">Клиент</th>
                                     <th className="px-3 py-2.5 text-right text-white/30 font-medium">Выручка</th>
                                     {isBondaCompany && <th className="px-3 py-2.5 text-right text-white/30 font-medium">MRR</th>}
-                                    <th className="px-3 py-2.5 text-center text-white/30 font-medium">Точки</th>
+                                    <th className="px-3 py-2.5 text-center text-white/30 font-medium">Лицензии</th>
                                     <th className="px-3 py-2.5 text-center text-white/30 font-medium">Статус</th>
                                     <th className="px-3 py-2.5 text-center text-white/30 font-medium">План. оплата</th>
                                     <th className="px-3 py-2.5 text-left text-white/30 font-medium">Заметки</th>

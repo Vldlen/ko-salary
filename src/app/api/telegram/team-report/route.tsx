@@ -248,9 +248,9 @@ function InnoImage({ members, periodLabel }: { members: MemberData[]; periodLabe
               <span style={{ fontSize: 22, fontWeight: 700, width: 96, textAlign: 'right', color: pctColor(revPct) }}>{revPct}%</span>
               <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)', width: 180, textAlign: 'right' }}>{fmtK(m.revenue_fact)} / {fmtK(m.revenue_plan || 0)}</span>
             </div>
-            {/* Точки */}
+            {/* Лицензии */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginLeft: 72, marginBottom: 8 }}>
-              <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.35)', width: 124 }}>Точки</span>
+              <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.35)', width: 124 }}>Лицензии</span>
               <MetricBar factPct={unitsPct} forecastPct={unitsForecastPct} color={pctColor(unitsPct)} />
               <span style={{ fontSize: 22, fontWeight: 700, width: 96, textAlign: 'right', color: pctColor(unitsPct) }}>{unitsPct}%</span>
               <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)', width: 180, textAlign: 'right' }}>{m.units_fact} / {m.units_plan || 0}</span>

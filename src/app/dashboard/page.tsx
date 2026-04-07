@@ -162,7 +162,7 @@ export default function DashboardPage() {
                   <StatCard title="Текущая ЗП" value={formatMoney(salary.total)} icon={Wallet} />
                   <StatCard title="Прогноз ЗП" value={formatMoney(salary.forecast_total)} icon={TrendingUp} variant="accent"
                     trend={{ value: `+${formatMoney(salary.forecast_total - salary.total)}`, positive: true }} />
-                  <StatCard title="Сделки" value={String(d.deals_count)} subtitle={`${d.breakdown.units_fact} точек`} icon={Handshake} />
+                  <StatCard title="Сделки" value={String(d.deals_count)} subtitle={`${d.breakdown.units_fact} лиц.`} icon={Handshake} />
                   <StatCard title="Встречи" value={`${d.breakdown.meetings_fact} / ${d.breakdown.meetings_plan}`} subtitle={`${d.breakdown.meetings_percent}% плана`} icon={CalendarDays} variant="success" />
                 </div>
 
@@ -187,7 +187,7 @@ export default function DashboardPage() {
                           format: String,
                         },
                         {
-                          label: 'Точки',
+                          label: 'Лицензии',
                           current: d.breakdown.units_fact,
                           prev: prevComparison.units_at_same_day,
                           format: String,
@@ -229,7 +229,7 @@ export default function DashboardPage() {
                     <div className="space-y-5">
                       <ProgressBar label="Выручка (факт)" value={d.breakdown.revenue_fact} max={d.breakdown.revenue_plan} percent={d.breakdown.revenue_percent} formatValue={formatMoney} />
                       <ProgressBar label="Выручка (прогноз)" value={d.breakdown.revenue_forecast} max={d.breakdown.revenue_plan} percent={d.breakdown.revenue_forecast_percent} formatValue={formatMoney} />
-                      <ProgressBar label="Точки" value={d.breakdown.units_fact} max={d.breakdown.units_plan} percent={d.breakdown.units_percent} />
+                      <ProgressBar label="Лицензии" value={d.breakdown.units_fact} max={d.breakdown.units_plan} percent={d.breakdown.units_percent} />
                       <ProgressBar label="Встречи" value={d.breakdown.meetings_fact} max={d.breakdown.meetings_plan} percent={d.breakdown.meetings_percent} />
                     </div>
                   </div>
@@ -289,7 +289,7 @@ export default function DashboardPage() {
                             </div>
                             <div>
                               <p className="text-sm font-medium text-white">{deal.client_name}</p>
-                              <p className="text-xs text-white/40">{deal.units} точек</p>
+                              <p className="text-xs text-white/40">{deal.units} лиц.</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">

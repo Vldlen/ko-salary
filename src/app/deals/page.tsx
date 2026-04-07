@@ -341,7 +341,7 @@ export default function DealsPage() {
                 <p className="font-heading text-2xl font-bold text-white mt-2">{formatMoney(totalRevenue)}</p>
               </div>
               <div className="rounded-2xl glass p-6">
-                <p className="text-sm font-medium text-blue-400">Точки</p>
+                <p className="text-sm font-medium text-blue-400">Лицензии</p>
                 <p className="font-heading text-2xl font-bold text-white mt-2">{totalUnits}</p>
               </div>
               <div className="rounded-2xl glass p-6">
@@ -477,7 +477,7 @@ export default function DealsPage() {
                             placeholder="0" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-white/60 mb-1">Точки</label>
+                          <label className="block text-xs font-medium text-white/60 mb-1">Лицензии</label>
                           <input type="number" value={form.units}
                             onChange={(e) => setForm({ ...form, units: e.target.value })}
                             className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
@@ -649,7 +649,7 @@ export default function DealsPage() {
                             <div className="text-xs leading-relaxed">
                               {Number(deal.revenue) > 0 && <p className="text-white/50">Выр: <span className="text-white font-medium">{formatMoney(Number(deal.revenue))}</span></p>}
                               {Number(deal.mrr) > 0 && <p className="text-white/50">MRR: <span className="text-blue-400 font-medium">{formatMoney(Number(deal.mrr))}</span></p>}
-                              <p className="text-white/50">Точки: <span className="text-white font-medium">{deal.units}</span></p>
+                              <p className="text-white/50">Лиц.: <span className="text-white font-medium">{deal.units}</span></p>
                             </div>
                           ) : <span className="text-sm text-white/30">—</span>}
                         </td>

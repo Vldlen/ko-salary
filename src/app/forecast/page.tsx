@@ -97,9 +97,10 @@ export default function ForecastPage() {
   const forecastDeals = deals.filter(d => d.status !== 'paid')
   const paidDeals = deals.filter(d => d.status === 'paid')
 
-  const forecastRevenue = forecastDeals.reduce((s, d) => s + Number(d.revenue || 0), 0)
+  const dealFullRevenue = (d: any) => Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0)
+  const forecastRevenue = forecastDeals.reduce((s, d) => s + dealFullRevenue(d), 0)
   const forecastUnits = forecastDeals.reduce((s, d) => s + (d.units || 0), 0)
-  const paidRevenue = paidDeals.reduce((s, d) => s + Number(d.revenue || 0), 0)
+  const paidRevenue = paidDeals.reduce((s, d) => s + dealFullRevenue(d), 0)
   const paidUnits = paidDeals.reduce((s, d) => s + (d.units || 0), 0)
   const totalRevenue = forecastRevenue + paidRevenue
 
@@ -109,7 +110,7 @@ export default function ForecastPage() {
     label: getDealStatusLabel(status),
     color: getDealStatusColor(status),
     deals: deals.filter(d => d.status === status),
-    revenue: deals.filter(d => d.status === status).reduce((s, d) => s + Number(d.revenue || 0), 0),
+    revenue: deals.filter(d => d.status === status).reduce((s, d) => s + dealFullRevenue(d), 0),
     units: deals.filter(d => d.status === status).reduce((s, d) => s + (d.units || 0), 0),
   }))
 
@@ -149,12 +150,12 @@ export default function ForecastPage() {
             <div className="rounded-xl glass p-4">
               <p className="text-xs text-blue-400 mb-1">Прогноз (неоплаченные)</p>
               <p className="text-2xl font-bold text-white">{formatMoney(forecastRevenue)}</p>
-              <p className="text-[10px] text-blue-400 mt-0.5">{forecastUnits} юнитов • {forecastDeals.length} сделок</p>
+              <p className="text-[10px] text-blue-400 mt-0.5">{forecastUnits} лиц. • {forecastDeals.length} сделок</p>
             </div>
             <div className="rounded-xl glass p-4">
               <p className="text-xs text-blue-400 mb-1">Уже оплачено</p>
               <p className="text-2xl font-bold text-emerald-600">{formatMoney(paidRevenue)}</p>
-              <p className="text-[10px] text-blue-400 mt-0.5">{paidUnits} юнитов • {paidDeals.length} сделок</p>
+              <p className="text-[10px] text-blue-400 mt-0.5">{paidUnits} лиц. • {paidDeals.length} сделок</p>
             </div>
             <div className="rounded-xl glass p-4">
               <p className="text-xs text-blue-400 mb-1">Итого если всё закроется</p>
@@ -187,7 +188,7 @@ export default function ForecastPage() {
                     {formatMoney(group.revenue)}
                   </span>
                   <span className="text-sm text-blue-400">
-                    {group.deals.length} сделок • {group.units} юнитов
+                    {group.deals.length} сделок • {group.units} лиц.
                   </span>
                 </button>
 
@@ -200,7 +201,7 @@ export default function ForecastPage() {
                           <th className="px-4 py-2.5 text-left text-xs font-semibold text-white/50 uppercase">Клиент</th>
                           <th className="px-4 py-2.5 text-right text-xs font-semibold text-white/50 uppercase">Выручка</th>
                           <th className="px-4 py-2.5 text-right text-xs font-semibold text-white/50 uppercase">MRR</th>
-                          <th className="px-4 py-2.5 text-center text-xs font-semibold text-white/50 uppercase">Юниты</th>
+                          <th className="px-4 py-2.5 text-center text-xs font-semibold text-white/50 uppercase">Лицензии</th>
                           <th className="px-4 py-2.5 text-right text-xs font-semibold text-white/50 uppercase">Маржа обор.</th>
                           <th className="px-4 py-2.5 text-center text-xs font-semibold text-white/50 uppercase">План. оплата</th>
                           <th className="px-4 py-2.5 text-left text-xs font-semibold text-white/50 uppercase">Заметки</th>

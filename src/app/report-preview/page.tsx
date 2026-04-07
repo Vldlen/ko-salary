@@ -115,7 +115,7 @@ function InnoReport({ managers, periodLabel }: { managers: any[]; periodLabel: s
               </div>
             </div>
             <MetricLine label="Выручка" pct={revPct} barColor={pctColor(revPct)} value={`${revPct}%`} sub={`${formatK(m.revenue_fact)} / ${formatK(m.revenue_plan || 0)}`} />
-            <MetricLine label="Точки" pct={unitsPct} barColor={pctColor(unitsPct)} value={`${unitsPct}%`} sub={`${m.units_fact} / ${m.units_plan || 0}`} />
+            <MetricLine label="Лицензии" pct={unitsPct} barColor={pctColor(unitsPct)} value={`${unitsPct}%`} sub={`${m.units_fact} / ${m.units_plan || 0}`} />
             <MetricLine label="MRR" pct={mrrPctBar} barColor="#4ade80" value={formatK(mrr)} sub="/ мес" />
           </div>
         )

@@ -111,8 +111,9 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string,
 
   // Calculate stats from deals
   const paidDeals = deals.filter((d: any) => d.status === 'paid')
-  const revenueFact = paidDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0)
-  const revenueForecast = deals.reduce((s: number, d: any) => s + Number(d.forecast_revenue || d.revenue), 0)
+  const dashDealFullRev = (d: any) => Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0)
+  const revenueFact = paidDeals.reduce((s: number, d: any) => s + dashDealFullRev(d), 0)
+  const revenueForecast = deals.filter((d: any) => d.status !== 'cancelled').reduce((s: number, d: any) => s + dashDealFullRev(d), 0)
   const unitsFact = paidDeals.reduce((s: number, d: any) => s + d.units, 0)
   const marginTotal = paidDeals.reduce((s: number, d: any) => s + Number(d.equipment_margin), 0)
 
@@ -223,8 +224,8 @@ export async function getPreviousPeriodComparison(
 
   return {
     period: prevPeriod,
-    revenue_at_same_day: paidBeforeDay.reduce((s: number, d: any) => s + Number(d.revenue), 0),
-    revenue_total: paidDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0),
+    revenue_at_same_day: paidBeforeDay.reduce((s: number, d: any) => s + Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0), 0),
+    revenue_total: paidDeals.reduce((s: number, d: any) => s + Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0), 0),
     deals_at_same_day: dealsBeforeDay.length,
     deals_total: deals.length,
     units_at_same_day: paidBeforeDay.reduce((s: number, d: any) => s + d.units, 0),
@@ -379,7 +380,7 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
   const [dealsRes, meetingsRes, plansRes] = await Promise.all([
     supabase
       .from('deals')
-      .select('user_id, client_name, revenue, forecast_revenue, units, status, equipment_margin, product_type, subscription_period, planned_payment_date, notes, mrr, created_at')
+      .select('user_id, client_name, revenue, impl_revenue, content_revenue, forecast_revenue, units, status, equipment_margin, product_type, subscription_period, planned_payment_date, notes, mrr, created_at')
       .in('period_id', allPeriodIds)
       .in('user_id', userIds)
       .order('created_at', { ascending: false }),
@@ -437,9 +438,10 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
     const noInvoiceDeals = deals.filter((d: any) => d.status === 'no_invoice')
     const cancelledDeals = deals.filter((d: any) => d.status === 'cancelled')
 
-    const revenueFact = paidDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0)
-    const revenueForecast = unpaidDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0)
-    const revenueWaiting = waitingDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0)
+    const dealFullRev = (d: any) => Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0)
+    const revenueFact = paidDeals.reduce((s: number, d: any) => s + dealFullRev(d), 0)
+    const revenueForecast = unpaidDeals.reduce((s: number, d: any) => s + dealFullRev(d), 0)
+    const revenueWaiting = waitingDeals.reduce((s: number, d: any) => s + dealFullRev(d), 0)
     const unitsFact = paidDeals.reduce((s: number, d: any) => s + d.units, 0)
     const unitsWaiting = waitingDeals.reduce((s: number, d: any) => s + d.units, 0)
     const marginFact = paidDeals.reduce((s: number, d: any) => s + Number(d.equipment_margin || 0), 0)
@@ -470,7 +472,7 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
       .filter((d: any) => d.status !== 'paid' && d.status !== 'cancelled')
       .map((d: any) => ({
         client_name: d.client_name,
-        revenue: Number(d.revenue),
+        revenue: dealFullRev(d),
         mrr: Number(d.mrr || 0),
         units: d.units,
         status: d.status,
@@ -521,7 +523,7 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
       ot_count: otCount,
       // Forecast (unpaid deals)
       forecast_deals: forecastDeals,
-      revenue_no_invoice: noInvoiceDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0),
+      revenue_no_invoice: noInvoiceDeals.reduce((s: number, d: any) => s + dealFullRev(d), 0),
     }
   })
 

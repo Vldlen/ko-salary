@@ -211,23 +211,30 @@ export default function SalaryPage() {
           {!isBonda && salary && innoBreakdown.multiplier_tier && (
             <div className="glass rounded-2xl p-6 mb-6">
               <h2 className="text-lg font-heading font-semibold text-white mb-4">Множитель и план</h2>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                {/* Факт */}
                 <div className="bg-white/5 rounded-xl p-4">
-                  <p className="text-xs text-white/40 mb-1">Выполнение плана (лицензии)</p>
-                  <p className="text-lg font-bold text-white">{innoBreakdown.units_percent || 0}%</p>
-                  <p className="text-xs text-white/30">{innoBreakdown.units_fact || 0} / {innoBreakdown.units_plan || 0} шт.</p>
+                  <p className="text-xs text-white/40 mb-1">Лицензии (факт)</p>
+                  <p className="text-lg font-bold text-white">{innoBreakdown.units_fact || 0} / {innoBreakdown.units_plan || 0} шт.</p>
+                  <p className="text-xs text-white/30">{innoBreakdown.units_percent || 0}% → множитель x{s.multiplier ?? 0}</p>
                 </div>
-                <div className="bg-white/5 rounded-xl p-4">
-                  <p className="text-xs text-white/40 mb-1">Множитель пуш-бонуса</p>
-                  <p className={cn('text-lg font-bold', s.multiplier >= 1 ? 'text-emerald-400' : s.multiplier > 0 ? 'text-blue-400' : 'text-red-400')}>
-                    x{s.multiplier}
-                  </p>
-                  <p className="text-xs text-white/30">{innoBreakdown.multiplier_tier}</p>
+                {/* Прогноз */}
+                <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4">
+                  <p className="text-xs text-orange-400 mb-1">Лицензии (прогноз)</p>
+                  <p className="text-lg font-bold text-orange-400">{innoBreakdown.units_forecast || 0} / {innoBreakdown.units_plan || 0} шт.</p>
+                  <p className="text-xs text-orange-300/60">{innoBreakdown.units_forecast_percent || 0}% → множитель x{(s as any).forecast_multiplier ?? 0}</p>
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white/5 rounded-xl p-4">
-                  <p className="text-xs text-white/40 mb-1">Пуш-бонус до множителя</p>
+                  <p className="text-xs text-white/40 mb-1">Пуш-бонус (факт)</p>
                   <p className="text-lg font-bold text-white">{formatMoney(innoBreakdown.push_bonus_raw || 0)}</p>
-                  <p className="text-xs text-white/30">после: {formatMoney(Number(s.push_bonus))}</p>
+                  <p className="text-xs text-white/30">x{s.multiplier} → {formatMoney(Number(s.push_bonus))}</p>
+                </div>
+                <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4">
+                  <p className="text-xs text-orange-400 mb-1">Пуш-бонус (прогноз)</p>
+                  <p className="text-lg font-bold text-orange-400">{formatMoney(innoBreakdown.forecast_push_bonus_raw || 0)}</p>
+                  <p className="text-xs text-orange-300/60">x{(s as any).forecast_multiplier ?? 0} → {formatMoney(forecastTotal - Number(s.base_salary) - Number(s.kpi_quality) - Number(s.kpi_quantity) > 0 ? forecastTotal - Number(s.base_salary) - Number(s.kpi_quality) - Number(s.kpi_quantity) : 0)}</p>
                 </div>
               </div>
             </div>
