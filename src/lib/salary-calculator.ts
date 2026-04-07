@@ -146,7 +146,7 @@ export function calculateSalary(input: CalcInput): CalcResult {
 
   // Push-bonus считается только для оплаченных лицензий (inno_license или без product_type)
   for (const deal of paidDeals) {
-    if (deal.product_type === 'inno_implementation') continue // внедрение отдельно
+    if (deal.product_type === 'inno_implementation' || deal.product_type === 'inno_content') continue // внедрение/контент отдельно
     if (deal.product_type === 'findir' || deal.product_type === 'bonda_bi' || deal.product_type === 'one_time_service') continue // БОНДА продукты
     const mrr = Number(deal.mrr || 0)
     if (mrr > 0) {
@@ -158,7 +158,7 @@ export function calculateSalary(input: CalcInput): CalcResult {
   // --- Forecast push-bonus (for all non-cancelled deals) ---
   let forecastPushBonusRaw = 0
   for (const deal of forecastDeals) {
-    if (deal.product_type === 'inno_implementation') continue
+    if (deal.product_type === 'inno_implementation' || deal.product_type === 'inno_content') continue
     if (deal.product_type === 'findir' || deal.product_type === 'bonda_bi' || deal.product_type === 'one_time_service') continue
     const mrr = Number(deal.mrr || 0)
     if (mrr > 0) {
@@ -169,12 +169,25 @@ export function calculateSalary(input: CalcInput): CalcResult {
 
   // --- Услуги по внедрению + генерация контента: % от выручки ---
   const implPercent = config.implementation_percent ?? 0.10
-  const implDeals = paidDeals.filter(d => d.product_type === 'inno_implementation' || d.product_type === 'inno_content')
-  const implRevenue = implDeals.reduce((sum, d) => sum + Number(d.revenue), 0)
+  // Новые поля: impl_revenue, content_revenue на самой сделке
+  // + обратная совместимость со старыми сделками по product_type
+  const implRevenue = paidDeals.reduce((sum, d) => {
+    let rev = Number(d.impl_revenue || 0) + Number(d.content_revenue || 0)
+    // Обратная совместимость: старые сделки с product_type
+    if (rev === 0 && (d.product_type === 'inno_implementation' || d.product_type === 'inno_content')) {
+      rev = Number(d.revenue)
+    }
+    return sum + rev
+  }, 0)
   const implementationBonus = implRevenue * implPercent
 
-  const forecastImplDeals = forecastDeals.filter(d => d.product_type === 'inno_implementation' || d.product_type === 'inno_content')
-  const forecastImplRevenue = forecastImplDeals.reduce((sum, d) => sum + Number(d.revenue), 0)
+  const forecastImplRevenue = forecastDeals.reduce((sum, d) => {
+    let rev = Number(d.impl_revenue || 0) + Number(d.content_revenue || 0)
+    if (rev === 0 && (d.product_type === 'inno_implementation' || d.product_type === 'inno_content')) {
+      rev = Number(d.revenue)
+    }
+    return sum + rev
+  }, 0)
   const forecastImplementationBonus = forecastImplRevenue * implPercent
 
   // --- Margin bonus (железо) ---

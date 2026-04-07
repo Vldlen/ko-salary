@@ -317,7 +317,7 @@ export default function DashboardPage() {
             const fdCount = paidDeals.filter((d: any) => d.product_type === 'findir').length
             const biCount = paidDeals.filter((d: any) => d.product_type === 'bonda_bi').length
             const otCount = paidDeals.filter((d: any) => d.product_type === 'one_time_service').length
-            const totalRevenue = paidDeals.reduce((s: number, d: any) => s + Number(d.revenue), 0)
+            const totalRevenue = paidDeals.reduce((s: number, d: any) => s + Number(d.revenue) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0), 0)
 
             return (
               <>

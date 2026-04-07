@@ -57,6 +57,8 @@ const EMPTY_FORM = {
   product_type: '',
   subscription_period: 'month',
   amo_link: '',
+  impl_revenue: '',
+  content_revenue: '',
 }
 
 function calcMargin(sellPrice: string, buyPrice: string): number {
@@ -157,13 +159,15 @@ export default function DealsPage() {
         dealData.mrr = 0
         dealData.equipment_margin = 0
       } else {
-        dealData.product_type = form.product_type || 'inno_license'
-        dealData.subscription_period = form.product_type === 'inno_implementation' ? null : form.subscription_period
+        dealData.product_type = 'inno_license'
+        dealData.subscription_period = form.subscription_period
         dealData.mrr = Number(form.mrr) || 0
         dealData.units = Number(form.units) || 1
         dealData.equipment_sell_price = Number(form.equipment_sell_price) || 0
         dealData.equipment_buy_price = Number(form.equipment_buy_price) || 0
         dealData.equipment_margin = margin
+        dealData.impl_revenue = Number(form.impl_revenue) || 0
+        dealData.content_revenue = Number(form.content_revenue) || 0
       }
 
       if (editingDeal) {
@@ -250,6 +254,8 @@ export default function DealsPage() {
       product_type: deal.product_type || (isBonda ? 'findir' : 'inno_license'),
       subscription_period: deal.subscription_period || 'month',
       amo_link: deal.amo_link || '',
+      impl_revenue: String(Number(deal.impl_revenue || 0)),
+      content_revenue: String(Number(deal.content_revenue || 0)),
     })
     setShowForm(true)
     setError('')
@@ -271,7 +277,7 @@ export default function DealsPage() {
   }
 
   const filteredDeals = deals
-  const totalRevenue = filteredDeals.reduce((sum, deal) => sum + Number(deal.revenue), 0)
+  const totalRevenue = filteredDeals.reduce((sum, deal) => sum + Number(deal.revenue) + Number(deal.impl_revenue || 0) + Number(deal.content_revenue || 0), 0)
   const totalUnits = filteredDeals.reduce((sum, deal) => sum + deal.units, 0)
   const totalMargin = filteredDeals.reduce((sum, deal) => sum + Number(deal.equipment_margin || 0), 0)
   const dealsCount = filteredDeals.length
@@ -449,73 +455,90 @@ export default function DealsPage() {
                   </>
                 ) : (
                   <>
-                    {/* ИННО: Тип продукта + Период подписки */}
-                    <div className="grid grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <label className="block text-sm font-medium text-white mb-1">Тип продукта *</label>
-                        <CustomSelect value={form.product_type || 'inno_license'} onChange={(v) => setForm({ ...form, product_type: v })} options={PRODUCT_TYPE_OPTIONS_INNO} />
-                      </div>
-                      {form.product_type !== 'inno_implementation' && (
+                    {/* ИННО: Лицензия */}
+                    <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
+                      <p className="text-sm font-semibold text-blue-400 mb-3">Лицензия inno clouds</p>
+                      <div className="grid grid-cols-4 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-white mb-1">Период подписки</label>
+                          <label className="block text-xs font-medium text-white/60 mb-1">Выручка</label>
+                          <input type="number" value={form.revenue}
+                            onChange={(e) => setForm({ ...form, revenue: e.target.value })}
+                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                            placeholder="0" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-white/60 mb-1">MRR</label>
+                          <input type="number" value={form.mrr}
+                            onChange={(e) => setForm({ ...form, mrr: e.target.value })}
+                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                            placeholder="0" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-white/60 mb-1">Точки</label>
+                          <input type="number" value={form.units}
+                            onChange={(e) => setForm({ ...form, units: e.target.value })}
+                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                            placeholder="1" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-white/60 mb-1">Период подписки</label>
                           <CustomSelect value={form.subscription_period} onChange={(v) => setForm({ ...form, subscription_period: v })} options={SUBSCRIPTION_PERIOD_OPTIONS} />
                         </div>
-                      )}
+                      </div>
                     </div>
 
-                    {/* ИННО: Выручка + MRR + Точки + Оборудование */}
-                    <div className="grid grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <label className="block text-sm font-medium text-white mb-1">Выручка</label>
-                        <input type="number" value={form.revenue}
-                          onChange={(e) => setForm({ ...form, revenue: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
-                          placeholder="0" />
+                    {/* ИННО: Внедрение + Генерация */}
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                        <p className="text-sm font-semibold text-green-400 mb-3">Услуги внедрения</p>
+                        <div>
+                          <label className="block text-xs font-medium text-white/60 mb-1">Выручка</label>
+                          <input type="number" value={form.impl_revenue}
+                            onChange={(e) => setForm({ ...form, impl_revenue: e.target.value })}
+                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                            placeholder="0" />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-white mb-1">MRR</label>
-                        <input type="number" value={form.mrr}
-                          onChange={(e) => setForm({ ...form, mrr: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
-                          placeholder="0" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-white mb-1">Точки</label>
-                        <input type="number" value={form.units}
-                          onChange={(e) => setForm({ ...form, units: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
-                          placeholder="1" />
+                      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                        <p className="text-sm font-semibold text-purple-400 mb-3">Генерация контента</p>
+                        <div>
+                          <label className="block text-xs font-medium text-white/60 mb-1">Выручка</label>
+                          <input type="number" value={form.content_revenue}
+                            onChange={(e) => setForm({ ...form, content_revenue: e.target.value })}
+                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                            placeholder="0" />
+                        </div>
                       </div>
                     </div>
 
                     {/* Equipment block */}
                     <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-sm font-semibold text-white mb-3">Оборудование</p>
+                      <p className="text-sm font-semibold text-yellow-400 mb-3">Оборудование</p>
                       <div className="grid grid-cols-3 gap-4">
                         <div>
-                          <label className="block text-xs font-medium text-blue-400 mb-1">Цена продажи</label>
+                          <label className="block text-xs font-medium text-white/60 mb-1">Цена продажи</label>
                           <input type="number" value={form.equipment_sell_price}
                             onChange={(e) => setForm({ ...form, equipment_sell_price: e.target.value })}
                             className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
                             placeholder="0" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-blue-400 mb-1">Цена закупки</label>
+                          <label className="block text-xs font-medium text-white/60 mb-1">Цена закупки</label>
                           <input type="number" value={form.equipment_buy_price}
                             onChange={(e) => setForm({ ...form, equipment_buy_price: e.target.value })}
                             className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
                             placeholder="0" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-blue-400 mb-1">Маржа (авто)</label>
+                          <label className="block text-xs font-medium text-white/60 mb-1">Маржа (авто)</label>
                           <div className={cn(
-                            "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white",
-                            calcMargin(form.equipment_sell_price, form.equipment_buy_price) > 0 ? 'text-green-600' :
-                            calcMargin(form.equipment_sell_price, form.equipment_buy_price) < 0 ? 'text-red-600' : 'text-blue-400'
+                            "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold",
+                            calcMargin(form.equipment_sell_price, form.equipment_buy_price) > 0 ? 'text-green-400' :
+                            calcMargin(form.equipment_sell_price, form.equipment_buy_price) < 0 ? 'text-red-400' : 'text-white/40'
                           )}>
                             {formatMoney(calcMargin(form.equipment_sell_price, form.equipment_buy_price))}
                           </div>
-                          <p className="text-xs text-blue-400 mt-1">продажа − 10% НДС − закупка</p>
+                          <p className="text-xs text-white/40 mt-1">продажа − 10% НДС − закупка</p>
                         </div>
                       </div>
                     </div>
@@ -563,9 +586,9 @@ export default function DealsPage() {
                     </>
                   ) : (
                     <>
-                      <th className="px-4 py-4 text-left text-sm font-semibold text-white">Выручка</th>
-                      <th className="px-4 py-4 text-left text-sm font-semibold text-white">MRR</th>
-                      <th className="px-4 py-4 text-left text-sm font-semibold text-white">Точки</th>
+                      <th className="px-4 py-4 text-left text-sm font-semibold text-white">Лицензия</th>
+                      <th className="px-4 py-4 text-left text-sm font-semibold text-white">Внедрение</th>
+                      <th className="px-4 py-4 text-left text-sm font-semibold text-white">Контент</th>
                       <th className="px-4 py-4 text-left text-sm font-semibold text-white">Оборудование</th>
                     </>
                   )}
@@ -618,17 +641,29 @@ export default function DealsPage() {
                       </>
                     ) : (
                       <>
-                        <td className="px-4 py-4 text-sm font-medium text-white">{Number(deal.revenue) > 0 ? formatMoney(Number(deal.revenue)) : '—'}</td>
-                        <td className="px-4 py-4 text-sm font-medium text-white">{Number(deal.mrr) > 0 ? formatMoney(Number(deal.mrr)) : '—'}</td>
-                        <td className="px-4 py-4 text-sm font-medium text-white">{deal.units}</td>
+                        <td className="px-4 py-4">
+                          {Number(deal.revenue) > 0 || Number(deal.mrr) > 0 ? (
+                            <div className="text-xs leading-relaxed">
+                              {Number(deal.revenue) > 0 && <p className="text-white/50">Выр: <span className="text-white font-medium">{formatMoney(Number(deal.revenue))}</span></p>}
+                              {Number(deal.mrr) > 0 && <p className="text-white/50">MRR: <span className="text-blue-400 font-medium">{formatMoney(Number(deal.mrr))}</span></p>}
+                              <p className="text-white/50">Точки: <span className="text-white font-medium">{deal.units}</span></p>
+                            </div>
+                          ) : <span className="text-sm text-white/30">—</span>}
+                        </td>
+                        <td className="px-4 py-4 text-sm font-medium">
+                          {Number(deal.impl_revenue) > 0 ? <span className="text-green-400">{formatMoney(Number(deal.impl_revenue))}</span> : <span className="text-white/30">—</span>}
+                        </td>
+                        <td className="px-4 py-4 text-sm font-medium">
+                          {Number(deal.content_revenue) > 0 ? <span className="text-purple-400">{formatMoney(Number(deal.content_revenue))}</span> : <span className="text-white/30">—</span>}
+                        </td>
                         <td className="px-4 py-4">
                           {Number(deal.equipment_sell_price) > 0 ? (
                             <div className="text-xs leading-relaxed">
-                              <p className="text-blue-400">Продажа: <span className="text-white font-medium">{formatMoney(Number(deal.equipment_sell_price))}</span></p>
-                              <p className="text-blue-400">Закупка: <span className="text-white font-medium">{formatMoney(Number(deal.equipment_buy_price))}</span></p>
-                              <p className="text-blue-400">Маржа: <span className={cn('font-semibold', Number(deal.equipment_margin) > 0 ? 'text-green-600' : Number(deal.equipment_margin) < 0 ? 'text-red-600' : 'text-white')}>{formatMoney(Number(deal.equipment_margin))}</span></p>
+                              <p className="text-white/50">Прод: <span className="text-white font-medium">{formatMoney(Number(deal.equipment_sell_price))}</span></p>
+                              <p className="text-white/50">Закуп: <span className="text-white font-medium">{formatMoney(Number(deal.equipment_buy_price))}</span></p>
+                              <p className="text-white/50">Маржа: <span className={cn('font-semibold', Number(deal.equipment_margin) > 0 ? 'text-green-400' : Number(deal.equipment_margin) < 0 ? 'text-red-400' : 'text-white/30')}>{formatMoney(Number(deal.equipment_margin))}</span></p>
                             </div>
-                          ) : <span className="text-sm text-blue-400">—</span>}
+                          ) : <span className="text-sm text-white/30">—</span>}
                         </td>
                       </>
                     )}

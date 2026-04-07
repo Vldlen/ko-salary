@@ -660,12 +660,12 @@ export default function TeamPage() {
                             <div className="grid grid-cols-3 gap-3 mb-4">
                               <div className="bg-white/5 rounded-lg p-3 text-center">
                                 <p className="text-[10px] text-amber-400/70 mb-1">Ждёт оплаты</p>
-                                <p className="text-sm font-bold text-amber-400">{formatMoney(waitingDeals.reduce((s: number, d: any) => s + d.revenue, 0))}</p>
+                                <p className="text-sm font-bold text-amber-400">{formatMoney(waitingDeals.reduce((s: number, d: any) => s + Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0), 0))}</p>
                                 <p className="text-[10px] text-white/30">{waitingDeals.length} сделок</p>
                               </div>
                               <div className="bg-white/5 rounded-lg p-3 text-center">
                                 <p className="text-[10px] text-white/40 mb-1">Без счёта</p>
-                                <p className="text-sm font-bold text-white/60">{formatMoney(noInvoiceDeals.reduce((s: number, d: any) => s + d.revenue, 0))}</p>
+                                <p className="text-sm font-bold text-white/60">{formatMoney(noInvoiceDeals.reduce((s: number, d: any) => s + Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0), 0))}</p>
                                 <p className="text-[10px] text-white/30">{noInvoiceDeals.length} сделок</p>
                               </div>
                               <div className="bg-white/5 rounded-lg p-3 text-center">

@@ -107,8 +107,8 @@ async function getTeamData(): Promise<{ inno: MemberData[]; bonda: MemberData[];
 
     return {
       name: u.full_name, position: positionName, company: companyName, isBonda,
-      revenue_fact: paid.reduce((s: number, d: any) => s + Number(d.revenue || 0), 0),
-      revenue_forecast: unpaid.reduce((s: number, d: any) => s + Number(d.revenue || 0), 0),
+      revenue_fact: paid.reduce((s: number, d: any) => s + Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0), 0),
+      revenue_forecast: unpaid.reduce((s: number, d: any) => s + Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0), 0),
       revenue_plan: plan?.revenue_plan || 0,
       units_fact: paid.reduce((s: number, d: any) => s + (d.units || 0), 0),
       units_forecast: unpaid.reduce((s: number, d: any) => s + (d.units || 0), 0),

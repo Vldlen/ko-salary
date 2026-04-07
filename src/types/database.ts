@@ -136,6 +136,8 @@ export interface Deal {
   amo_link: string | null
   planned_payment_date: string | null
   paid_at: string | null
+  impl_revenue: number
+  content_revenue: number
   product_type: ProductType | null
   subscription_period: SubscriptionPeriod | null
   created_at: string
