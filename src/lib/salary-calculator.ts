@@ -25,6 +25,7 @@ interface CalcResult {
   extra_bonus: number
   deduction: number
   multiplier: number
+  services_multiplier: number
   total: number
   forecast_total: number
   breakdown: {
@@ -42,6 +43,11 @@ interface CalcResult {
     margin_total: number
     push_bonus_raw: number
     implementation_revenue: number
+    implementation_bonus_raw: number
+    services_revenue_plan: number
+    services_percent: number
+    services_multiplier: number
+    services_multiplier_tier: string
     one_time_bonuses: number
     one_time_deductions: number
     multiplier_tier: string
@@ -62,9 +68,10 @@ const DEFAULT_PUSH_PERCENTS = {
 
 // Default threshold multiplier tiers
 const DEFAULT_THRESHOLD_TIERS = {
-  min_percent: 70,
+  min_percent: 30,
   tiers: [
-    { from: 0, to: 69, multiplier: 0 },
+    { from: 0, to: 29, multiplier: 0 },
+    { from: 30, to: 69, multiplier: 0.5 },
     { from: 70, to: 100, multiplier: 1 },
     { from: 101, to: 120, multiplier: 1.2 },
     { from: 121, to: 999, multiplier: 1.5 },
@@ -167,7 +174,7 @@ export function calculateSalary(input: CalcInput): CalcResult {
     }
   }
 
-  // --- Услуги по внедрению + генерация контента: % от выручки ---
+  // --- Услуги по внедрению + генерация контента: % от выручки × множитель ---
   const implPercent = config.implementation_percent ?? 0.10
   // Новые поля: impl_revenue, content_revenue на самой сделке
   // + обратная совместимость со старыми сделками по product_type
@@ -179,7 +186,6 @@ export function calculateSalary(input: CalcInput): CalcResult {
     }
     return sum + rev
   }, 0)
-  const implementationBonus = implRevenue * implPercent
 
   const forecastImplRevenue = forecastDeals.reduce((sum, d) => {
     let rev = Number(d.impl_revenue || 0) + Number(d.content_revenue || 0)
@@ -188,7 +194,18 @@ export function calculateSalary(input: CalcInput): CalcResult {
     }
     return sum + rev
   }, 0)
-  const forecastImplementationBonus = forecastImplRevenue * implPercent
+
+  // Множитель для услуг: по плану выручки услуг (revenue_plan)
+  const servicesRevenuePlan = revenuePlan // revenue_plan = план по выручке услуг
+  const servicesPercent = servicesRevenuePlan > 0 ? implRevenue / servicesRevenuePlan : 0
+  const servicesPctInt = Math.round(servicesPercent * 100)
+  const servicesThresholdConfig = config.threshold_multipliers || DEFAULT_THRESHOLD_TIERS
+  const { multiplier: servicesMultiplier, label: servicesMultiplierLabel } = getMultiplier(servicesPctInt, servicesThresholdConfig)
+
+  const implementationBonusRaw = implRevenue * implPercent
+  const implementationBonus = implementationBonusRaw * servicesMultiplier
+  const forecastImplementationBonusRaw = forecastImplRevenue * implPercent
+  const forecastImplementationBonus = forecastImplementationBonusRaw * servicesMultiplier
 
   // --- Margin bonus (железо) ---
   let marginBonus = 0
@@ -254,6 +271,7 @@ export function calculateSalary(input: CalcInput): CalcResult {
     extra_bonus: Math.round(oneTimeBonuses),
     deduction: Math.round(oneTimeDeductions),
     multiplier,
+    services_multiplier: servicesMultiplier,
     total: Math.round(total),
     forecast_total: Math.round(forecastTotal),
     breakdown: {
@@ -271,6 +289,11 @@ export function calculateSalary(input: CalcInput): CalcResult {
       margin_total: marginTotal,
       push_bonus_raw: Math.round(pushBonusRaw),
       implementation_revenue: implRevenue,
+      implementation_bonus_raw: Math.round(implementationBonusRaw),
+      services_revenue_plan: servicesRevenuePlan,
+      services_percent: servicesPctInt,
+      services_multiplier: servicesMultiplier,
+      services_multiplier_tier: servicesMultiplierLabel,
       one_time_bonuses: oneTimeBonuses,
       one_time_deductions: oneTimeDeductions,
       multiplier_tier: multiplierLabel,

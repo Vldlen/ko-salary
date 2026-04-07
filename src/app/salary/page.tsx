@@ -108,14 +108,15 @@ export default function SalaryPage() {
   ] : []
 
   // ИННО salary breakdown
-  const s = salary || { base_salary: 0, kpi_quality: 0, kpi_quantity: 0, push_bonus: 0, implementation_bonus: 0, margin_bonus: 0, extra_bonus: 0, deduction: 0, multiplier: 1, total: 0, forecast_total: 0, breakdown: {} as any }
+  const s = salary || { base_salary: 0, kpi_quality: 0, kpi_quantity: 0, push_bonus: 0, implementation_bonus: 0, margin_bonus: 0, extra_bonus: 0, deduction: 0, multiplier: 1, services_multiplier: 1, total: 0, forecast_total: 0, breakdown: {} as any }
   const innoBreakdown = s.breakdown || {} as any
+  const svcMult = (s as any).services_multiplier ?? 1
   const innoItems = [
     { label: 'Оклад', value: Number(s.base_salary), max: Number(s.base_salary) || 80000 },
     { label: 'KPI качество (конверсия/аттестация)', value: Number(s.kpi_quality), max: 10000 },
     { label: 'KPI количество (встречи/презентации)', value: Number(s.kpi_quantity), max: 10000 },
-    { label: `Пуш-бонус${s.multiplier !== undefined && s.multiplier !== 1 ? ` (x${s.multiplier})` : ''}`, value: Number(s.push_bonus), max: Math.max(Number(s.push_bonus), 30000) },
-    { label: 'Услуги внедрения (10%)', value: Number(s.implementation_bonus), max: Math.max(Number(s.implementation_bonus), 5000) },
+    { label: `Пуш-бонус (x${s.multiplier ?? 0})`, value: Number(s.push_bonus), max: Math.max(Number(s.push_bonus), 30000) },
+    { label: `Услуги внедрения (10% x${svcMult})`, value: Number(s.implementation_bonus), max: Math.max(Number(s.implementation_bonus), 5000) },
     { label: 'Маржа с оборудования (10%)', value: Number(s.margin_bonus), max: Math.max(Number(s.margin_bonus), 10000) },
     { label: 'Разовый бонус', value: Number(s.extra_bonus), max: Number(s.extra_bonus) || 5000 },
     { label: 'Депремирование', value: Number(s.deduction), max: 0, negative: true },
