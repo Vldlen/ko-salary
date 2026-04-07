@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronDown, Plus, Loader2, X, Pencil, Trash2, Check, Calendar, Eye } from 'lucide-react'
 import MobileRestricted from '@/components/MobileRestricted'
@@ -81,6 +81,7 @@ export default function DealsPage() {
   // Form state
   const [showForm, setShowForm] = useState(false)
   const [editingDeal, setEditingDeal] = useState<any>(null)
+  const formRef = useRef<HTMLDivElement>(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -259,6 +260,7 @@ export default function DealsPage() {
     })
     setShowForm(true)
     setError('')
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
 
   function openNew() {
@@ -266,6 +268,7 @@ export default function DealsPage() {
     setForm(EMPTY_FORM)
     setShowForm(true)
     setError('')
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
 
   if (loading) {
@@ -384,7 +387,7 @@ export default function DealsPage() {
 
           {/* New/Edit Deal Form — only for managers */}
           {showForm && user?.role === 'manager' && !isViewingAs && (
-            <div className="mb-8 rounded-2xl glass p-6">
+            <div ref={formRef} className="mb-8 rounded-2xl glass p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-white">
                   {editingDeal ? 'Редактировать сделку' : 'Новая сделка'}
@@ -690,7 +693,7 @@ export default function DealsPage() {
                     </td>
                     <td className="px-4 py-4 text-sm text-blue-400">{formatDate(deal.created_at)}</td>
                     <td className="px-4 py-4">
-                      {user?.role === 'manager' && (
+                      {user?.role === 'manager' && !isViewingAs && (
                         <div className="flex items-center justify-end gap-2">
                           <button onClick={() => openEdit(deal)}
                             className="rounded-lg p-2 text-blue-400 hover:bg-white/5 transition-colors"
