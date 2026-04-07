@@ -12,11 +12,15 @@ export async function sendPhoto(chatId: string, imageUrl: string, caption: strin
       parse_mode: 'HTML',
     }),
   })
-  return res.json()
+  const json = await res.json()
+  if (!json.ok) {
+    throw new Error(`sendPhoto failed: ${json.description || res.statusText}`)
+  }
+  return json
 }
 
 export async function sendMessage(chatId: string, text: string) {
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+  const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -25,6 +29,11 @@ export async function sendMessage(chatId: string, text: string) {
       parse_mode: 'HTML',
     }),
   })
+  const json = await res.json()
+  if (!json.ok) {
+    console.error('sendMessage failed:', json.description)
+  }
+  return json
 }
 
 function fmtK(n: number): string {
@@ -39,13 +48,19 @@ function getBaseUrl(): string {
   return 'http://localhost:3000'
 }
 
+async function fetchReportData() {
+  const baseUrl = getBaseUrl()
+  const res = await fetch(`${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&format=json`)
+  if (!res.ok) {
+    throw new Error(`Report API returned ${res.status}: ${res.statusText}`)
+  }
+  return res.json()
+}
+
 // Send both ИННО and БОНДА report images to a chat
 export async function sendTeamReport(chatId: string) {
   const baseUrl = getBaseUrl()
-
-  // Get JSON data to check if there are members
-  const jsonRes = await fetch(`${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&format=json`)
-  const data = await jsonRes.json()
+  const data = await fetchReportData()
 
   if ((!data.inno || data.inno.length === 0) && (!data.bonda || data.bonda.length === 0)) {
     await sendMessage(chatId, '⚠️ Нет данных для отчёта')
@@ -95,8 +110,7 @@ export async function sendTeamReport(chatId: string) {
 // Send report for a single company
 export async function sendCompanyReport(chatId: string, company: 'inno' | 'bonda') {
   const baseUrl = getBaseUrl()
-  const jsonRes = await fetch(`${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&format=json`)
-  const data = await jsonRes.json()
+  const data = await fetchReportData()
 
   const members = company === 'inno' ? data.inno : data.bonda
   if (!members || members.length === 0) {
@@ -129,9 +143,7 @@ export async function sendCompanyReport(chatId: string, company: 'inno' | 'bonda
 
 // Send text-only status summary
 export async function sendStatusText(chatId: string) {
-  const baseUrl = getBaseUrl()
-  const jsonRes = await fetch(`${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&format=json`)
-  const data = await jsonRes.json()
+  const data = await fetchReportData()
 
   if ((!data.inno || data.inno.length === 0) && (!data.bonda || data.bonda.length === 0)) {
     await sendMessage(chatId, '⚠️ Нет данных для отчёта')

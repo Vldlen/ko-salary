@@ -364,33 +364,38 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const company = request.nextUrl.searchParams.get('company') || 'inno'
-  const format = request.nextUrl.searchParams.get('format')
-  const { inno, bonda, periodLabel } = await getTeamData()
+  try {
+    const company = request.nextUrl.searchParams.get('company') || 'inno'
+    const format = request.nextUrl.searchParams.get('format')
+    const { inno, bonda, periodLabel } = await getTeamData()
 
-  if (format === 'json') {
-    return NextResponse.json({ periodLabel, inno, bonda })
+    if (format === 'json') {
+      return NextResponse.json({ periodLabel, inno, bonda })
+    }
+
+    const isInno = company !== 'bonda'
+    const members = isInno ? inno : bonda
+
+    if (members.length === 0) {
+      return NextResponse.json({ error: `No ${company} members found` }, { status: 404 })
+    }
+
+    // 2x dimensions for high-res Telegram images
+    // Header(~200) + section title(60) + legend(60) + footer(100) + padding(112)
+    const chrome = 532
+    // ИННО: name row(80) + 3 metrics(48*3) + padding(48) = 272
+    // БОНДА: name row(80) + 2 metrics(48*2) + padding(48) = 224
+    const rowHeight = isInno ? 272 : 224
+    const imgHeight = chrome + members.length * rowHeight
+
+    return new ImageResponse(
+      isInno
+        ? <InnoImage members={members} periodLabel={periodLabel} />
+        : <BondaImage members={members} periodLabel={periodLabel} />,
+      { width: 1040, height: imgHeight }
+    )
+  } catch (err: any) {
+    console.error('Team report error:', err)
+    return NextResponse.json({ error: err.message || 'Internal error' }, { status: 500 })
   }
-
-  const isInno = company !== 'bonda'
-  const members = isInno ? inno : bonda
-
-  if (members.length === 0) {
-    return NextResponse.json({ error: `No ${company} members found` }, { status: 404 })
-  }
-
-  // 2x dimensions for high-res Telegram images
-  // Header(~200) + section title(60) + legend(60) + footer(100) + padding(112)
-  const chrome = 532
-  // ИННО: name row(80) + 3 metrics(48*3) + padding(48) = 272
-  // БОНДА: name row(80) + 2 metrics(48*2) + padding(48) = 224
-  const rowHeight = isInno ? 272 : 224
-  const imgHeight = chrome + members.length * rowHeight
-
-  return new ImageResponse(
-    isInno
-      ? <InnoImage members={members} periodLabel={periodLabel} />
-      : <BondaImage members={members} periodLabel={periodLabel} />,
-    { width: 1040, height: imgHeight }
-  )
 }
