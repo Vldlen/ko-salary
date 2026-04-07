@@ -13,7 +13,7 @@ export default function ViewAsBar({ userRole }: ViewAsBarProps) {
   const { viewAsUser, selectManager, resetView, managers, loadManagers, managersLoaded } = useViewAs()
   const [showPicker, setShowPicker] = useState(false)
 
-  const canViewAs = ['admin', 'director', 'rop'].includes(userRole)
+  const canViewAs = ['admin', 'director', 'rop', 'founder'].includes(userRole)
 
   useEffect(() => {
     if (canViewAs && !managersLoaded) {

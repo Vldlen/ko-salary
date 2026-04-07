@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       .eq('id', sessionUser.id)
       .single()
 
-    if (!currentUser || !['admin', 'director', 'rop'].includes(currentUser.role)) {
+    if (!currentUser || !['admin', 'director', 'rop', 'founder'].includes(currentUser.role)) {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
 

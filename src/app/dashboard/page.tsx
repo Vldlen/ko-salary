@@ -33,8 +33,6 @@ export default function DashboardPage() {
       try {
         const currentUser = await getCurrentUser(supabase)
         if (!currentUser) { router.push('/login'); return }
-        // Founder has no personal data — redirect to team
-        if (currentUser.role === 'founder') { router.push('/team'); return }
         setUser(currentUser)
       } catch (err) {
         console.error(err)
@@ -52,7 +50,7 @@ export default function DashboardPage() {
     const targetCompanyId = effectiveCompanyId(user.company_id)
 
     // Admin/director/rop without viewAs — show empty
-    if (['admin', 'director', 'rop'].includes(user.role) && !isViewingAs) {
+    if (['admin', 'director', 'rop', 'founder'].includes(user.role) && !isViewingAs) {
       setData(null)
       setBondaData(null)
       setPeriod(null)

@@ -53,8 +53,10 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
   // Собираем секции по роли
   const sections: LinkSection[] = []
 
-  // Founder only sees leadership section
-  if (role !== 'founder') {
+  // Founder sees Dashboard + leadership, managers see all personal links
+  if (role === 'founder') {
+    sections.push({ title: '', links: [managerLinks[0]] }) // Dashboard only
+  } else {
     sections.push({ title: '', links: managerLinks })
   }
 
