@@ -56,7 +56,7 @@ function findSchemaForPeriod(schemas: any[], year: number, month: number): any {
 }
 
 export async function getDashboardData(supabase: SupabaseClient, userId: string, periodId: string) {
-  const [dealsRes, meetingsRes, salaryRes, userRes, planRes, periodRes] = await Promise.all([
+  const [dealsRes, meetingsRes, salaryRes, userRes, planRes, periodRes, kpiEntriesRes] = await Promise.all([
     supabase
       .from('deals')
       .select('*')
@@ -77,7 +77,7 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string,
       .single(),
     supabase
       .from('users')
-      .select('position_id, position:positions(motivation_schemas(*))')
+      .select('position_id, position:positions(name, motivation_schemas(*))')
       .eq('id', userId)
       .single(),
     supabase
@@ -91,12 +91,20 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string,
       .select('year, month')
       .eq('id', periodId)
       .single(),
+    supabase
+      .from('kpi_entries')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('period_id', periodId),
   ])
 
   const deals = dealsRes.data || []
   const meetings = meetingsRes.data || []
+  const kpiEntries = kpiEntriesRes.data || []
   const salaryResult = salaryRes.data
   const posData = userRes.data?.position as any
+  const positionName = (Array.isArray(posData) ? posData[0]?.name : posData?.name) || ''
+  const isJunior = positionName.toLowerCase().includes('младш')
   const allSchemas = Array.isArray(posData) ? posData[0]?.motivation_schemas : posData?.motivation_schemas
   const period = periodRes.data
   const individualPlan = planRes.data
@@ -116,6 +124,12 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string,
   const revenueForecast = deals.filter((d: any) => d.status !== 'cancelled').reduce((s: number, d: any) => s + dashDealFullRev(d), 0)
   const unitsFact = paidDeals.reduce((s: number, d: any) => s + d.units, 0)
   const marginTotal = paidDeals.reduce((s: number, d: any) => s + Number(d.equipment_margin), 0)
+
+  // KPI entries (unique client meetings)
+  const kpiEntriesCount = kpiEntries.length
+  const kpiEntriesTarget = isJunior
+    ? (config.kpi_entries_target_junior ?? 5)
+    : (config.kpi_entries_target ?? 20)
 
   // Meetings stats
   const meetingsFact = meetings.reduce((s: number, m: any) => s + m.new_completed + m.repeat_completed, 0)
@@ -156,6 +170,8 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string,
       units_fact: unitsFact,
       units_plan: unitsPlan,
       units_percent: unitsPlan > 0 ? Math.round((unitsFact / unitsPlan) * 100) : 0,
+      kpi_entries_count: kpiEntriesCount,
+      kpi_entries_target: kpiEntriesTarget,
       meetings_fact: meetingsFact,
       meetings_plan: meetingsPlan,
       meetings_percent: meetingsPlan > 0 ? Math.round((meetingsFact / meetingsPlan) * 100) : 0,

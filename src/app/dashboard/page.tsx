@@ -163,7 +163,7 @@ export default function DashboardPage() {
                   <StatCard title="Прогноз ЗП" value={formatMoney(salary.forecast_total)} icon={TrendingUp} variant="accent"
                     trend={{ value: `+${formatMoney(salary.forecast_total - salary.total)}`, positive: true }} />
                   <StatCard title="Сделки" value={String(d.deals_count)} subtitle={`${d.breakdown.units_fact} лиц.`} icon={Handshake} />
-                  <StatCard title="Встречи" value={`${d.breakdown.meetings_fact} / ${d.breakdown.meetings_plan}`} subtitle={`${d.breakdown.meetings_percent}% плана`} icon={CalendarDays} variant="success" />
+                  <StatCard title="Встречи" value={`${d.breakdown.kpi_entries_count ?? d.breakdown.meetings_fact} / ${d.breakdown.kpi_entries_target ?? 20}`} subtitle={`${Math.round(((d.breakdown.kpi_entries_count ?? d.breakdown.meetings_fact) / (d.breakdown.kpi_entries_target ?? 20)) * 100)}% плана`} icon={CalendarDays} variant="success" />
                 </div>
 
                 {/* Сравнение с прошлым месяцем */}
@@ -194,7 +194,7 @@ export default function DashboardPage() {
                         },
                         {
                           label: 'Встречи',
-                          current: d.breakdown.meetings_fact,
+                          current: d.breakdown.kpi_entries_count ?? d.breakdown.meetings_fact,
                           prev: prevComparison.meetings_at_same_day,
                           format: String,
                         },
@@ -230,7 +230,7 @@ export default function DashboardPage() {
                       <ProgressBar label="Выручка (факт)" value={d.breakdown.revenue_fact} max={d.breakdown.revenue_plan} percent={d.breakdown.revenue_percent} formatValue={formatMoney} />
                       <ProgressBar label="Выручка (прогноз)" value={d.breakdown.revenue_forecast} max={d.breakdown.revenue_plan} percent={d.breakdown.revenue_forecast_percent} formatValue={formatMoney} />
                       <ProgressBar label="Лицензии" value={d.breakdown.units_fact} max={d.breakdown.units_plan} percent={d.breakdown.units_percent} />
-                      <ProgressBar label="Встречи" value={d.breakdown.meetings_fact} max={d.breakdown.meetings_plan} percent={d.breakdown.meetings_percent} />
+                      <ProgressBar label="Встречи (KPI)" value={d.breakdown.kpi_entries_count ?? d.breakdown.meetings_fact} max={d.breakdown.kpi_entries_target ?? 20} percent={Math.round(((d.breakdown.kpi_entries_count ?? d.breakdown.meetings_fact) / (d.breakdown.kpi_entries_target ?? 20)) * 100)} />
                     </div>
                   </div>
 
