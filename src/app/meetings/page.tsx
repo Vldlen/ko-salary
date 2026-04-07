@@ -273,11 +273,12 @@ export default function MeetingsPage() {
     setKpiSaving(true)
     setKpiError('')
     try {
+      const defaultProduct = isBonda ? 'Чек-Ап' : 'Презентация'
       const entryData = {
         entry_date: kpiForm.entry_date,
         client_name: kpiForm.client_name,
         amo_link: kpiForm.amo_link || undefined,
-        product: kpiForm.product,
+        product: defaultProduct,
         comment: kpiForm.comment || undefined,
       }
       if (editingKpi) {
@@ -569,7 +570,7 @@ export default function MeetingsPage() {
                   )}
 
                   <form onSubmit={handleKpiSave}>
-                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-3">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
                       <div>
                         <label className="block text-xs font-medium text-white/60 mb-1">Дата *</label>
                         <input type="date" required value={kpiForm.entry_date}
@@ -583,10 +584,6 @@ export default function MeetingsPage() {
                           onChange={(e) => setKpiForm({ ...kpiForm, client_name: e.target.value })}
                           className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
                           placeholder="Компания" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-white/60 mb-1">Продукт</label>
-                        <CustomSelect value={kpiForm.product} onChange={(v) => setKpiForm({ ...kpiForm, product: v })} options={isBonda ? BONDA_KPI_PRODUCTS : INNO_KPI_PRODUCTS} />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-white/60 mb-1">AMO CRM</label>
@@ -619,7 +616,6 @@ export default function MeetingsPage() {
                     <tr className="border-b border-white/10 bg-white/5">
                       <th className="px-3 py-3 text-left text-xs font-semibold text-white">Дата</th>
                       <th className="px-3 py-3 text-left text-xs font-semibold text-white">Клиент</th>
-                      <th className="px-3 py-3 text-left text-xs font-semibold text-white">Продукт</th>
                       <th className="px-3 py-3 text-left text-xs font-semibold text-white">AMO</th>
                       <th className="px-3 py-3 text-left text-xs font-semibold text-white">Комментарий</th>
                       <th className="px-3 py-3 text-right text-xs font-semibold text-white"></th>
@@ -638,11 +634,6 @@ export default function MeetingsPage() {
                             </div>
                             <span className="text-xs font-medium text-white">{entry.client_name}</span>
                           </div>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-white/10 text-blue-400">
-                            {entry.product || '—'}
-                          </span>
                         </td>
                         <td className="px-3 py-2.5">
                           {entry.amo_link ? (
@@ -672,7 +663,7 @@ export default function MeetingsPage() {
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan={6} className="px-4 py-6 text-center text-xs text-white/30">
+                        <td colSpan={5} className="px-4 py-6 text-center text-xs text-white/30">
                           <ClipboardCheck className="w-6 h-6 mx-auto mb-1.5 text-white/10" />
                           Нет записей за этот период
                         </td>
