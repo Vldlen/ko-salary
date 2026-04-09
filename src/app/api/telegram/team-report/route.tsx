@@ -77,7 +77,7 @@ async function getTeamData(): Promise<{ inno: MemberData[]; bonda: MemberData[];
       .in('role', ['manager', 'rop']),
     supabase
       .from('deals')
-      .select('user_id, revenue, units, status, product_type, mrr')
+      .select('user_id, revenue, impl_revenue, content_revenue, forecast_revenue, units, status, product_type, mrr')
       .in('period_id', allPeriodIds),
     supabase
       .from('meetings')
