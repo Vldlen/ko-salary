@@ -830,74 +830,150 @@ export default function DealsPage() {
       )}
 
       {/* Partial payment popup — вынесен из main для корректного fixed */}
-      {partialPopup && (
+      {partialPopup && (() => {
+        const d = partialPopup.deal
+        const pL = Number(partialForm.license) || 0, tL = Number(d.revenue || 0)
+        const pI = Number(partialForm.impl) || 0, tI = Number(d.impl_revenue || 0)
+        const pC = Number(partialForm.content) || 0, tC = Number(d.content_revenue || 0)
+        const pE = Number(partialForm.equipment) || 0, tE = Number(d.equipment_margin || 0)
+        const pA = Number(partialForm.amount) || 0, tA = Number(d.revenue || 0)
+        const innoTotal = tL + tI + tC + tE
+        const innoPaid = pL + pI + pC + pE
+        const allPaidInno = innoTotal > 0 && pL >= tL && pI >= tI && pC >= tC && pE >= tE
+        const allPaidBonda = tA > 0 && pA >= tA
+        const progressPct = (paid: number, total: number) => total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0
+        const progressColor = (paid: number, total: number) => paid >= total ? 'bg-green-500' : 'bg-blue-500'
+
+        return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setPartialPopup(null)} />
           <div className="relative rounded-2xl glass p-6 shadow-xl w-[480px] max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-bold text-white mb-1">Записать оплату</h3>
-            <p className="text-xs text-white/40 mb-4">{partialPopup.deal.client_name}</p>
+            <p className="text-xs text-white/40 mb-1">{d.client_name}</p>
+
+            {/* Summary bar */}
+            {!isBonda ? (
+              <div className="mb-4 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 flex items-center justify-between">
+                <span className="text-xs text-white/40">Оплачено</span>
+                <span className={cn('text-sm font-bold', allPaidInno ? 'text-green-400' : 'text-white')}>
+                  {formatMoney(innoPaid)} <span className="text-white/30 font-normal">из {formatMoney(innoTotal)}</span>
+                </span>
+              </div>
+            ) : (
+              <div className="mb-4 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 flex items-center justify-between">
+                <span className="text-xs text-white/40">Оплачено</span>
+                <span className={cn('text-sm font-bold', allPaidBonda ? 'text-green-400' : 'text-white')}>
+                  {formatMoney(pA)} <span className="text-white/30 font-normal">из {formatMoney(tA)}</span>
+                </span>
+              </div>
+            )}
 
             {isBonda ? (
               <div className="space-y-3 mb-4">
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-sm font-medium text-purple-400">Сумма контракта</label>
-                    <span className="text-xs text-white/40">из {formatMoney(Number(partialPopup.deal.revenue || 0))}</span>
+                    <span className="text-xs text-white/40">{formatMoney(tA)}</span>
                   </div>
                   <input type="number" value={partialForm.amount}
                     onChange={(e) => setPartialForm({ ...partialForm, amount: e.target.value })}
                     className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none"
                     placeholder="0" />
+                  <div className="mt-1.5 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                    <div className={cn('h-full rounded-full transition-all', progressColor(pA, tA))} style={{ width: `${progressPct(pA, tA)}%` }} />
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-xs text-white/30">{progressPct(pA, tA)}%</span>
+                    <span className={cn('text-xs', pA >= tA ? 'text-green-400' : 'text-white/40')}>
+                      {pA >= tA ? '✓ Оплачено' : `Осталось ${formatMoney(tA - pA)}`}
+                    </span>
+                  </div>
                 </div>
               </div>
             ) : (
               <div className="space-y-3 mb-4">
-                {Number(partialPopup.deal.revenue || 0) > 0 && (
+                {tL > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-sm font-medium text-blue-400">Лицензия</label>
-                      <span className="text-xs text-white/40">из {formatMoney(Number(partialPopup.deal.revenue))}</span>
+                      <span className="text-xs text-white/40">{formatMoney(tL)}</span>
                     </div>
                     <input type="number" value={partialForm.license}
                       onChange={(e) => setPartialForm({ ...partialForm, license: e.target.value })}
                       className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
                       placeholder="0" />
+                    <div className="mt-1.5 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <div className={cn('h-full rounded-full transition-all', progressColor(pL, tL))} style={{ width: `${progressPct(pL, tL)}%` }} />
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-xs text-white/30">{progressPct(pL, tL)}%</span>
+                      <span className={cn('text-xs', pL >= tL ? 'text-green-400' : 'text-white/40')}>
+                        {pL >= tL ? '✓ Оплачено' : `Осталось ${formatMoney(tL - pL)}`}
+                      </span>
+                    </div>
                   </div>
                 )}
-                {Number(partialPopup.deal.impl_revenue || 0) > 0 && (
+                {tI > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-sm font-medium text-green-400">Внедрение</label>
-                      <span className="text-xs text-white/40">из {formatMoney(Number(partialPopup.deal.impl_revenue))}</span>
+                      <span className="text-xs text-white/40">{formatMoney(tI)}</span>
                     </div>
                     <input type="number" value={partialForm.impl}
                       onChange={(e) => setPartialForm({ ...partialForm, impl: e.target.value })}
                       className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-green-500 focus:outline-none"
                       placeholder="0" />
+                    <div className="mt-1.5 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <div className={cn('h-full rounded-full transition-all', progressColor(pI, tI))} style={{ width: `${progressPct(pI, tI)}%` }} />
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-xs text-white/30">{progressPct(pI, tI)}%</span>
+                      <span className={cn('text-xs', pI >= tI ? 'text-green-400' : 'text-white/40')}>
+                        {pI >= tI ? '✓ Оплачено' : `Осталось ${formatMoney(tI - pI)}`}
+                      </span>
+                    </div>
                   </div>
                 )}
-                {Number(partialPopup.deal.content_revenue || 0) > 0 && (
+                {tC > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-sm font-medium text-purple-400">Контент</label>
-                      <span className="text-xs text-white/40">из {formatMoney(Number(partialPopup.deal.content_revenue))}</span>
+                      <span className="text-xs text-white/40">{formatMoney(tC)}</span>
                     </div>
                     <input type="number" value={partialForm.content}
                       onChange={(e) => setPartialForm({ ...partialForm, content: e.target.value })}
                       className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none"
                       placeholder="0" />
+                    <div className="mt-1.5 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <div className={cn('h-full rounded-full transition-all', progressColor(pC, tC))} style={{ width: `${progressPct(pC, tC)}%` }} />
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-xs text-white/30">{progressPct(pC, tC)}%</span>
+                      <span className={cn('text-xs', pC >= tC ? 'text-green-400' : 'text-white/40')}>
+                        {pC >= tC ? '✓ Оплачено' : `Осталось ${formatMoney(tC - pC)}`}
+                      </span>
+                    </div>
                   </div>
                 )}
-                {Number(partialPopup.deal.equipment_margin || 0) > 0 && (
+                {tE > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-sm font-medium text-yellow-400">Оборудование</label>
-                      <span className="text-xs text-white/40">маржа {formatMoney(Number(partialPopup.deal.equipment_margin))}</span>
+                      <span className="text-xs text-white/40">маржа {formatMoney(tE)}</span>
                     </div>
                     <input type="number" value={partialForm.equipment}
                       onChange={(e) => setPartialForm({ ...partialForm, equipment: e.target.value })}
                       className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-yellow-500 focus:outline-none"
                       placeholder="0" />
+                    <div className="mt-1.5 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <div className={cn('h-full rounded-full transition-all', progressColor(pE, tE))} style={{ width: `${progressPct(pE, tE)}%` }} />
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-xs text-white/30">{progressPct(pE, tE)}%</span>
+                      <span className={cn('text-xs', pE >= tE ? 'text-green-400' : 'text-white/40')}>
+                        {pE >= tE ? '✓ Оплачено' : `Осталось ${formatMoney(tE - pE)}`}
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -910,6 +986,18 @@ export default function DealsPage() {
                 onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none date-input-clean cursor-pointer" />
             </div>
+
+            {/* Auto-status hint */}
+            {!isBonda && allPaidInno && (
+              <div className="mb-4 rounded-xl bg-green-500/10 border border-green-500/20 px-4 py-2.5 text-xs text-green-400">
+                Все категории оплачены — статус автоматически сменится на «Оплачено»
+              </div>
+            )}
+            {isBonda && allPaidBonda && (
+              <div className="mb-4 rounded-xl bg-green-500/10 border border-green-500/20 px-4 py-2.5 text-xs text-green-400">
+                Контракт полностью оплачен — статус автоматически сменится на «Оплачено»
+              </div>
+            )}
 
             <div className="flex gap-3">
               <button onClick={() => setPartialPopup(null)}
@@ -924,7 +1012,8 @@ export default function DealsPage() {
             </div>
           </div>
         </div>
-      )}
+        )
+      })()}
     </div>
     </MobileRestricted>
   )
