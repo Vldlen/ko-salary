@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronDown, Plus, Loader2, X, Pencil, Trash2, Check, Calendar, Eye } from 'lucide-react'
 import MobileRestricted from '@/components/MobileRestricted'
@@ -83,7 +83,6 @@ export default function DealsPage() {
   // Form state
   const [showForm, setShowForm] = useState(false)
   const [editingDeal, setEditingDeal] = useState<any>(null)
-  const formRef = useRef<HTMLDivElement>(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -326,7 +325,6 @@ export default function DealsPage() {
     })
     setShowForm(true)
     setError('')
-    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
 
   function openNew() {
@@ -334,7 +332,6 @@ export default function DealsPage() {
     setForm(EMPTY_FORM)
     setShowForm(true)
     setError('')
-    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
 
   if (loading) {
@@ -443,202 +440,12 @@ export default function DealsPage() {
           )}
 
           {/* Add button — only for managers viewing own data */}
-          {!showForm && user?.role === 'manager' && !isViewingAs && (
+          {user?.role === 'manager' && !isViewingAs && (
             <button onClick={openNew}
               className="mb-6 flex items-center gap-2 rounded-2xl bg-blue-500 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-600">
               <Plus size={20} />
               Новая сделка
             </button>
-          )}
-
-          {/* New/Edit Deal Form — only for managers */}
-          {showForm && user?.role === 'manager' && !isViewingAs && (
-            <div ref={formRef} className="mb-8 rounded-2xl glass p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-white">
-                  {editingDeal ? 'Редактировать сделку' : 'Новая сделка'}
-                </h2>
-                <button onClick={() => { setShowForm(false); setEditingDeal(null); setForm(EMPTY_FORM) }}
-                  className="rounded-lg p-2 text-blue-400 hover:bg-white/5">
-                  <X size={20} />
-                </button>
-              </div>
-
-              {error && (
-                <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">{error}</div>
-              )}
-
-              <form onSubmit={handleSave}>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-1">Клиент *</label>
-                    <input type="text" required value={form.client_name}
-                      onChange={(e) => setForm({ ...form, client_name: e.target.value })}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
-                      placeholder="Название компании" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-1">Статус</label>
-                    <CustomSelect value={form.status} onChange={(v) => setForm({ ...form, status: v })} options={STATUS_OPTIONS} />
-                  </div>
-                </div>
-
-                {isBonda ? (
-                  <>
-                    {/* БОНДА: Тип продукта + Период подписки */}
-                    <div className="grid grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <label className="block text-sm font-medium text-white mb-1">Тип продукта *</label>
-                        <CustomSelect value={form.product_type || (isBonda ? 'findir' : 'inno_license')} onChange={(v) => setForm({ ...form, product_type: v })} options={isBonda ? PRODUCT_TYPE_OPTIONS_BONDA : PRODUCT_TYPE_OPTIONS_INNO} />
-                      </div>
-                      {form.product_type !== 'one_time_service' && form.product_type !== 'inno_implementation' && (
-                        <div>
-                          <label className="block text-sm font-medium text-white mb-1">Период подписки</label>
-                          <CustomSelect value={form.subscription_period} onChange={(v) => setForm({ ...form, subscription_period: v })} options={SUBSCRIPTION_PERIOD_OPTIONS} />
-                        </div>
-                      )}
-                      <div>
-                        <label className="block text-sm font-medium text-white mb-1">Сумма контракта</label>
-                        <input type="number" value={form.revenue}
-                          onChange={(e) => setForm({ ...form, revenue: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
-                          placeholder="0" />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <label className="block text-sm font-medium text-white mb-1">Ссылка AMO CRM</label>
-                        <input type="text" value={form.amo_link}
-                          onChange={(e) => setForm({ ...form, amo_link: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
-                          placeholder="https://..." />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-white mb-1">Планируемая дата оплаты</label>
-                        <input type="date" value={form.planned_payment_date}
-                          onChange={(e) => setForm({ ...form, planned_payment_date: e.target.value })}
-                          onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none date-input-clean cursor-pointer" />
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* ИННО: Лицензия */}
-                    <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-sm font-semibold text-blue-400 mb-3">Лицензия inno clouds</p>
-                      <div className="grid grid-cols-4 gap-4">
-                        <div>
-                          <label className="block text-xs font-medium text-white/60 mb-1">Выручка</label>
-                          <input type="number" value={form.revenue}
-                            onChange={(e) => setForm({ ...form, revenue: e.target.value })}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
-                            placeholder="0" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-white/60 mb-1">MRR</label>
-                          <input type="number" value={form.mrr}
-                            onChange={(e) => setForm({ ...form, mrr: e.target.value })}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
-                            placeholder="0" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-white/60 mb-1">Лицензии</label>
-                          <input type="number" value={form.units}
-                            onChange={(e) => setForm({ ...form, units: e.target.value })}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
-                            placeholder="1" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-white/60 mb-1">Период подписки</label>
-                          <CustomSelect value={form.subscription_period} onChange={(v) => setForm({ ...form, subscription_period: v })} options={SUBSCRIPTION_PERIOD_OPTIONS} />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* ИННО: Внедрение + Генерация */}
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                        <p className="text-sm font-semibold text-green-400 mb-3">Услуги внедрения</p>
-                        <div>
-                          <label className="block text-xs font-medium text-white/60 mb-1">Выручка</label>
-                          <input type="number" value={form.impl_revenue}
-                            onChange={(e) => setForm({ ...form, impl_revenue: e.target.value })}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
-                            placeholder="0" />
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                        <p className="text-sm font-semibold text-purple-400 mb-3">Генерация контента</p>
-                        <div>
-                          <label className="block text-xs font-medium text-white/60 mb-1">Выручка</label>
-                          <input type="number" value={form.content_revenue}
-                            onChange={(e) => setForm({ ...form, content_revenue: e.target.value })}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
-                            placeholder="0" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Equipment block */}
-                    <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-sm font-semibold text-yellow-400 mb-3">Оборудование</p>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-xs font-medium text-white/60 mb-1">Цена продажи</label>
-                          <input type="number" value={form.equipment_sell_price}
-                            onChange={(e) => setForm({ ...form, equipment_sell_price: e.target.value })}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
-                            placeholder="0" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-white/60 mb-1">Цена закупки</label>
-                          <input type="number" value={form.equipment_buy_price}
-                            onChange={(e) => setForm({ ...form, equipment_buy_price: e.target.value })}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
-                            placeholder="0" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-white/60 mb-1">Маржа (авто)</label>
-                          <div className={cn(
-                            "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold",
-                            calcMargin(form.equipment_sell_price, form.equipment_buy_price) > 0 ? 'text-green-400' :
-                            calcMargin(form.equipment_sell_price, form.equipment_buy_price) < 0 ? 'text-red-400' : 'text-white/40'
-                          )}>
-                            {formatMoney(calcMargin(form.equipment_sell_price, form.equipment_buy_price))}
-                          </div>
-                          <p className="text-xs text-white/40 mt-1">продажа − 10% НДС − закупка</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <label className="block text-sm font-medium text-white mb-1">Планируемая дата оплаты</label>
-                        <input type="date" value={form.planned_payment_date}
-                          onChange={(e) => setForm({ ...form, planned_payment_date: e.target.value })}
-                          onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none date-input-clean cursor-pointer" />
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-white mb-1">Заметки</label>
-                  <input type="text" value={form.notes}
-                    onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
-                    placeholder="Комментарий к сделке..." />
-                </div>
-
-                <button type="submit" disabled={saving}
-                  className="flex items-center gap-2 rounded-xl bg-blue-500 px-6 py-3 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-50 transition-colors">
-                  {saving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-                  {editingDeal ? 'Сохранить' : 'Создать сделку'}
-                </button>
-              </form>
-            </div>
           )}
 
           {/* Deals Table */}
@@ -793,132 +600,326 @@ export default function DealsPage() {
 
         </div>
 
-        {/* Payment date popup */}
-        {paidPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/20" onClick={() => setPaidPopup(null)} />
-            <div className="relative rounded-2xl glass p-6 shadow-xl w-80">
-              <h3 className="text-base font-bold text-white mb-1">Дата оплаты</h3>
-              <p className="text-xs text-blue-400 mb-4">Укажите дату поступления оплаты</p>
-              <input
-                type="date"
-                value={paidDate}
-                onChange={(e) => setPaidDate(e.target.value)}
-                onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none mb-4 date-input-clean cursor-pointer"
-              />
-              <div className="flex gap-3">
-                <button onClick={() => setPaidPopup(null)}
-                  className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-blue-400 hover:bg-white/5 transition-colors">
-                  Отмена
-                </button>
-                <button onClick={confirmPaid}
-                  className="flex-1 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-600 transition-colors flex items-center justify-center gap-2">
-                  <Check size={16} />
-                  Оплачено
-                </button>
-              </div>
+      </main>
+
+      {/* Payment date popup — вынесен из main для корректного fixed */}
+      {paidPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/20" onClick={() => setPaidPopup(null)} />
+          <div className="relative rounded-2xl glass p-6 shadow-xl w-80">
+            <h3 className="text-base font-bold text-white mb-1">Дата оплаты</h3>
+            <p className="text-xs text-blue-400 mb-4">Укажите дату поступления оплаты</p>
+            <input
+              type="date"
+              value={paidDate}
+              onChange={(e) => setPaidDate(e.target.value)}
+              onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none mb-4 date-input-clean cursor-pointer"
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setPaidPopup(null)}
+                className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-blue-400 hover:bg-white/5 transition-colors">
+                Отмена
+              </button>
+              <button onClick={confirmPaid}
+                className="flex-1 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-600 transition-colors flex items-center justify-center gap-2">
+                <Check size={16} />
+                Оплачено
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Partial payment popup */}
-        {partialPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setPartialPopup(null)} />
-            <div className="relative rounded-2xl glass p-6 shadow-xl w-[480px] max-h-[90vh] overflow-y-auto">
-              <h3 className="text-base font-bold text-white mb-1">Записать оплату</h3>
-              <p className="text-xs text-white/40 mb-4">{partialPopup.deal.client_name}</p>
+      {/* Deal form modal — вынесен из main для корректного fixed */}
+      {showForm && user?.role === 'manager' && !isViewingAs && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => { setShowForm(false); setEditingDeal(null); setForm(EMPTY_FORM) }} />
+          <div className="relative rounded-2xl glass p-6 shadow-xl w-[600px] max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-bold text-white">
+                {editingDeal ? 'Редактировать сделку' : 'Новая сделка'}
+              </h2>
+              <button onClick={() => { setShowForm(false); setEditingDeal(null); setForm(EMPTY_FORM) }}
+                className="rounded-lg p-2 text-blue-400 hover:bg-white/5">
+                <X size={20} />
+              </button>
+            </div>
+
+            {error && (
+              <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">{error}</div>
+            )}
+
+            <form onSubmit={handleSave}>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-white mb-1">Клиент *</label>
+                  <input type="text" required value={form.client_name}
+                    onChange={(e) => setForm({ ...form, client_name: e.target.value })}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                    placeholder="Название компании" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-white mb-1">Статус</label>
+                  <CustomSelect value={form.status} onChange={(v) => setForm({ ...form, status: v })} options={STATUS_OPTIONS} />
+                </div>
+              </div>
 
               {isBonda ? (
-                <div className="space-y-3 mb-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-sm font-medium text-purple-400">Сумма контракта</label>
-                      <span className="text-xs text-white/40">из {formatMoney(Number(partialPopup.deal.revenue || 0))}</span>
-                    </div>
-                    <input type="number" value={partialForm.amount}
-                      onChange={(e) => setPartialForm({ ...partialForm, amount: e.target.value })}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none"
-                      placeholder="0" />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3 mb-4">
-                  {Number(partialPopup.deal.revenue || 0) > 0 && (
+                <>
+                  {/* БОНДА: Тип продукта + Период подписки */}
+                  <div className="grid grid-cols-3 gap-4 mb-4">
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-sm font-medium text-blue-400">Лицензия</label>
-                        <span className="text-xs text-white/40">из {formatMoney(Number(partialPopup.deal.revenue))}</span>
+                      <label className="block text-sm font-medium text-white mb-1">Тип продукта *</label>
+                      <CustomSelect value={form.product_type || (isBonda ? 'findir' : 'inno_license')} onChange={(v) => setForm({ ...form, product_type: v })} options={isBonda ? PRODUCT_TYPE_OPTIONS_BONDA : PRODUCT_TYPE_OPTIONS_INNO} />
+                    </div>
+                    {form.product_type !== 'one_time_service' && form.product_type !== 'inno_implementation' && (
+                      <div>
+                        <label className="block text-sm font-medium text-white mb-1">Период подписки</label>
+                        <CustomSelect value={form.subscription_period} onChange={(v) => setForm({ ...form, subscription_period: v })} options={SUBSCRIPTION_PERIOD_OPTIONS} />
                       </div>
-                      <input type="number" value={partialForm.license}
-                        onChange={(e) => setPartialForm({ ...partialForm, license: e.target.value })}
+                    )}
+                    <div>
+                      <label className="block text-sm font-medium text-white mb-1">Сумма контракта</label>
+                      <input type="number" value={form.revenue}
+                        onChange={(e) => setForm({ ...form, revenue: e.target.value })}
                         className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
                         placeholder="0" />
                     </div>
-                  )}
-                  {Number(partialPopup.deal.impl_revenue || 0) > 0 && (
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-sm font-medium text-green-400">Внедрение</label>
-                        <span className="text-xs text-white/40">из {formatMoney(Number(partialPopup.deal.impl_revenue))}</span>
-                      </div>
-                      <input type="number" value={partialForm.impl}
-                        onChange={(e) => setPartialForm({ ...partialForm, impl: e.target.value })}
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-green-500 focus:outline-none"
-                        placeholder="0" />
+                      <label className="block text-sm font-medium text-white mb-1">Ссылка AMO CRM</label>
+                      <input type="text" value={form.amo_link}
+                        onChange={(e) => setForm({ ...form, amo_link: e.target.value })}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                        placeholder="https://..." />
                     </div>
-                  )}
-                  {Number(partialPopup.deal.content_revenue || 0) > 0 && (
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-sm font-medium text-purple-400">Контент</label>
-                        <span className="text-xs text-white/40">из {formatMoney(Number(partialPopup.deal.content_revenue))}</span>
-                      </div>
-                      <input type="number" value={partialForm.content}
-                        onChange={(e) => setPartialForm({ ...partialForm, content: e.target.value })}
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none"
-                        placeholder="0" />
+                      <label className="block text-sm font-medium text-white mb-1">Планируемая дата оплаты</label>
+                      <input type="date" value={form.planned_payment_date}
+                        onChange={(e) => setForm({ ...form, planned_payment_date: e.target.value })}
+                        onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none date-input-clean cursor-pointer" />
                     </div>
-                  )}
-                  {Number(partialPopup.deal.equipment_margin || 0) > 0 && (
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* ИННО: Лицензия */}
+                  <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
+                    <p className="text-sm font-semibold text-blue-400 mb-3">Лицензия inno clouds</p>
+                    <div className="grid grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-1">Выручка</label>
+                        <input type="number" value={form.revenue}
+                          onChange={(e) => setForm({ ...form, revenue: e.target.value })}
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                          placeholder="0" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-1">MRR</label>
+                        <input type="number" value={form.mrr}
+                          onChange={(e) => setForm({ ...form, mrr: e.target.value })}
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                          placeholder="0" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-1">Лицензии</label>
+                        <input type="number" value={form.units}
+                          onChange={(e) => setForm({ ...form, units: e.target.value })}
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                          placeholder="1" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-1">Период подписки</label>
+                        <CustomSelect value={form.subscription_period} onChange={(v) => setForm({ ...form, subscription_period: v })} options={SUBSCRIPTION_PERIOD_OPTIONS} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ИННО: Внедрение + Генерация */}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                      <p className="text-sm font-semibold text-green-400 mb-3">Услуги внедрения</p>
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-1">Выручка</label>
+                        <input type="number" value={form.impl_revenue}
+                          onChange={(e) => setForm({ ...form, impl_revenue: e.target.value })}
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                          placeholder="0" />
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                      <p className="text-sm font-semibold text-purple-400 mb-3">Генерация контента</p>
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-1">Выручка</label>
+                        <input type="number" value={form.content_revenue}
+                          onChange={(e) => setForm({ ...form, content_revenue: e.target.value })}
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                          placeholder="0" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Equipment block */}
+                  <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
+                    <p className="text-sm font-semibold text-yellow-400 mb-3">Оборудование</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-1">Цена продажи</label>
+                        <input type="number" value={form.equipment_sell_price}
+                          onChange={(e) => setForm({ ...form, equipment_sell_price: e.target.value })}
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                          placeholder="0" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-1">Цена закупки</label>
+                        <input type="number" value={form.equipment_buy_price}
+                          onChange={(e) => setForm({ ...form, equipment_buy_price: e.target.value })}
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                          placeholder="0" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-white/60 mb-1">Маржа (авто)</label>
+                        <div className={cn(
+                          "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold",
+                          calcMargin(form.equipment_sell_price, form.equipment_buy_price) > 0 ? 'text-green-400' :
+                          calcMargin(form.equipment_sell_price, form.equipment_buy_price) < 0 ? 'text-red-400' : 'text-white/40'
+                        )}>
+                          {formatMoney(calcMargin(form.equipment_sell_price, form.equipment_buy_price))}
+                        </div>
+                        <p className="text-xs text-white/40 mt-1">продажа − 10% НДС − закупка</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-sm font-medium text-yellow-400">Оборудование</label>
-                        <span className="text-xs text-white/40">маржа {formatMoney(Number(partialPopup.deal.equipment_margin))}</span>
-                      </div>
-                      <input type="number" value={partialForm.equipment}
-                        onChange={(e) => setPartialForm({ ...partialForm, equipment: e.target.value })}
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-yellow-500 focus:outline-none"
-                        placeholder="0" />
+                      <label className="block text-sm font-medium text-white mb-1">Планируемая дата оплаты</label>
+                      <input type="date" value={form.planned_payment_date}
+                        onChange={(e) => setForm({ ...form, planned_payment_date: e.target.value })}
+                        onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none date-input-clean cursor-pointer" />
                     </div>
-                  )}
-                </div>
+                  </div>
+                </>
               )}
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-white mb-1">Дата оплаты</label>
-                <input type="date" value={partialForm.paid_at}
-                  onChange={(e) => setPartialForm({ ...partialForm, paid_at: e.target.value })}
-                  onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none date-input-clean cursor-pointer" />
+                <label className="block text-sm font-medium text-white mb-1">Заметки</label>
+                <input type="text" value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                  placeholder="Комментарий к сделке..." />
               </div>
 
-              <div className="flex gap-3">
-                <button onClick={() => setPartialPopup(null)}
-                  className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-white/60 hover:bg-white/5 transition-colors">
-                  Отмена
-                </button>
-                <button onClick={confirmPartialPayment}
-                  className="flex-1 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-600 transition-colors flex items-center justify-center gap-2">
-                  <Check size={16} />
-                  Записать
-                </button>
+              <button type="submit" disabled={saving}
+                className="flex items-center gap-2 rounded-xl bg-blue-500 px-6 py-3 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-50 transition-colors">
+                {saving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                {editingDeal ? 'Сохранить' : 'Создать сделку'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Partial payment popup — вынесен из main для корректного fixed */}
+      {partialPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setPartialPopup(null)} />
+          <div className="relative rounded-2xl glass p-6 shadow-xl w-[480px] max-h-[90vh] overflow-y-auto">
+            <h3 className="text-base font-bold text-white mb-1">Записать оплату</h3>
+            <p className="text-xs text-white/40 mb-4">{partialPopup.deal.client_name}</p>
+
+            {isBonda ? (
+              <div className="space-y-3 mb-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-sm font-medium text-purple-400">Сумма контракта</label>
+                    <span className="text-xs text-white/40">из {formatMoney(Number(partialPopup.deal.revenue || 0))}</span>
+                  </div>
+                  <input type="number" value={partialForm.amount}
+                    onChange={(e) => setPartialForm({ ...partialForm, amount: e.target.value })}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none"
+                    placeholder="0" />
+                </div>
               </div>
+            ) : (
+              <div className="space-y-3 mb-4">
+                {Number(partialPopup.deal.revenue || 0) > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-sm font-medium text-blue-400">Лицензия</label>
+                      <span className="text-xs text-white/40">из {formatMoney(Number(partialPopup.deal.revenue))}</span>
+                    </div>
+                    <input type="number" value={partialForm.license}
+                      onChange={(e) => setPartialForm({ ...partialForm, license: e.target.value })}
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                      placeholder="0" />
+                  </div>
+                )}
+                {Number(partialPopup.deal.impl_revenue || 0) > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-sm font-medium text-green-400">Внедрение</label>
+                      <span className="text-xs text-white/40">из {formatMoney(Number(partialPopup.deal.impl_revenue))}</span>
+                    </div>
+                    <input type="number" value={partialForm.impl}
+                      onChange={(e) => setPartialForm({ ...partialForm, impl: e.target.value })}
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-green-500 focus:outline-none"
+                      placeholder="0" />
+                  </div>
+                )}
+                {Number(partialPopup.deal.content_revenue || 0) > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-sm font-medium text-purple-400">Контент</label>
+                      <span className="text-xs text-white/40">из {formatMoney(Number(partialPopup.deal.content_revenue))}</span>
+                    </div>
+                    <input type="number" value={partialForm.content}
+                      onChange={(e) => setPartialForm({ ...partialForm, content: e.target.value })}
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none"
+                      placeholder="0" />
+                  </div>
+                )}
+                {Number(partialPopup.deal.equipment_margin || 0) > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-sm font-medium text-yellow-400">Оборудование</label>
+                      <span className="text-xs text-white/40">маржа {formatMoney(Number(partialPopup.deal.equipment_margin))}</span>
+                    </div>
+                    <input type="number" value={partialForm.equipment}
+                      onChange={(e) => setPartialForm({ ...partialForm, equipment: e.target.value })}
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-yellow-500 focus:outline-none"
+                      placeholder="0" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-white mb-1">Дата оплаты</label>
+              <input type="date" value={partialForm.paid_at}
+                onChange={(e) => setPartialForm({ ...partialForm, paid_at: e.target.value })}
+                onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none date-input-clean cursor-pointer" />
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setPartialPopup(null)}
+                className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-white/60 hover:bg-white/5 transition-colors">
+                Отмена
+              </button>
+              <button onClick={confirmPartialPayment}
+                className="flex-1 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-600 transition-colors flex items-center justify-center gap-2">
+                <Check size={16} />
+                Записать
+              </button>
             </div>
           </div>
-        )}
-      </main>
+        </div>
+      )}
     </div>
     </MobileRestricted>
   )
