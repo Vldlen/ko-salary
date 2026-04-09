@@ -117,13 +117,24 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string,
   const config = schema?.config || {}
   const baseSalary = schema?.base_salary || 0
 
-  // Calculate stats from deals
-  const paidDeals = deals.filter((d: any) => d.status === 'paid')
-  const dashDealFullRev = (d: any) => Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0)
+  // Calculate stats from deals (paid + partial)
+  const paidDeals = deals.filter((d: any) => d.status === 'paid' || d.status === 'partial')
+  const dashDealFullRev = (d: any) => {
+    if (d.status === 'partial') {
+      return Number(d.paid_license || 0) + Number(d.paid_impl || 0) + Number(d.paid_content || 0)
+    }
+    return Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0)
+  }
   const revenueFact = paidDeals.reduce((s: number, d: any) => s + dashDealFullRev(d), 0)
-  const revenueForecast = deals.filter((d: any) => d.status !== 'cancelled').reduce((s: number, d: any) => s + dashDealFullRev(d), 0)
-  const unitsFact = paidDeals.reduce((s: number, d: any) => s + d.units, 0)
-  const marginTotal = paidDeals.reduce((s: number, d: any) => s + Number(d.equipment_margin), 0)
+  const revenueForecast = deals.filter((d: any) => d.status !== 'cancelled').reduce((s: number, d: any) => s + (Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0)), 0)
+  const unitsFact = paidDeals.reduce((s: number, d: any) => {
+    if (d.status === 'partial') return s + (Number(d.paid_license || 0) >= Number(d.revenue || 0) ? d.units : 0)
+    return s + d.units
+  }, 0)
+  const marginTotal = paidDeals.reduce((s: number, d: any) => {
+    if (d.status === 'partial') return s + Number(d.paid_equipment || 0)
+    return s + Number(d.equipment_margin)
+  }, 0)
 
   // KPI entries (unique client meetings)
   const kpiEntriesCount = kpiEntries.length
@@ -448,19 +459,30 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
     const config = schema?.config || {}
     const baseSalary = schema?.base_salary || 0
 
-    const paidDeals = deals.filter((d: any) => d.status === 'paid')
-    const unpaidDeals = deals.filter((d: any) => d.status !== 'paid' && d.status !== 'cancelled')
+    const paidDeals = deals.filter((d: any) => d.status === 'paid' || d.status === 'partial')
+    const unpaidDeals = deals.filter((d: any) => d.status !== 'paid' && d.status !== 'partial' && d.status !== 'cancelled')
     const waitingDeals = deals.filter((d: any) => d.status === 'waiting_payment')
+    const partialDeals = deals.filter((d: any) => d.status === 'partial')
     const noInvoiceDeals = deals.filter((d: any) => d.status === 'no_invoice')
     const cancelledDeals = deals.filter((d: any) => d.status === 'cancelled')
 
     const dealFullRev = (d: any) => Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0)
-    const revenueFact = paidDeals.reduce((s: number, d: any) => s + dealFullRev(d), 0)
+    const dealPaidRev = (d: any) => {
+      if (d.status === 'partial') return Number(d.paid_license || 0) + Number(d.paid_impl || 0) + Number(d.paid_content || 0)
+      return dealFullRev(d)
+    }
+    const revenueFact = paidDeals.reduce((s: number, d: any) => s + dealPaidRev(d), 0)
     const revenueForecast = unpaidDeals.reduce((s: number, d: any) => s + dealFullRev(d), 0)
     const revenueWaiting = waitingDeals.reduce((s: number, d: any) => s + dealFullRev(d), 0)
-    const unitsFact = paidDeals.reduce((s: number, d: any) => s + d.units, 0)
+    const unitsFact = paidDeals.reduce((s: number, d: any) => {
+      if (d.status === 'partial') return s + (Number(d.paid_license || 0) >= Number(d.revenue || 0) ? d.units : 0)
+      return s + d.units
+    }, 0)
     const unitsWaiting = waitingDeals.reduce((s: number, d: any) => s + d.units, 0)
-    const marginFact = paidDeals.reduce((s: number, d: any) => s + Number(d.equipment_margin || 0), 0)
+    const marginFact = paidDeals.reduce((s: number, d: any) => {
+      if (d.status === 'partial') return s + Number(d.paid_equipment || 0)
+      return s + Number(d.equipment_margin || 0)
+    }, 0)
 
     const meetingsNew = meetings.reduce((s: number, m: any) => s + (m.new_completed || 0), 0)
     const meetingsRepeat = meetings.reduce((s: number, m: any) => s + (m.repeat_completed || 0), 0)

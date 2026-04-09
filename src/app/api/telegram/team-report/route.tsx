@@ -77,7 +77,7 @@ async function getTeamData(): Promise<{ inno: MemberData[]; bonda: MemberData[];
       .in('role', ['manager', 'rop']),
     supabase
       .from('deals')
-      .select('user_id, revenue, impl_revenue, content_revenue, forecast_revenue, units, status, product_type, mrr')
+      .select('user_id, revenue, impl_revenue, content_revenue, forecast_revenue, units, status, product_type, mrr, paid_license, paid_impl, paid_content, paid_equipment, paid_amount')
       .in('period_id', allPeriodIds),
     supabase
       .from('kpi_entries')
@@ -107,12 +107,15 @@ async function getTeamData(): Promise<{ inno: MemberData[]; bonda: MemberData[];
     const companyName = u.company?.name || ''
     const positionName = u.position?.name || ''
     const isBonda = companyName.toUpperCase().includes('БОНД')
-    const paid = ud.filter((d: any) => d.status === 'paid')
-    const unpaid = ud.filter((d: any) => d.status !== 'paid' && d.status !== 'cancelled')
+    const paid = ud.filter((d: any) => d.status === 'paid' || d.status === 'partial')
+    const unpaid = ud.filter((d: any) => d.status !== 'paid' && d.status !== 'partial' && d.status !== 'cancelled')
 
     return {
       name: u.full_name, position: positionName, company: companyName, isBonda,
-      revenue_fact: paid.reduce((s: number, d: any) => s + Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0), 0),
+      revenue_fact: paid.reduce((s: number, d: any) => {
+        if (d.status === 'partial') return s + Number(d.paid_license || 0) + Number(d.paid_impl || 0) + Number(d.paid_content || 0) + Number(d.paid_amount || 0)
+        return s + Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0)
+      }, 0),
       revenue_forecast: unpaid.reduce((s: number, d: any) => s + Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0), 0),
       revenue_plan: plan?.revenue_plan || 0,
       units_fact: paid.reduce((s: number, d: any) => s + (d.units || 0), 0),

@@ -29,6 +29,7 @@ export function getDealStatusLabel(status: string): string {
   const labels: Record<string, string> = {
     no_invoice: 'Нет счёта',
     waiting_payment: 'Жду оплату',
+    partial: 'Частично оплачено',
     paid: 'Оплачено',
   }
   return labels[status] || status
@@ -38,6 +39,7 @@ export function getDealStatusColor(status: string): string {
   const colors: Record<string, string> = {
     no_invoice: 'bg-white/10 text-white/60',
     waiting_payment: 'bg-orange-500/20 text-orange-400',
+    partial: 'bg-yellow-500/20 text-yellow-400',
     paid: 'bg-emerald-500/20 text-emerald-400',
   }
   return colors[status] || 'bg-white/10 text-white/60'

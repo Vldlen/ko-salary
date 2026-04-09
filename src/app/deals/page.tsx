@@ -16,12 +16,14 @@ const STATUS_FILTERS = [
   { key: 'all', label: 'Все' },
   { key: 'no_invoice', label: 'Нет счёта' },
   { key: 'waiting_payment', label: 'Жду оплату' },
+  { key: 'partial', label: 'Частично' },
   { key: 'paid', label: 'Оплачено' },
 ]
 
 const STATUS_OPTIONS = [
   { value: 'no_invoice', label: 'Нет счёта' },
   { value: 'waiting_payment', label: 'Жду оплату' },
+  { value: 'partial', label: 'Частично оплачено' },
   { value: 'paid', label: 'Оплачено' },
 ]
 
@@ -93,6 +95,10 @@ export default function DealsPage() {
   // Payment date popup state
   const [paidPopup, setPaidPopup] = useState<{ dealId: string; rect: DOMRect } | null>(null)
   const [paidDate, setPaidDate] = useState(new Date().toISOString().slice(0, 10))
+
+  // Partial payment popup state
+  const [partialPopup, setPartialPopup] = useState<{ deal: any } | null>(null)
+  const [partialForm, setPartialForm] = useState({ license: '', impl: '', content: '', equipment: '', amount: '', paid_at: new Date().toISOString().slice(0, 10) })
 
   // Load current user once
   useEffect(() => {
@@ -237,6 +243,66 @@ export default function DealsPage() {
       setPaidPopup(null)
     } catch (err: any) {
       alert(err.message || 'Ошибка')
+    }
+  }
+
+  async function openPartialPayment(deal: any) {
+    setPartialPopup({ deal })
+    setPartialForm({
+      license: String(Number(deal.paid_license || 0)),
+      impl: String(Number(deal.paid_impl || 0)),
+      content: String(Number(deal.paid_content || 0)),
+      equipment: String(Number(deal.paid_equipment || 0)),
+      amount: String(Number(deal.paid_amount || 0)),
+      paid_at: deal.paid_at || new Date().toISOString().slice(0, 10),
+    })
+  }
+
+  async function confirmPartialPayment() {
+    if (!partialPopup) return
+    const deal = partialPopup.deal
+    try {
+      const paidLicense = Number(partialForm.license) || 0
+      const paidImpl = Number(partialForm.impl) || 0
+      const paidContent = Number(partialForm.content) || 0
+      const paidEquipment = Number(partialForm.equipment) || 0
+      const paidAmount = Number(partialForm.amount) || 0
+
+      // Auto-determine status for ИННО
+      const totalDeal = Number(deal.revenue || 0) + Number(deal.impl_revenue || 0) + Number(deal.content_revenue || 0) + Number(deal.equipment_margin || 0)
+      const totalPaid = paidLicense + paidImpl + paidContent + paidEquipment
+      // For БОНДА
+      const bondaTotalPaid = paidAmount
+
+      let newStatus: string
+      if (isBonda) {
+        const dealRevenue = Number(deal.revenue || 0)
+        if (bondaTotalPaid <= 0) newStatus = deal.status === 'no_invoice' ? 'no_invoice' : 'waiting_payment'
+        else if (bondaTotalPaid >= dealRevenue) newStatus = 'paid'
+        else newStatus = 'partial'
+      } else {
+        if (totalPaid <= 0) newStatus = deal.status === 'no_invoice' ? 'no_invoice' : 'waiting_payment'
+        else if (paidLicense >= Number(deal.revenue || 0) && paidImpl >= Number(deal.impl_revenue || 0) && paidContent >= Number(deal.content_revenue || 0) && paidEquipment >= Number(deal.equipment_margin || 0)) newStatus = 'paid'
+        else newStatus = 'partial'
+      }
+
+      const updates: Record<string, any> = {
+        status: newStatus,
+        paid_license: paidLicense,
+        paid_impl: paidImpl,
+        paid_content: paidContent,
+        paid_equipment: paidEquipment,
+        paid_amount: paidAmount,
+        paid_at: partialForm.paid_at || null,
+      }
+
+      await updateDeal(supabase, deal.id, updates)
+      const targetUserId = effectiveUserId(user.id)
+      const dealsData = await getDeals(supabase, targetUserId, period.id, selectedStatus)
+      setDeals(dealsData)
+      setPartialPopup(null)
+    } catch (err: any) {
+      alert(err.message || 'Ошибка записи оплаты')
     }
   }
 
@@ -672,7 +738,7 @@ export default function DealsPage() {
                     )}
                     <td className="px-4 py-4">
                       <div className="flex flex-col gap-1">
-                        {STATUS_OPTIONS.map((opt) => (
+                        {[...STATUS_OPTIONS.slice(0, 2), { value: 'partial', label: 'Частично' }, ...STATUS_OPTIONS.slice(2)].map((opt) => (
                           <button key={opt.value}
                             onClick={(e) => deal.status !== opt.value && handleStatusChange(deal.id, opt.value, e)}
                             className={cn(
@@ -695,6 +761,13 @@ export default function DealsPage() {
                     <td className="px-4 py-4">
                       {user?.role === 'manager' && !isViewingAs && (
                         <div className="flex items-center justify-end gap-2">
+                          {deal.status !== 'paid' && (
+                            <button onClick={() => openPartialPayment(deal)}
+                              className="rounded-lg px-2 py-1 text-xs font-medium text-green-400 hover:bg-green-500/10 transition-colors whitespace-nowrap"
+                              title="Записать оплату">
+                              ₽
+                            </button>
+                          )}
                           <button onClick={() => openEdit(deal)}
                             className="rounded-lg p-2 text-blue-400 hover:bg-white/5 transition-colors"
                             title="Редактировать">
@@ -743,6 +816,103 @@ export default function DealsPage() {
                   className="flex-1 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-600 transition-colors flex items-center justify-center gap-2">
                   <Check size={16} />
                   Оплачено
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Partial payment popup */}
+        {partialPopup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setPartialPopup(null)} />
+            <div className="relative rounded-2xl glass p-6 shadow-xl w-[480px] max-h-[90vh] overflow-y-auto">
+              <h3 className="text-base font-bold text-white mb-1">Записать оплату</h3>
+              <p className="text-xs text-white/40 mb-4">{partialPopup.deal.client_name}</p>
+
+              {isBonda ? (
+                <div className="space-y-3 mb-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-sm font-medium text-purple-400">Сумма контракта</label>
+                      <span className="text-xs text-white/40">из {formatMoney(Number(partialPopup.deal.revenue || 0))}</span>
+                    </div>
+                    <input type="number" value={partialForm.amount}
+                      onChange={(e) => setPartialForm({ ...partialForm, amount: e.target.value })}
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none"
+                      placeholder="0" />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 mb-4">
+                  {Number(partialPopup.deal.revenue || 0) > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-sm font-medium text-blue-400">Лицензия</label>
+                        <span className="text-xs text-white/40">из {formatMoney(Number(partialPopup.deal.revenue))}</span>
+                      </div>
+                      <input type="number" value={partialForm.license}
+                        onChange={(e) => setPartialForm({ ...partialForm, license: e.target.value })}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                        placeholder="0" />
+                    </div>
+                  )}
+                  {Number(partialPopup.deal.impl_revenue || 0) > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-sm font-medium text-green-400">Внедрение</label>
+                        <span className="text-xs text-white/40">из {formatMoney(Number(partialPopup.deal.impl_revenue))}</span>
+                      </div>
+                      <input type="number" value={partialForm.impl}
+                        onChange={(e) => setPartialForm({ ...partialForm, impl: e.target.value })}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-green-500 focus:outline-none"
+                        placeholder="0" />
+                    </div>
+                  )}
+                  {Number(partialPopup.deal.content_revenue || 0) > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-sm font-medium text-purple-400">Контент</label>
+                        <span className="text-xs text-white/40">из {formatMoney(Number(partialPopup.deal.content_revenue))}</span>
+                      </div>
+                      <input type="number" value={partialForm.content}
+                        onChange={(e) => setPartialForm({ ...partialForm, content: e.target.value })}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none"
+                        placeholder="0" />
+                    </div>
+                  )}
+                  {Number(partialPopup.deal.equipment_margin || 0) > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-sm font-medium text-yellow-400">Оборудование</label>
+                        <span className="text-xs text-white/40">маржа {formatMoney(Number(partialPopup.deal.equipment_margin))}</span>
+                      </div>
+                      <input type="number" value={partialForm.equipment}
+                        onChange={(e) => setPartialForm({ ...partialForm, equipment: e.target.value })}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-yellow-500 focus:outline-none"
+                        placeholder="0" />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-white mb-1">Дата оплаты</label>
+                <input type="date" value={partialForm.paid_at}
+                  onChange={(e) => setPartialForm({ ...partialForm, paid_at: e.target.value })}
+                  onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none date-input-clean cursor-pointer" />
+              </div>
+
+              <div className="flex gap-3">
+                <button onClick={() => setPartialPopup(null)}
+                  className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-white/60 hover:bg-white/5 transition-colors">
+                  Отмена
+                </button>
+                <button onClick={confirmPartialPayment}
+                  className="flex-1 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-600 transition-colors flex items-center justify-center gap-2">
+                  <Check size={16} />
+                  Записать
                 </button>
               </div>
             </div>

@@ -110,10 +110,15 @@ export function calculateSalary(input: CalcInput): CalcResult {
   const config = schema.config
 
   // --- Revenue ---
-  const paidDeals = deals.filter(d => d.status === 'paid')
+  // Включаем paid И partial сделки в фактические расчёты
+  const paidDeals = deals.filter(d => d.status === 'paid' || d.status === 'partial')
   const forecastDeals = deals.filter(d => d.status !== 'cancelled')
 
-  const revenueFact = paidDeals.reduce((sum, d) => sum + Number(d.revenue), 0)
+  // Для paid сделок берём полную сумму, для partial — оплаченную часть (paid_license)
+  const revenueFact = paidDeals.reduce((sum, d) => {
+    if (d.status === 'partial') return sum + Number((d as any).paid_license || 0)
+    return sum + Number(d.revenue)
+  }, 0)
   const revenueForecast = forecastDeals.reduce((sum, d) => {
     return sum + Number(d.forecast_revenue ?? d.revenue)
   }, 0)
@@ -123,7 +128,13 @@ export function calculateSalary(input: CalcInput): CalcResult {
   const revenueForecastPercent = revenuePlan > 0 ? revenueForecast / revenuePlan : 0
 
   // --- Units (лицензии) ---
-  const unitsFact = paidDeals.reduce((sum, d) => sum + d.units, 0)
+  // Partial: лицензии считаются только если paid_license >= revenue (оплачена лицензия полностью)
+  const unitsFact = paidDeals.reduce((sum, d) => {
+    if (d.status === 'partial') {
+      return sum + (Number((d as any).paid_license || 0) >= Number(d.revenue) ? d.units : 0)
+    }
+    return sum + d.units
+  }, 0)
   const unitsForecast = forecastDeals.reduce((sum, d) => sum + d.units, 0)
   const unitsPlan = individualPlan?.units_plan ?? config.units_plan
   const unitsPercent = unitsPlan > 0 ? unitsFact / unitsPlan : 0
@@ -188,6 +199,10 @@ export function calculateSalary(input: CalcInput): CalcResult {
   // Новые поля: impl_revenue, content_revenue на самой сделке
   // + обратная совместимость со старыми сделками по product_type
   const implRevenue = paidDeals.reduce((sum, d) => {
+    if (d.status === 'partial') {
+      // Partial: берём только оплаченные суммы внедрения и контента
+      return sum + Number((d as any).paid_impl || 0) + Number((d as any).paid_content || 0)
+    }
     let rev = Number(d.impl_revenue || 0) + Number(d.content_revenue || 0)
     // Обратная совместимость: старые сделки с product_type
     if (rev === 0 && (d.product_type === 'inno_implementation' || d.product_type === 'inno_content')) {
@@ -224,7 +239,10 @@ export function calculateSalary(input: CalcInput): CalcResult {
   // --- Margin bonus (железо) ---
   let marginBonus = 0
   if (config.margin_bonus.enabled) {
-    const marginTotal = paidDeals.reduce((sum, d) => sum + Number(d.equipment_margin), 0)
+    const marginTotal = paidDeals.reduce((sum, d) => {
+      if (d.status === 'partial') return sum + Number((d as any).paid_equipment || 0)
+      return sum + Number(d.equipment_margin)
+    }, 0)
     marginBonus = marginTotal * config.margin_bonus.percent
   }
 

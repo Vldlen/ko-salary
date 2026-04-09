@@ -69,7 +69,14 @@ export function calculateBondaSalary(input: BondaCalcInput): BondaCalcResult {
 
   const BI_PERCENT = biPercents && Object.keys(biPercents).length > 0 ? biPercents : DEFAULT_BI_PERCENT
 
-  const paidDeals = deals.filter(d => d.status === 'paid')
+  // Включаем paid и partial сделки
+  const paidDeals = deals.filter(d => d.status === 'paid' || d.status === 'partial')
+
+  // Для partial сделок — берём paid_amount вместо revenue
+  const getDealRevenue = (d: Deal) => {
+    if (d.status === 'partial') return Number((d as any).paid_amount || 0)
+    return Number(d.revenue)
+  }
 
   // --- Считаем ФД ---
   const fdDeals = paidDeals.filter(d => d.product_type === 'findir')
@@ -87,12 +94,13 @@ export function calculateBondaSalary(input: BondaCalcInput): BondaCalcResult {
     const period = deal.subscription_period || 'month'
     const months = PERIOD_MONTHS[period] || 1
     const coeff = FD_PERIOD_COEFF[period] || 1
-    const monthlyPart = Number(deal.revenue) / months
+    const rev = getDealRevenue(deal)
+    const monthlyPart = rev / months
     const bonus = Math.round(monthlyPart * effectiveFdPercent * coeff)
     pushBonusFd += bonus
     fdBreakdown.push({
       client: deal.client_name,
-      revenue: Number(deal.revenue),
+      revenue: rev,
       period,
       bonus,
     })
@@ -107,12 +115,13 @@ export function calculateBondaSalary(input: BondaCalcInput): BondaCalcResult {
     const period = deal.subscription_period || 'month'
     const months = PERIOD_MONTHS[period] || 1
     const percent = BI_PERCENT[period] || 0.5
-    const monthlyPart = Number(deal.revenue) / months
+    const rev = getDealRevenue(deal)
+    const monthlyPart = rev / months
     const bonus = Math.round(monthlyPart * percent)
     pushBonusBi += bonus
     biBreakdown.push({
       client: deal.client_name,
-      revenue: Number(deal.revenue),
+      revenue: rev,
       period,
       bonus,
     })
@@ -124,11 +133,12 @@ export function calculateBondaSalary(input: BondaCalcInput): BondaCalcResult {
   let pushBonusOneTime = 0
 
   for (const deal of oneTimeDeals) {
-    const bonus = Math.round(Number(deal.revenue) * oneTimeServicePercent)
+    const rev = getDealRevenue(deal)
+    const bonus = Math.round(rev * oneTimeServicePercent)
     pushBonusOneTime += bonus
     otBreakdown.push({
       client: deal.client_name,
-      revenue: Number(deal.revenue),
+      revenue: rev,
       bonus,
     })
   }
