@@ -69,7 +69,7 @@ async function getTeamData(): Promise<{ inno: MemberData[]; bonda: MemberData[];
   const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
   const periodLabel = `${monthNames[firstPeriod.month - 1]} ${firstPeriod.year} · ${dayStr} ${monShort}., ${timeStr}`
 
-  const [usersRes, dealsRes, meetingsRes, plansRes] = await Promise.all([
+  const [usersRes, dealsRes, kpiEntriesRes, plansRes] = await Promise.all([
     supabase
       .from('users')
       .select('id, full_name, role, company_id, position_id, company:companies(id, name), position:positions(name)')
@@ -80,8 +80,8 @@ async function getTeamData(): Promise<{ inno: MemberData[]; bonda: MemberData[];
       .select('user_id, revenue, impl_revenue, content_revenue, forecast_revenue, units, status, product_type, mrr')
       .in('period_id', allPeriodIds),
     supabase
-      .from('meetings')
-      .select('user_id, new_completed, repeat_completed')
+      .from('kpi_entries')
+      .select('user_id')
       .in('period_id', allPeriodIds),
     supabase
       .from('individual_plans')
@@ -91,19 +91,18 @@ async function getTeamData(): Promise<{ inno: MemberData[]; bonda: MemberData[];
 
   const users = usersRes.data || []
   const deals = dealsRes.data || []
-  const meetings = meetingsRes.data || []
+  const kpiEntries = kpiEntriesRes.data || []
   const plans = plansRes.data || []
 
   const dealsByUser = new Map<string, any[]>()
   for (const d of deals) { const l = dealsByUser.get(d.user_id) || []; l.push(d); dealsByUser.set(d.user_id, l) }
-  const meetingsByUser = new Map<string, any[]>()
-  for (const m of meetings) { const l = meetingsByUser.get(m.user_id) || []; l.push(m); meetingsByUser.set(m.user_id, l) }
+  const kpiCountByUser = new Map<string, number>()
+  for (const k of kpiEntries) { kpiCountByUser.set(k.user_id, (kpiCountByUser.get(k.user_id) || 0) + 1) }
   const plansByUser = new Map<string, any>()
   for (const p of plans) plansByUser.set(p.user_id, p)
 
   const members: MemberData[] = users.map((u: any) => {
     const ud = dealsByUser.get(u.id) || []
-    const um = meetingsByUser.get(u.id) || []
     const plan = plansByUser.get(u.id)
     const companyName = u.company?.name || ''
     const positionName = u.position?.name || ''
@@ -119,7 +118,7 @@ async function getTeamData(): Promise<{ inno: MemberData[]; bonda: MemberData[];
       units_fact: paid.reduce((s: number, d: any) => s + (d.units || 0), 0),
       units_forecast: unpaid.reduce((s: number, d: any) => s + (d.units || 0), 0),
       units_plan: plan?.units_plan || 0,
-      meetings_fact: um.reduce((s: number, m: any) => s + (m.new_completed || 0) + (m.repeat_completed || 0), 0),
+      meetings_fact: kpiCountByUser.get(u.id) || 0,
       mrr: paid.reduce((s: number, d: any) => s + Number(d.mrr || 0), 0),
       mrr_forecast: unpaid.reduce((s: number, d: any) => s + Number(d.mrr || 0), 0),
       fd_count: ud.filter((d: any) => d.product_type === 'findir').length,
