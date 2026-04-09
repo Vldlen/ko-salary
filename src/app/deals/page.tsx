@@ -214,12 +214,17 @@ export default function DealsPage() {
     }
   }
 
-  async function handleStatusChange(dealId: string, newStatus: string, e?: React.MouseEvent) {
+  async function handleStatusChange(dealId: string, newStatus: string, e?: React.MouseEvent, deal?: any) {
     if (newStatus === 'paid') {
       // Show date popup
       const rect = (e?.currentTarget as HTMLElement)?.getBoundingClientRect()
       setPaidPopup({ dealId, rect: rect || new DOMRect() })
       setPaidDate(new Date().toISOString().slice(0, 10))
+      return
+    }
+    if (newStatus === 'partial' && deal) {
+      // Open partial payment popup to enter amounts
+      openPartialPayment(deal)
       return
     }
     try {
@@ -545,9 +550,9 @@ export default function DealsPage() {
                     )}
                     <td className="px-4 py-4">
                       <div className="flex flex-col gap-1">
-                        {[...STATUS_OPTIONS.slice(0, 2), { value: 'partial', label: 'Частично' }, ...STATUS_OPTIONS.slice(2)].map((opt) => (
+                        {STATUS_OPTIONS.map((opt) => (
                           <button key={opt.value}
-                            onClick={(e) => deal.status !== opt.value && handleStatusChange(deal.id, opt.value, e)}
+                            onClick={(e) => deal.status !== opt.value && handleStatusChange(deal.id, opt.value, e, deal)}
                             className={cn(
                               'rounded-full px-3 py-1 text-xs font-semibold transition-all text-left whitespace-nowrap',
                               deal.status === opt.value
