@@ -407,7 +407,7 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
   const [dealsRes, meetingsRes, plansRes] = await Promise.all([
     supabase
       .from('deals')
-      .select('user_id, client_name, revenue, impl_revenue, content_revenue, forecast_revenue, units, status, equipment_margin, product_type, subscription_period, planned_payment_date, notes, mrr, created_at')
+      .select('user_id, client_name, revenue, impl_revenue, content_revenue, forecast_revenue, units, status, equipment_margin, product_type, subscription_period, planned_payment_date, notes, mrr, created_at, paid_license, paid_impl, paid_content, paid_equipment, paid_amount')
       .in('period_id', allPeriodIds)
       .in('user_id', userIds)
       .order('created_at', { ascending: false }),
