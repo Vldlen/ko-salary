@@ -266,11 +266,11 @@ export default function DealsPage() {
     if (!partialPopup) return
     const deal = partialPopup.deal
     try {
-      const paidLicense = Number(partialForm.license) || 0
-      const paidImpl = Number(partialForm.impl) || 0
-      const paidContent = Number(partialForm.content) || 0
-      const paidEquipment = Number(partialForm.equipment) || 0
-      const paidAmount = Number(partialForm.amount) || 0
+      const paidLicense = Math.min(Number(partialForm.license) || 0, Number(deal.revenue || 0))
+      const paidImpl = Math.min(Number(partialForm.impl) || 0, Number(deal.impl_revenue || 0))
+      const paidContent = Math.min(Number(partialForm.content) || 0, Number(deal.content_revenue || 0))
+      const paidEquipment = Math.min(Number(partialForm.equipment) || 0, Number(deal.equipment_margin || 0))
+      const paidAmount = Math.min(Number(partialForm.amount) || 0, Number(deal.revenue || 0))
 
       // Auto-determine status for ИННО
       const totalDeal = Number(deal.revenue || 0) + Number(deal.impl_revenue || 0) + Number(deal.content_revenue || 0) + Number(deal.equipment_margin || 0)
@@ -875,8 +875,8 @@ export default function DealsPage() {
                     <label className="text-sm font-medium text-purple-400">Сумма контракта</label>
                     <span className="text-xs text-white/40">{formatMoney(tA)}</span>
                   </div>
-                  <input type="number" value={partialForm.amount}
-                    onChange={(e) => setPartialForm({ ...partialForm, amount: e.target.value })}
+                  <input type="number" min="0" max={tA} value={partialForm.amount}
+                    onChange={(e) => { const v = Math.min(Number(e.target.value) || 0, tA); setPartialForm({ ...partialForm, amount: String(v) }) }}
                     className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none"
                     placeholder="0" />
                   <div className="mt-1.5 h-1.5 rounded-full bg-white/10 overflow-hidden">
@@ -898,8 +898,8 @@ export default function DealsPage() {
                       <label className="text-sm font-medium text-blue-400">Лицензия</label>
                       <span className="text-xs text-white/40">{formatMoney(tL)}</span>
                     </div>
-                    <input type="number" value={partialForm.license}
-                      onChange={(e) => setPartialForm({ ...partialForm, license: e.target.value })}
+                    <input type="number" min="0" max={tL} value={partialForm.license}
+                      onChange={(e) => { const v = Math.min(Number(e.target.value) || 0, tL); setPartialForm({ ...partialForm, license: String(v) }) }}
                       className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
                       placeholder="0" />
                     <div className="mt-1.5 h-1.5 rounded-full bg-white/10 overflow-hidden">
@@ -919,8 +919,8 @@ export default function DealsPage() {
                       <label className="text-sm font-medium text-green-400">Внедрение</label>
                       <span className="text-xs text-white/40">{formatMoney(tI)}</span>
                     </div>
-                    <input type="number" value={partialForm.impl}
-                      onChange={(e) => setPartialForm({ ...partialForm, impl: e.target.value })}
+                    <input type="number" min="0" max={tI} value={partialForm.impl}
+                      onChange={(e) => { const v = Math.min(Number(e.target.value) || 0, tI); setPartialForm({ ...partialForm, impl: String(v) }) }}
                       className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-green-500 focus:outline-none"
                       placeholder="0" />
                     <div className="mt-1.5 h-1.5 rounded-full bg-white/10 overflow-hidden">
@@ -940,8 +940,8 @@ export default function DealsPage() {
                       <label className="text-sm font-medium text-purple-400">Контент</label>
                       <span className="text-xs text-white/40">{formatMoney(tC)}</span>
                     </div>
-                    <input type="number" value={partialForm.content}
-                      onChange={(e) => setPartialForm({ ...partialForm, content: e.target.value })}
+                    <input type="number" min="0" max={tC} value={partialForm.content}
+                      onChange={(e) => { const v = Math.min(Number(e.target.value) || 0, tC); setPartialForm({ ...partialForm, content: String(v) }) }}
                       className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none"
                       placeholder="0" />
                     <div className="mt-1.5 h-1.5 rounded-full bg-white/10 overflow-hidden">
@@ -961,8 +961,8 @@ export default function DealsPage() {
                       <label className="text-sm font-medium text-yellow-400">Оборудование</label>
                       <span className="text-xs text-white/40">маржа {formatMoney(tE)}</span>
                     </div>
-                    <input type="number" value={partialForm.equipment}
-                      onChange={(e) => setPartialForm({ ...partialForm, equipment: e.target.value })}
+                    <input type="number" min="0" max={tE} value={partialForm.equipment}
+                      onChange={(e) => { const v = Math.min(Number(e.target.value) || 0, tE); setPartialForm({ ...partialForm, equipment: String(v) }) }}
                       className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-yellow-500 focus:outline-none"
                       placeholder="0" />
                     <div className="mt-1.5 h-1.5 rounded-full bg-white/10 overflow-hidden">
