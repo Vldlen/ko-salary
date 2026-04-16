@@ -89,7 +89,7 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4">
+      <nav className="flex-1 px-3 py-4 overflow-y-auto">
         {sections.map((section, idx) => (
           <div key={idx} className={idx > 0 ? 'mt-4' : ''}>
             {section.title && (
@@ -164,14 +164,16 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
         />
       )}
 
-      {/* Sidebar - desktop: always visible, mobile: slide-in drawer */}
+      {/* Sidebar - desktop: always visible, fixed */}
       <aside className={cn(
-        'glass-sidebar min-h-screen flex flex-col z-50',
+        'glass-sidebar h-screen flex flex-col z-50',
         // Desktop
-        'hidden lg:flex lg:w-64 lg:relative',
+        'hidden lg:flex lg:w-64 lg:fixed lg:top-0 lg:left-0',
       )}>
         {sidebarContent}
       </aside>
+      {/* Spacer to offset main content from fixed sidebar */}
+      <div className="hidden lg:block lg:w-64 lg:flex-shrink-0" />
 
       {/* Mobile drawer */}
       <aside className={cn(

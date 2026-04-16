@@ -56,7 +56,7 @@ const EMPTY_FORM = {
   status: 'no_invoice',
   planned_payment_date: '',
   notes: '',
-  product_type: '',
+  product_type: 'findir',
   subscription_period: 'month',
   amo_link: '',
   impl_revenue: '',
@@ -105,7 +105,6 @@ export default function DealsPage() {
       try {
         const currentUser = await getCurrentUser(supabase)
         if (!currentUser) { router.push('/login'); return }
-        if (currentUser.role === 'founder') { router.push('/team'); return }
         setUser(currentUser)
       } catch (err) {
         console.error('Deals load error:', err)
@@ -122,8 +121,8 @@ export default function DealsPage() {
     const targetUserId = effectiveUserId(user.id)
     const targetCompanyId = effectiveCompanyId(user.company_id)
 
-    // Admin/director/rop without viewAs — show empty
-    if (['admin', 'director', 'rop'].includes(user.role) && !isViewingAs) {
+    // Admin/director/rop/founder without viewAs — show empty
+    if (['admin', 'director', 'rop', 'founder'].includes(user.role) && !isViewingAs) {
       setDeals([])
       setPeriod(null)
       return
@@ -334,7 +333,7 @@ export default function DealsPage() {
 
   function openNew() {
     setEditingDeal(null)
-    setForm(EMPTY_FORM)
+    setForm({ ...EMPTY_FORM, product_type: isBonda ? 'findir' : 'inno_license' })
     setShowForm(true)
     setError('')
   }
@@ -436,7 +435,7 @@ export default function DealsPage() {
           </div>
 
           {/* Empty prompt for admin without viewAs */}
-          {['admin', 'director', 'rop'].includes(user?.role) && !isViewingAs && (
+          {['admin', 'director', 'rop', 'founder'].includes(user?.role) && !isViewingAs && (
             <div className="glass rounded-2xl p-12 text-center">
               <Eye className="w-12 h-12 text-white/15 mx-auto mb-4" />
               <h2 className="text-lg font-heading font-bold text-white mb-2">Выберите менеджера</h2>
