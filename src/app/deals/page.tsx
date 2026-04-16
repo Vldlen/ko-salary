@@ -356,7 +356,7 @@ export default function DealsPage() {
 
   const filteredDeals = deals
   const totalRevenue = filteredDeals.reduce((sum, deal) => sum + Number(deal.revenue) + Number(deal.impl_revenue || 0) + Number(deal.content_revenue || 0), 0)
-  const totalUnits = filteredDeals.reduce((sum, deal) => sum + deal.units, 0)
+  const totalUnits = filteredDeals.reduce((sum, deal) => Number(deal.revenue) > 0 ? sum + deal.units : sum, 0)
   const totalMargin = filteredDeals.reduce((sum, deal) => sum + Number(deal.equipment_margin || 0), 0)
   const dealsCount = filteredDeals.length
   const averageCheck = dealsCount > 0 ? Math.round(totalRevenue / dealsCount) : 0
@@ -523,9 +523,9 @@ export default function DealsPage() {
                     ) : (
                       <>
                         <td className="px-4 py-4">
-                          {Number(deal.revenue) > 0 || Number(deal.mrr) > 0 ? (
+                          {Number(deal.revenue) > 0 ? (
                             <div className="text-xs leading-relaxed">
-                              {Number(deal.revenue) > 0 && <p className="text-white/50">Выр: <span className="text-white font-medium">{formatMoney(Number(deal.revenue))}</span></p>}
+                              <p className="text-white/50">Выр: <span className="text-white font-medium">{formatMoney(Number(deal.revenue))}</span></p>
                               {Number(deal.mrr) > 0 && <p className="text-white/50">MRR: <span className="text-blue-400 font-medium">{formatMoney(Number(deal.mrr))}</span></p>}
                               <p className="text-white/50">Лиц.: <span className="text-white font-medium">{deal.units}</span></p>
                             </div>

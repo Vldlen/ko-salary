@@ -129,6 +129,7 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string,
   const revenueFact = paidDeals.reduce((s: number, d: any) => s + dashDealFullRev(d), 0)
   const revenueForecast = deals.filter((d: any) => d.status !== 'cancelled').reduce((s: number, d: any) => s + (Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0)), 0)
   const unitsFact = paidDeals.reduce((s: number, d: any) => {
+    if (Number(d.revenue || 0) <= 0) return s  // no license revenue — skip
     if (d.status === 'partial') return s + (Number(d.paid_license || 0) >= Number(d.revenue || 0) ? d.units : 0)
     return s + d.units
   }, 0)
@@ -256,7 +257,7 @@ export async function getPreviousPeriodComparison(
     revenue_total: paidDeals.reduce((s: number, d: any) => s + Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0), 0),
     deals_at_same_day: dealsBeforeDay.length,
     deals_total: deals.length,
-    units_at_same_day: paidBeforeDay.reduce((s: number, d: any) => s + d.units, 0),
+    units_at_same_day: paidBeforeDay.reduce((s: number, d: any) => Number(d.revenue || 0) > 0 ? s + d.units : s, 0),
     meetings_at_same_day: meetingsBeforeDay.reduce((s: number, m: any) => s + m.new_completed + m.repeat_completed, 0),
   }
 }
@@ -476,10 +477,11 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
     const revenueForecast = unpaidDeals.reduce((s: number, d: any) => s + dealFullRev(d), 0)
     const revenueWaiting = waitingDeals.reduce((s: number, d: any) => s + dealFullRev(d), 0)
     const unitsFact = paidDeals.reduce((s: number, d: any) => {
+      if (Number(d.revenue || 0) <= 0) return s  // no license revenue — skip
       if (d.status === 'partial') return s + (Number(d.paid_license || 0) >= Number(d.revenue || 0) ? d.units : 0)
       return s + d.units
     }, 0)
-    const unitsWaiting = waitingDeals.reduce((s: number, d: any) => s + d.units, 0)
+    const unitsWaiting = waitingDeals.reduce((s: number, d: any) => Number(d.revenue || 0) > 0 ? s + d.units : s, 0)
     const marginFact = paidDeals.reduce((s: number, d: any) => {
       if (d.status === 'partial') return s + Number(d.paid_equipment || 0)
       return s + Number(d.equipment_margin || 0)
