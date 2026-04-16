@@ -7,6 +7,7 @@ import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import ViewAsBar from '@/components/ViewAsBar'
 import CustomSelect from '@/components/CustomSelect'
+import DealIcon from '@/components/DealIcon'
 import { formatMoney, getDealStatusLabel, getDealStatusColor, getProductTypeLabel, getSubscriptionPeriodLabel, cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { useViewAs } from '@/lib/view-as-context'
@@ -482,14 +483,7 @@ export default function DealsPage() {
                   <tr key={deal.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "flex h-10 w-10 items-center justify-center rounded-full font-semibold text-white",
-                          isBonda
-                            ? deal.product_type === 'findir' ? 'bg-purple-500' : deal.product_type === 'bonda_bi' ? 'bg-cyan-500' : 'bg-orange-500'
-                            : 'bg-blue-500'
-                        )}>
-                          {deal.client_name?.charAt(0)?.toUpperCase() || '?'}
-                        </div>
+                        <DealIcon deal={deal} isBonda={isBonda} size={40} />
                         <div>
                           <span className="text-sm font-medium text-white">{deal.client_name}</span>
                           {deal.notes && <p className="text-xs text-blue-400 mt-0.5">{deal.notes}</p>}
