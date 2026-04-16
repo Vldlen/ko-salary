@@ -164,11 +164,13 @@ export default function TeamPage() {
   const totalUnitsFactInno = innoManagers.reduce((s, m) => s + m.units_fact, 0)
   const totalUnitsPlanInno = innoManagers.reduce((s, m) => s + m.units_plan, 0)
   const totalFdCountBonda = bondaManagers.reduce((s, m) => s + m.fd_count, 0)
+  const totalFdPlanBonda = bondaManagers.reduce((s, m) => s + m.findir_plan, 0)
   const totalBiCountBonda = bondaManagers.reduce((s, m) => s + m.bi_count, 0)
   const totalOtCountBonda = bondaManagers.reduce((s, m) => s + m.ot_count, 0)
 
   // Company-specific for filtered view
   const totalFdCount = filtered.reduce((s, m) => s + m.fd_count, 0)
+  const totalFdPlan = filtered.reduce((s, m) => s + m.findir_plan, 0)
   const totalBiCount = filtered.reduce((s, m) => s + m.bi_count, 0)
   const totalOtCount = filtered.reduce((s, m) => s + m.ot_count, 0)
 
@@ -277,6 +279,7 @@ export default function TeamPage() {
                   <div className="rounded-xl glass p-4">
                     <p className="text-xs text-white/40 mb-1">ФинДиры БОНДА</p>
                     <p className="text-xl font-bold text-white">{totalFdCountBonda} <span className="text-sm font-normal text-white/40">шт.</span></p>
+                    {totalFdPlanBonda > 0 && <p className="text-[10px] text-white/30 mt-0.5">план: {totalFdPlanBonda} ({Math.round(totalFdCountBonda / totalFdPlanBonda * 100)}%)</p>}
                     {(totalBiCountBonda > 0 || totalOtCountBonda > 0) && (
                       <p className="text-[10px] text-white/30 mt-0.5">BI: {totalBiCountBonda} · Разовые: {totalOtCountBonda}</p>
                     )}
@@ -323,6 +326,7 @@ export default function TeamPage() {
                   <div className="rounded-xl glass p-4">
                     <p className="text-xs text-white/40 mb-1">ФинДиры</p>
                     <p className="text-xl font-bold text-white">{totalFdCount} <span className="text-sm font-normal text-white/40">шт.</span></p>
+                    {totalFdPlan > 0 && <p className="text-[10px] text-white/30 mt-0.5">план: {totalFdPlan} ({Math.round(totalFdCount / totalFdPlan * 100)}%)</p>}
                   </div>
                   <div className="rounded-xl glass p-4">
                     <p className="text-xs text-white/40 mb-1">Bonda BI / Разовые</p>
@@ -354,7 +358,16 @@ export default function TeamPage() {
                     />
                   )}
                   {(isFilterAll || isFilterBonda) && (
-                    <ProgressBar label={isFilterAll ? 'ФинДиры БОНДА' : 'ФинДиры'} value={isFilterAll ? totalFdCountBonda : totalFdCount} max={0} percent={0} />
+                    <ProgressBar
+                      label={isFilterAll ? 'ФинДиры БОНДА' : 'ФинДиры'}
+                      value={isFilterAll ? totalFdCountBonda : totalFdCount}
+                      max={isFilterAll ? totalFdPlanBonda : totalFdPlan}
+                      percent={
+                        (isFilterAll ? totalFdPlanBonda : totalFdPlan) > 0
+                          ? Math.round((isFilterAll ? totalFdCountBonda : totalFdCount) / (isFilterAll ? totalFdPlanBonda : totalFdPlan) * 100)
+                          : 0
+                      }
+                    />
                   )}
                   <ProgressBar label="Встречи" value={totalMeetFact} max={totalMeetP} percent={totalMeetP > 0 ? Math.round(totalMeetFact / totalMeetP * 100) : 0} />
                 </div>
@@ -365,6 +378,7 @@ export default function TeamPage() {
                 {filtered.map(m => {
                   const revPct = m.revenue_plan > 0 ? Math.round((m.revenue_fact / m.revenue_plan) * 100) : 0
                   const unitsPct = m.units_plan > 0 ? Math.round((m.units_fact / m.units_plan) * 100) : 0
+                  const fdPct = m.findir_plan > 0 ? Math.round((m.fd_count / m.findir_plan) * 100) : 0
                   const meetPct = m.meetings_plan > 0 ? Math.round((m.meetings_fact / m.meetings_plan) * 100) : 0
                   const isExpanded = expandedId === m.id
                   const isBondaCompany = m.company_name?.toUpperCase()?.includes('БОНД') || false
@@ -418,7 +432,10 @@ export default function TeamPage() {
                         <div className="px-5 pb-5 border-t border-white/5 pt-4">
                           <div className="space-y-3 mb-5">
                             <ProgressBar label="Выручка" value={m.revenue_fact} max={m.revenue_plan} percent={revPct} formatValue={formatMoney} />
-                            <ProgressBar label="Лицензии" value={m.units_fact} max={m.units_plan} percent={unitsPct} />
+                            {isBondaCompany
+                              ? <ProgressBar label="ФинДиры" value={m.fd_count} max={m.findir_plan} percent={fdPct} />
+                              : <ProgressBar label="Лицензии" value={m.units_fact} max={m.units_plan} percent={unitsPct} />
+                            }
                             <ProgressBar label="Встречи" value={m.meetings_fact} max={m.meetings_plan} percent={meetPct} />
                           </div>
 

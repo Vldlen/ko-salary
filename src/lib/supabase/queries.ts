@@ -560,6 +560,7 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
       fd_count: fdCount,
       bi_count: biCount,
       ot_count: otCount,
+      findir_plan: plan?.findir_plan || 0,
       // Forecast (unpaid deals)
       forecast_deals: forecastDeals,
       revenue_no_invoice: noInvoiceDeals.reduce((s: number, d: any) => s + dealFullRev(d), 0),
