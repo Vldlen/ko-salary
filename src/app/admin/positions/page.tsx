@@ -96,7 +96,7 @@ export default function AdminPositionsPage() {
     try {
       const user = await getCurrentUser(supabase)
       if (!user) { router.push('/login'); return }
-      if (!['admin', 'director'].includes(user.role)) { router.push('/dashboard'); return }
+      if (user.role !== 'admin') { router.push('/dashboard'); return }
       setCurrentUser(user)
 
       const [posData, compData] = await Promise.all([

@@ -28,12 +28,12 @@ const managerLinks = [
 const leaderLinks = [
   { href: '/team', label: 'Команда', icon: Users },
   { href: '/admin/plans', label: 'Планы', icon: Target },
+  { href: '/admin/periods', label: 'Периоды', icon: CalendarRange },
 ]
 
 const adminLinks = [
   { href: '/admin/users', label: 'Сотрудники', icon: UserCog },
   { href: '/admin/positions', label: 'Должности', icon: Building2 },
-  { href: '/admin/periods', label: 'Периоды', icon: CalendarRange },
   { href: '/admin/audit', label: 'Журнал', icon: ScrollText },
 ]
 
@@ -53,17 +53,13 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
   // Собираем секции по роли
   const sections: LinkSection[] = []
 
-  // Founder sees Dashboard + leadership, managers see all personal links
-  if (role === 'founder') {
-    sections.push({ title: '', links: [managerLinks[0]] }) // Dashboard only
-  } else {
-    sections.push({ title: '', links: managerLinks })
-  }
+  // Все роли видят полный основной блок
+  sections.push({ title: '', links: managerLinks })
 
   if (['rop', 'director', 'admin', 'founder'].includes(role)) {
     sections.push({ title: 'Руководство', links: leaderLinks })
   }
-  if (['admin', 'director'].includes(role)) {
+  if (role === 'admin') {
     sections.push({ title: 'Администрирование', links: adminLinks })
   }
 

@@ -45,7 +45,7 @@ export default function AuditPage() {
       try {
         const currentUser = await getCurrentUser(supabase)
         if (!currentUser) { router.push('/login'); return }
-        if (!['admin', 'director'].includes(currentUser.role)) { router.push('/dashboard'); return }
+        if (currentUser.role !== 'admin') { router.push('/dashboard'); return }
         setUser(currentUser)
 
         const data = await getAuditLog(supabase, 200)

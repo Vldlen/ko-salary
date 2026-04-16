@@ -269,11 +269,11 @@ export default function DealsPage() {
       const paidLicense = Math.min(Number(partialForm.license) || 0, Number(deal.revenue || 0))
       const paidImpl = Math.min(Number(partialForm.impl) || 0, Number(deal.impl_revenue || 0))
       const paidContent = Math.min(Number(partialForm.content) || 0, Number(deal.content_revenue || 0))
-      const paidEquipment = Math.min(Number(partialForm.equipment) || 0, Number(deal.equipment_margin || 0))
+      const paidEquipment = Math.min(Number(partialForm.equipment) || 0, Number(deal.equipment_sell_price || 0))
       const paidAmount = Math.min(Number(partialForm.amount) || 0, Number(deal.revenue || 0))
 
       // Auto-determine status for ИННО
-      const totalDeal = Number(deal.revenue || 0) + Number(deal.impl_revenue || 0) + Number(deal.content_revenue || 0) + Number(deal.equipment_margin || 0)
+      const totalDeal = Number(deal.revenue || 0) + Number(deal.impl_revenue || 0) + Number(deal.content_revenue || 0) + Number(deal.equipment_sell_price || 0)
       const totalPaid = paidLicense + paidImpl + paidContent + paidEquipment
       // For БОНДА
       const bondaTotalPaid = paidAmount
@@ -286,7 +286,7 @@ export default function DealsPage() {
         else newStatus = 'partial'
       } else {
         if (totalPaid <= 0) newStatus = deal.status === 'no_invoice' ? 'no_invoice' : 'waiting_payment'
-        else if (paidLicense >= Number(deal.revenue || 0) && paidImpl >= Number(deal.impl_revenue || 0) && paidContent >= Number(deal.content_revenue || 0) && paidEquipment >= Number(deal.equipment_margin || 0)) newStatus = 'paid'
+        else if (paidLicense >= Number(deal.revenue || 0) && paidImpl >= Number(deal.impl_revenue || 0) && paidContent >= Number(deal.content_revenue || 0) && paidEquipment >= Number(deal.equipment_sell_price || 0)) newStatus = 'paid'
         else newStatus = 'partial'
       }
 
@@ -835,7 +835,7 @@ export default function DealsPage() {
         const pL = Number(partialForm.license) || 0, tL = Number(d.revenue || 0)
         const pI = Number(partialForm.impl) || 0, tI = Number(d.impl_revenue || 0)
         const pC = Number(partialForm.content) || 0, tC = Number(d.content_revenue || 0)
-        const pE = Number(partialForm.equipment) || 0, tE = Number(d.equipment_margin || 0)
+        const pE = Number(partialForm.equipment) || 0, tE = Number(d.equipment_sell_price || 0)
         const pA = Number(partialForm.amount) || 0, tA = Number(d.revenue || 0)
         const innoTotal = tL + tI + tC + tE
         const innoPaid = pL + pI + pC + pE
@@ -959,7 +959,7 @@ export default function DealsPage() {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-sm font-medium text-yellow-400">Оборудование</label>
-                      <span className="text-xs text-white/40">маржа {formatMoney(tE)}</span>
+                      <span className="text-xs text-white/40">{formatMoney(tE)}</span>
                     </div>
                     <input type="number" min="0" max={tE} value={partialForm.equipment}
                       onChange={(e) => { const v = Math.min(Number(e.target.value) || 0, tE); setPartialForm({ ...partialForm, equipment: String(v) }) }}

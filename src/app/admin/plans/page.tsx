@@ -142,6 +142,7 @@ export default function AdminPlansPage() {
 
   if (loading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-400" /></div>
 
+  const canEditPlans = ['admin', 'director'].includes(currentUser?.role)
   const innoCompany = companies.find((c: any) => c.name?.toUpperCase().includes('ИНН'))
   const bondaCompany = companies.find((c: any) => c.name?.toUpperCase().includes('БОНД'))
 
@@ -202,38 +203,40 @@ export default function AdminPlansPage() {
                             </div>
                             <p className="text-sm font-medium text-white">{u.full_name}</p>
                           </div>
-                          <button
-                            onClick={() => savePlan(u.id, innoCompany?.id)}
-                            disabled={!plan.dirty || saving === u.id}
-                            className={cn(
-                              'flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition',
-                              plan.dirty
-                                ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                : savedId === u.id
-                                  ? 'bg-emerald-500/20 text-emerald-400'
-                                  : 'text-white/20 cursor-default'
-                            )}
-                          >
-                            {saving === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> :
-                              savedId === u.id ? <Check className="w-3 h-3" /> :
-                              <Save className="w-3 h-3" />}
-                            {saving === u.id ? '' : savedId === u.id ? 'Готово' : 'Сохр.'}
-                          </button>
+                          {canEditPlans && (
+                            <button
+                              onClick={() => savePlan(u.id, innoCompany?.id)}
+                              disabled={!plan.dirty || saving === u.id}
+                              className={cn(
+                                'flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition',
+                                plan.dirty
+                                  ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                  : savedId === u.id
+                                    ? 'bg-emerald-500/20 text-emerald-400'
+                                    : 'text-white/20 cursor-default'
+                              )}
+                            >
+                              {saving === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> :
+                                savedId === u.id ? <Check className="w-3 h-3" /> :
+                                <Save className="w-3 h-3" />}
+                              {saving === u.id ? '' : savedId === u.id ? 'Готово' : 'Сохр.'}
+                            </button>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-[10px] text-white/30 mb-0.5">Выручка ₽</label>
-                            <input type="number" value={plan.revenue_plan || ''}
+                            <input type="number" value={plan.revenue_plan || ''} readOnly={!canEditPlans}
                               onChange={e => updatePlan(u.id, 'revenue_plan', Number(e.target.value))}
                               placeholder="0"
-                              className="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white outline-none focus:border-blue-400/50" />
+                              className={cn("w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white outline-none", canEditPlans ? "focus:border-blue-400/50" : "opacity-70 cursor-default")} />
                           </div>
                           <div>
                             <label className="block text-[10px] text-white/30 mb-0.5">Штуки</label>
-                            <input type="number" value={plan.units_plan || ''}
+                            <input type="number" value={plan.units_plan || ''} readOnly={!canEditPlans}
                               onChange={e => updatePlan(u.id, 'units_plan', Number(e.target.value))}
                               placeholder="0"
-                              className="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white outline-none focus:border-blue-400/50" />
+                              className={cn("w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white outline-none", canEditPlans ? "focus:border-blue-400/50" : "opacity-70 cursor-default")} />
                           </div>
                         </div>
                       </div>
@@ -266,31 +269,33 @@ export default function AdminPlansPage() {
                             </div>
                             <p className="text-sm font-medium text-white">{u.full_name}</p>
                           </div>
-                          <button
-                            onClick={() => savePlan(u.id, bondaCompany?.id)}
-                            disabled={!plan.dirty || saving === u.id}
-                            className={cn(
-                              'flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition',
-                              plan.dirty
-                                ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
-                                : savedId === u.id
-                                  ? 'bg-emerald-500/20 text-emerald-400'
-                                  : 'text-white/20 cursor-default'
-                            )}
-                          >
-                            {saving === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> :
-                              savedId === u.id ? <Check className="w-3 h-3" /> :
-                              <Save className="w-3 h-3" />}
-                            {saving === u.id ? '' : savedId === u.id ? 'Готово' : 'Сохр.'}
-                          </button>
+                          {canEditPlans && (
+                            <button
+                              onClick={() => savePlan(u.id, bondaCompany?.id)}
+                              disabled={!plan.dirty || saving === u.id}
+                              className={cn(
+                                'flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition',
+                                plan.dirty
+                                  ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
+                                  : savedId === u.id
+                                    ? 'bg-emerald-500/20 text-emerald-400'
+                                    : 'text-white/20 cursor-default'
+                              )}
+                            >
+                              {saving === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> :
+                                savedId === u.id ? <Check className="w-3 h-3" /> :
+                                <Save className="w-3 h-3" />}
+                              {saving === u.id ? '' : savedId === u.id ? 'Готово' : 'Сохр.'}
+                            </button>
+                          )}
                         </div>
                         <div className="grid grid-cols-1 gap-3">
                           <div>
                             <label className="block text-[10px] text-white/30 mb-0.5">ФИНДИРы (шт.)</label>
-                            <input type="number" value={plan.findir_plan || ''}
+                            <input type="number" value={plan.findir_plan || ''} readOnly={!canEditPlans}
                               onChange={e => updatePlan(u.id, 'findir_plan', Number(e.target.value))}
                               placeholder="0"
-                              className="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white outline-none focus:border-orange-400/50" />
+                              className={cn("w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white outline-none", canEditPlans ? "focus:border-orange-400/50" : "opacity-70 cursor-default")} />
                           </div>
                         </div>
                       </div>

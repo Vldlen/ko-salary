@@ -46,7 +46,7 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
     const url = request.nextUrl.clone()
-    url.pathname = profile?.role === 'founder' ? '/team' : '/dashboard'
+    url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 

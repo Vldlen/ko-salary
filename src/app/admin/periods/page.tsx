@@ -50,7 +50,7 @@ export default function AdminPeriodsPage() {
       try {
         const user = await getCurrentUser(supabase)
         if (!user) { router.push('/login'); return }
-        if (!['admin', 'director'].includes(user.role)) { router.push('/dashboard'); return }
+        if (!['admin', 'director', 'rop', 'founder'].includes(user.role)) { router.push('/dashboard'); return }
         setCurrentUser(user)
 
         const periodsData = await getPeriods(supabase)
@@ -106,11 +106,13 @@ export default function AdminPeriodsPage() {
               <CalendarRange className="w-7 h-7 text-blue-400" />
               <h1 className="text-2xl font-heading font-bold text-white">Периоды</h1>
             </div>
-            <button onClick={() => setShowForm(!showForm)}
-              className="flex items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition">
-              {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-              {showForm ? 'Отмена' : 'Новый период'}
-            </button>
+            {['admin', 'director'].includes(currentUser?.role) && (
+              <button onClick={() => setShowForm(!showForm)}
+                className="flex items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition">
+                {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                {showForm ? 'Отмена' : 'Новый период'}
+              </button>
+            )}
           </div>
 
           {showForm && (
@@ -158,10 +160,16 @@ export default function AdminPeriodsPage() {
                         <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full', st.cls)}>{st.label}</span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <select value={gp.status} onChange={e => changeStatus(gp, e.target.value)}
-                          className="text-xs bg-white/10 border border-white/10 rounded-lg px-2 py-1.5 text-white outline-none">
-                          {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                        </select>
+                        {['admin', 'director'].includes(currentUser?.role) ? (
+                          <select value={gp.status} onChange={e => changeStatus(gp, e.target.value)}
+                            className="text-xs bg-white/10 border border-white/10 rounded-lg px-2 py-1.5 text-white outline-none">
+                            {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                          </select>
+                        ) : (
+                          <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full', (STATUSES.find(s => s.value === gp.status) || STATUSES[0]).cls)}>
+                            {(STATUSES.find(s => s.value === gp.status) || STATUSES[0]).label}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   )
