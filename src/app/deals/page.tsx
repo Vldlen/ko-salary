@@ -723,18 +723,14 @@ export default function DealsPage() {
                           placeholder="0" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-white/60 mb-1">
-                          MRR
-                          {Number(form.revenue) > 0 && !form.mrr && (
-                            <span className="text-blue-400/50 ml-1">
-                              (авто: {formatMoney(calcMrr(Number(form.revenue), form.subscription_period))})
-                            </span>
-                          )}
-                        </label>
+                        <label className="block text-xs font-medium text-white/60 mb-1">MRR</label>
                         <input type="number" value={form.mrr}
                           onChange={(e) => setForm({ ...form, mrr: e.target.value })}
                           className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
                           placeholder={String(calcMrr(Number(form.revenue) || 0, form.subscription_period))} />
+                        {Number(form.revenue) > 0 && !form.mrr && (
+                          <p className="text-[10px] text-blue-400/50 mt-1 truncate">авто: {formatMoney(calcMrr(Number(form.revenue), form.subscription_period))}</p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-white/60 mb-1">Лицензии</label>
