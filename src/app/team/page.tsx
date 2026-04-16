@@ -353,8 +353,8 @@ export default function TeamPage() {
                       }
                     />
                   )}
-                  {isFilterBonda && (
-                    <ProgressBar label="ФинДиры" value={totalFdCount} max={0} percent={0} />
+                  {(isFilterAll || isFilterBonda) && (
+                    <ProgressBar label={isFilterAll ? 'ФинДиры БОНДА' : 'ФинДиры'} value={isFilterAll ? totalFdCountBonda : totalFdCount} max={0} percent={0} />
                   )}
                   <ProgressBar label="Встречи" value={totalMeetFact} max={totalMeetP} percent={totalMeetP > 0 ? Math.round(totalMeetFact / totalMeetP * 100) : 0} />
                 </div>
