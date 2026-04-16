@@ -142,6 +142,10 @@ export default function TeamPage() {
     )
   }
 
+  // === Helper: is БОНДА company ===
+  const isBondaManager = (m: any) => m.company_name?.toUpperCase()?.includes('БОНД') || false
+  const isInnoManager = (m: any) => !isBondaManager(m)
+
   // === ФАКТ aggregates ===
   const totalRevFact = filtered.reduce((s, m) => s + m.revenue_fact, 0)
   const totalPlan = filtered.reduce((s, m) => s + m.revenue_plan, 0)
@@ -152,6 +156,26 @@ export default function TeamPage() {
   const totalMeetP = filtered.reduce((s, m) => s + m.meetings_plan, 0)
   const totalDealsPaid = filtered.reduce((s, m) => s + m.deals_paid, 0)
   const totalMarginFact = filtered.reduce((s, m) => s + m.margin_fact, 0)
+
+  // === Cross-company aggregates for "Все" filter ===
+  const innoManagers = team.filter(isInnoManager)
+  const bondaManagers = team.filter(isBondaManager)
+
+  const totalUnitsFactInno = innoManagers.reduce((s, m) => s + m.units_fact, 0)
+  const totalUnitsPlanInno = innoManagers.reduce((s, m) => s + m.units_plan, 0)
+  const totalFdCountBonda = bondaManagers.reduce((s, m) => s + m.fd_count, 0)
+  const totalBiCountBonda = bondaManagers.reduce((s, m) => s + m.bi_count, 0)
+  const totalOtCountBonda = bondaManagers.reduce((s, m) => s + m.ot_count, 0)
+
+  // Company-specific for filtered view
+  const totalFdCount = filtered.reduce((s, m) => s + m.fd_count, 0)
+  const totalBiCount = filtered.reduce((s, m) => s + m.bi_count, 0)
+  const totalOtCount = filtered.reduce((s, m) => s + m.ot_count, 0)
+
+  // Determine current filter type
+  const isFilterAll = companyFilter === 'all'
+  const isFilterBonda = !isFilterAll && filtered.length > 0 && isBondaManager(filtered[0])
+  const isFilterInno = !isFilterAll && !isFilterBonda
 
   // === ПРОГНОЗ aggregates ===
   const totalRevForecast = filtered.reduce((s, m) => s + m.revenue_forecast, 0)
@@ -237,39 +261,101 @@ export default function TeamPage() {
           {/* =================== ФАКТ TAB =================== */}
           {activeTab === 'fact' && (
             <>
-              {/* Summary cards — Факт */}
-              <div className="grid grid-cols-5 gap-4 mb-6">
-                <div className="rounded-xl glass p-4">
-                  <p className="text-xs text-white/40 mb-1">Выручка (факт)</p>
-                  <p className="text-xl font-bold text-emerald-400">{formatMoney(totalRevFact)}</p>
-                  {totalPlan > 0 && <p className="text-[10px] text-white/30 mt-0.5">план: {formatMoney(totalPlan)} ({avgRevPct}%)</p>}
+              {/* Summary cards — Факт (context-sensitive by company filter) */}
+              {isFilterAll && (
+                <div className="grid grid-cols-4 gap-4 mb-6">
+                  <div className="rounded-xl glass p-4">
+                    <p className="text-xs text-white/40 mb-1">Общая выручка</p>
+                    <p className="text-xl font-bold text-emerald-400">{formatMoney(totalRevFact)}</p>
+                    {totalPlan > 0 && <p className="text-[10px] text-white/30 mt-0.5">план: {formatMoney(totalPlan)} ({avgRevPct}%)</p>}
+                  </div>
+                  <div className="rounded-xl glass p-4">
+                    <p className="text-xs text-white/40 mb-1">Лицензии ИННО</p>
+                    <p className="text-xl font-bold text-white">{totalUnitsFactInno} <span className="text-sm font-normal text-white/40">шт.</span></p>
+                    {totalUnitsPlanInno > 0 && <p className="text-[10px] text-white/30 mt-0.5">план: {totalUnitsPlanInno} ({Math.round(totalUnitsFactInno / totalUnitsPlanInno * 100)}%)</p>}
+                  </div>
+                  <div className="rounded-xl glass p-4">
+                    <p className="text-xs text-white/40 mb-1">ФинДиры БОНДА</p>
+                    <p className="text-xl font-bold text-white">{totalFdCountBonda} <span className="text-sm font-normal text-white/40">шт.</span></p>
+                    {(totalBiCountBonda > 0 || totalOtCountBonda > 0) && (
+                      <p className="text-[10px] text-white/30 mt-0.5">BI: {totalBiCountBonda} · Разовые: {totalOtCountBonda}</p>
+                    )}
+                  </div>
+                  <div className="rounded-xl glass p-4">
+                    <p className="text-xs text-white/40 mb-1">Встречи</p>
+                    <p className="text-xl font-bold text-white">{totalMeetFact}</p>
+                    {totalMeetP > 0 && <p className="text-[10px] text-white/30 mt-0.5">план: {totalMeetP} ({Math.round(totalMeetFact / totalMeetP * 100)}%)</p>}
+                  </div>
                 </div>
-                <div className="rounded-xl glass p-4">
-                  <p className="text-xs text-white/40 mb-1">Оплаченных сделок</p>
-                  <p className="text-xl font-bold text-white">{totalDealsPaid}</p>
-                </div>
-                <div className="rounded-xl glass p-4">
-                  <p className="text-xs text-white/40 mb-1">Лицензии (факт)</p>
-                  <p className="text-xl font-bold text-white">{totalUnitsFact}</p>
-                  {totalUnitsP > 0 && <p className="text-[10px] text-white/30 mt-0.5">план: {totalUnitsP} ({Math.round(totalUnitsFact / totalUnitsP * 100)}%)</p>}
-                </div>
-                <div className="rounded-xl glass p-4">
-                  <p className="text-xs text-white/40 mb-1">Встречи</p>
-                  <p className="text-xl font-bold text-white">{totalMeetFact}</p>
-                  {totalMeetP > 0 && <p className="text-[10px] text-white/30 mt-0.5">план: {totalMeetP} ({Math.round(totalMeetFact / totalMeetP * 100)}%)</p>}
-                </div>
-                <div className="rounded-xl glass p-4">
-                  <p className="text-xs text-white/40 mb-1">Маржа (оборуд.)</p>
-                  <p className="text-xl font-bold text-white">{formatMoney(totalMarginFact)}</p>
-                </div>
-              </div>
+              )}
 
-              {/* Overall progress */}
+              {isFilterInno && (
+                <div className="grid grid-cols-4 gap-4 mb-6">
+                  <div className="rounded-xl glass p-4">
+                    <p className="text-xs text-white/40 mb-1">Выручка ИННО</p>
+                    <p className="text-xl font-bold text-emerald-400">{formatMoney(totalRevFact)}</p>
+                    {totalPlan > 0 && <p className="text-[10px] text-white/30 mt-0.5">план: {formatMoney(totalPlan)} ({avgRevPct}%)</p>}
+                  </div>
+                  <div className="rounded-xl glass p-4">
+                    <p className="text-xs text-white/40 mb-1">Лицензии</p>
+                    <p className="text-xl font-bold text-white">{totalUnitsFact} <span className="text-sm font-normal text-white/40">шт.</span></p>
+                    {totalUnitsP > 0 && <p className="text-[10px] text-white/30 mt-0.5">план: {totalUnitsP} ({Math.round(totalUnitsFact / totalUnitsP * 100)}%)</p>}
+                  </div>
+                  <div className="rounded-xl glass p-4">
+                    <p className="text-xs text-white/40 mb-1">Встречи</p>
+                    <p className="text-xl font-bold text-white">{totalMeetFact}</p>
+                    {totalMeetP > 0 && <p className="text-[10px] text-white/30 mt-0.5">план: {totalMeetP} ({Math.round(totalMeetFact / totalMeetP * 100)}%)</p>}
+                  </div>
+                  <div className="rounded-xl glass p-4">
+                    <p className="text-xs text-white/40 mb-1">Маржа (оборуд.)</p>
+                    <p className="text-xl font-bold text-white">{formatMoney(totalMarginFact)}</p>
+                  </div>
+                </div>
+              )}
+
+              {isFilterBonda && (
+                <div className="grid grid-cols-4 gap-4 mb-6">
+                  <div className="rounded-xl glass p-4">
+                    <p className="text-xs text-white/40 mb-1">Выручка БОНДА</p>
+                    <p className="text-xl font-bold text-emerald-400">{formatMoney(totalRevFact)}</p>
+                    {totalPlan > 0 && <p className="text-[10px] text-white/30 mt-0.5">план: {formatMoney(totalPlan)} ({avgRevPct}%)</p>}
+                  </div>
+                  <div className="rounded-xl glass p-4">
+                    <p className="text-xs text-white/40 mb-1">ФинДиры</p>
+                    <p className="text-xl font-bold text-white">{totalFdCount} <span className="text-sm font-normal text-white/40">шт.</span></p>
+                  </div>
+                  <div className="rounded-xl glass p-4">
+                    <p className="text-xs text-white/40 mb-1">Bonda BI / Разовые</p>
+                    <p className="text-xl font-bold text-white">{totalBiCount} <span className="text-sm font-normal text-white/40">/ {totalOtCount}</span></p>
+                  </div>
+                  <div className="rounded-xl glass p-4">
+                    <p className="text-xs text-white/40 mb-1">Встречи</p>
+                    <p className="text-xl font-bold text-white">{totalMeetFact}</p>
+                    {totalMeetP > 0 && <p className="text-[10px] text-white/30 mt-0.5">план: {totalMeetP} ({Math.round(totalMeetFact / totalMeetP * 100)}%)</p>}
+                  </div>
+                </div>
+              )}
+
+              {/* Overall progress (context-sensitive) */}
               <div className="glass rounded-xl p-5 mb-6">
                 <h2 className="text-sm font-semibold text-white mb-3">Общий прогресс</h2>
                 <div className="space-y-3">
                   <ProgressBar label="Выручка" value={totalRevFact} max={totalPlan} percent={avgRevPct} formatValue={formatMoney} />
-                  <ProgressBar label="Лицензии" value={totalUnitsFact} max={totalUnitsP} percent={totalUnitsP > 0 ? Math.round(totalUnitsFact / totalUnitsP * 100) : 0} />
+                  {(isFilterAll || isFilterInno) && (
+                    <ProgressBar
+                      label={isFilterAll ? 'Лицензии ИННО' : 'Лицензии'}
+                      value={isFilterAll ? totalUnitsFactInno : totalUnitsFact}
+                      max={isFilterAll ? totalUnitsPlanInno : totalUnitsP}
+                      percent={
+                        (isFilterAll ? totalUnitsPlanInno : totalUnitsP) > 0
+                          ? Math.round((isFilterAll ? totalUnitsFactInno : totalUnitsFact) / (isFilterAll ? totalUnitsPlanInno : totalUnitsP) * 100)
+                          : 0
+                      }
+                    />
+                  )}
+                  {isFilterBonda && (
+                    <ProgressBar label="ФинДиры" value={totalFdCount} max={0} percent={0} />
+                  )}
                   <ProgressBar label="Встречи" value={totalMeetFact} max={totalMeetP} percent={totalMeetP > 0 ? Math.round(totalMeetFact / totalMeetP * 100) : 0} />
                 </div>
               </div>
