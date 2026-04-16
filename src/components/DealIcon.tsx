@@ -2,12 +2,12 @@
 
 import { memo } from 'react'
 
-// Цвета сегментов для ИННО пирога
+// Цвета сегментов для ИННО пирога (совпадают с цветами колонок в таблице)
 const SEGMENT_COLORS = {
-  license: '#3b82f6',    // blue-500
-  impl: '#8b5cf6',       // violet-500
-  content: '#f59e0b',    // amber-500
-  equipment: '#10b981',  // emerald-500
+  license: '#60a5fa',    // blue-400  — Лицензия
+  impl: '#4ade80',       // green-400 — Внедрение
+  content: '#c084fc',    // purple-400 — Контент
+  equipment: '#facc15',  // yellow-400 — Оборудование
 }
 
 // Цвета и метки для БОНДА
