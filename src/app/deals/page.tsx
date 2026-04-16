@@ -389,16 +389,16 @@ export default function DealsPage() {
                 <p className="font-heading text-2xl font-bold text-white mt-2">{formatMoney(totalRevenue)}</p>
               </div>
               <div className="rounded-2xl glass p-6">
-                <p className="text-sm font-medium text-purple-400">ФинДиров</p>
-                <p className="font-heading text-2xl font-bold text-white mt-2">{filteredDeals.filter(d => d.product_type === 'findir').length}</p>
+                <p className="text-sm font-medium text-purple-400">ФинДиров (оплач.)</p>
+                <p className="font-heading text-2xl font-bold text-white mt-2">{filteredDeals.filter(d => d.product_type === 'findir' && ['paid', 'partial'].includes(d.status)).length}</p>
               </div>
               <div className="rounded-2xl glass p-6">
-                <p className="text-sm font-medium text-cyan-400">Bonda BI</p>
-                <p className="font-heading text-2xl font-bold text-white mt-2">{filteredDeals.filter(d => d.product_type === 'bonda_bi').length}</p>
+                <p className="text-sm font-medium text-cyan-400">Bonda BI (оплач.)</p>
+                <p className="font-heading text-2xl font-bold text-white mt-2">{filteredDeals.filter(d => d.product_type === 'bonda_bi' && ['paid', 'partial'].includes(d.status)).length}</p>
               </div>
               <div className="rounded-2xl glass p-6">
-                <p className="text-sm font-medium text-orange-400">Разовых</p>
-                <p className="font-heading text-2xl font-bold text-white mt-2">{filteredDeals.filter(d => d.product_type === 'one_time_service').length}</p>
+                <p className="text-sm font-medium text-orange-400">Разовых (оплач.)</p>
+                <p className="font-heading text-2xl font-bold text-white mt-2">{filteredDeals.filter(d => d.product_type === 'one_time_service' && ['paid', 'partial'].includes(d.status)).length}</p>
               </div>
             </div>
           ) : (

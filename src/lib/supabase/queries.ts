@@ -491,10 +491,11 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
     const invoicedSum = meetings.reduce((s: number, m: any) => s + (m.invoiced_sum || 0), 0)
     const paidSum = meetings.reduce((s: number, m: any) => s + (m.paid_sum || 0), 0)
 
-    // БОНДА product counts
-    const fdCount = deals.filter((d: any) => d.product_type === 'findir').length
-    const biCount = deals.filter((d: any) => d.product_type === 'bonda_bi').length
-    const otCount = deals.filter((d: any) => d.product_type === 'one_time_service').length
+    // БОНДА product counts — только оплаченные/частично оплаченные
+    const paidStatuses = ['paid', 'partial']
+    const fdCount = deals.filter((d: any) => d.product_type === 'findir' && paidStatuses.includes(d.status)).length
+    const biCount = deals.filter((d: any) => d.product_type === 'bonda_bi' && paidStatuses.includes(d.status)).length
+    const otCount = deals.filter((d: any) => d.product_type === 'one_time_service' && paidStatuses.includes(d.status)).length
 
     // Последние 5 сделок для превью
     const recentDeals = deals.slice(0, 5).map((d: any) => ({
