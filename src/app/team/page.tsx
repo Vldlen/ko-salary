@@ -248,13 +248,23 @@ export default function TeamPage() {
   const forecastUnitsFiltered = filtered.reduce((s, m) => s + (m.forecast_deals || []).reduce((u: number, d: any) => u + (d.units || 0), 0), 0)
   const forecastFdFiltered = filtered.reduce((s, m) => s + (m.forecast_deals || []).filter((d: any) => d.product_type === 'findir').length, 0)
 
-  // === MRR aggregates (ИННО only) ===
+  // === MRR aggregates ===
   const mrrFactInno = (isFilterAll ? innoManagers : filtered.filter(isInnoManager))
     .reduce((s, m) => s + (m.mrr_fact || 0), 0)
   const mrrForecastInno = (isFilterAll ? innoManagers : filtered.filter(isInnoManager))
     .reduce((s, m) => s + (m.mrr_forecast || 0), 0)
   const mrrPlanInno = (isFilterAll ? innoManagers : filtered.filter(isInnoManager))
     .reduce((s, m) => s + (m.mrr_plan || 0), 0)
+
+  const mrrFactBonda = (isFilterAll ? bondaManagers : filtered.filter(isBondaManager))
+    .reduce((s, m) => s + (m.mrr_fact || 0), 0)
+  const mrrForecastBonda = (isFilterAll ? bondaManagers : filtered.filter(isBondaManager))
+    .reduce((s, m) => s + (m.mrr_forecast || 0), 0)
+  const mrrPlanBonda = (isFilterAll ? bondaManagers : filtered.filter(isBondaManager))
+    .reduce((s, m) => s + (m.mrr_plan || 0), 0)
+
+  const mrrFactTotal = mrrFactInno + mrrFactBonda
+  const mrrForecastTotal = mrrForecastInno + mrrForecastBonda
 
   return (
     <MobileRestricted>
@@ -436,13 +446,25 @@ export default function TeamPage() {
                     />
                   )}
                   <ProgressBar label="Встречи" value={totalMeetFact} max={totalMeetP} percent={totalMeetP > 0 ? Math.round(totalMeetFact / totalMeetP * 100) : 0} />
-                  {/* MRR ИННО (Факт) */}
-                  {(isFilterAll || isFilterInno) && mrrFactInno > 0 && (
+                  {/* MRR (Факт) — context-sensitive */}
+                  {isFilterAll && mrrFactTotal > 0 && (
+                    <ProgressBar label="MRR" value={mrrFactTotal} formatValue={formatMoney} />
+                  )}
+                  {isFilterInno && mrrFactInno > 0 && (
                     <ProgressBar
-                      label={isFilterAll ? 'MRR ИННО' : 'MRR'}
+                      label="MRR"
                       value={mrrFactInno}
                       max={mrrPlanInno || undefined}
                       percent={mrrPlanInno > 0 ? Math.round(mrrFactInno / mrrPlanInno * 100) : undefined}
+                      formatValue={formatMoney}
+                    />
+                  )}
+                  {isFilterBonda && mrrFactBonda > 0 && (
+                    <ProgressBar
+                      label="MRR"
+                      value={mrrFactBonda}
+                      max={mrrPlanBonda || undefined}
+                      percent={mrrPlanBonda > 0 ? Math.round(mrrFactBonda / mrrPlanBonda * 100) : undefined}
                       formatValue={formatMoney}
                     />
                   )}
@@ -734,9 +756,9 @@ export default function TeamPage() {
                   <p className="text-[10px] text-white/30 mt-0.5">
                     {paidPercent}% уже оплачено
                   </p>
-                  {(mrrFactInno + mrrForecastInno) > 0 && (
+                  {(mrrFactTotal + mrrForecastTotal) > 0 && (
                     <p className="text-[10px] text-blue-400/60 mt-0.5">
-                      MRR: {formatMoney(mrrFactInno + mrrForecastInno)}
+                      MRR: {formatMoney(mrrFactTotal + mrrForecastTotal)}
                     </p>
                   )}
                 </div>
@@ -755,13 +777,31 @@ export default function TeamPage() {
                     formatValue={formatMoney}
                   />
 
-                  {/* MRR ИННО — shown for Все and ИННО when any MRR data exists */}
-                  {(isFilterAll || isFilterInno) && (mrrFactInno + mrrForecastInno) > 0 && (
+                  {/* MRR — context-sensitive */}
+                  {isFilterAll && (mrrFactTotal + mrrForecastTotal) > 0 && (
                     <ForecastDualBar
-                      label={isFilterAll ? 'MRR ИННО' : 'MRR'}
+                      label="MRR"
+                      fact={mrrFactTotal}
+                      forecast={mrrForecastTotal}
+                      plan={(mrrPlanInno + mrrPlanBonda) || (mrrFactTotal + mrrForecastTotal)}
+                      formatValue={formatMoney}
+                    />
+                  )}
+                  {isFilterInno && (mrrFactInno + mrrForecastInno) > 0 && (
+                    <ForecastDualBar
+                      label="MRR"
                       fact={mrrFactInno}
                       forecast={mrrForecastInno}
                       plan={mrrPlanInno || (mrrFactInno + mrrForecastInno)}
+                      formatValue={formatMoney}
+                    />
+                  )}
+                  {isFilterBonda && (mrrFactBonda + mrrForecastBonda) > 0 && (
+                    <ForecastDualBar
+                      label="MRR"
+                      fact={mrrFactBonda}
+                      forecast={mrrForecastBonda}
+                      plan={mrrPlanBonda || (mrrFactBonda + mrrForecastBonda)}
                       formatValue={formatMoney}
                     />
                   )}
