@@ -47,10 +47,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }
 
   const colors = {
-    success: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400',
-    error: 'bg-red-500/20 border-red-500/30 text-red-400',
-    warning: 'bg-orange-500/20 border-orange-500/30 text-orange-400',
-    info: 'bg-blue-500/20 border-blue-500/30 text-blue-400',
+    success: 'border-emerald-500/25 text-emerald-400 shadow-emerald-500/10',
+    error: 'border-red-500/25 text-red-400 shadow-red-500/10',
+    warning: 'border-orange-500/25 text-orange-400 shadow-orange-500/10',
+    info: 'border-blue-500/25 text-blue-400 shadow-blue-500/10',
   }
 
   return (
@@ -62,7 +62,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={t.id}
             className={cn(
-              'pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-md shadow-xl',
+              'pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl border',
+              'backdrop-blur-xl bg-white/[0.08] shadow-2xl',
               'animate-in slide-in-from-right-5 fade-in duration-300',
               colors[t.type]
             )}

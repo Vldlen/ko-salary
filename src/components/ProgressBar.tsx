@@ -14,6 +14,24 @@ export default function ProgressBar({ label, value, max, percent, formatValue, c
   const displayMax = formatValue ? formatValue(max) : String(max)
   const clampedPercent = Math.min(percent, 100)
 
+  const barColor = percent >= 100
+    ? 'from-emerald-400 to-emerald-500'
+    : percent >= 50
+    ? 'from-blue-400 to-blue-500'
+    : 'from-orange-400 to-orange-500'
+
+  const glowColor = percent >= 100
+    ? 'shadow-emerald-400/40'
+    : percent >= 50
+    ? 'shadow-blue-400/40'
+    : 'shadow-orange-400/40'
+
+  const badgeColor = percent >= 100
+    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20'
+    : percent >= 50
+    ? 'bg-blue-500/15 text-blue-400 border-blue-500/20'
+    : 'bg-orange-500/15 text-orange-400 border-orange-500/20'
+
   return (
     <div className={cn('space-y-2', className)}>
       <div className="flex justify-between text-sm">
@@ -21,24 +39,19 @@ export default function ProgressBar({ label, value, max, percent, formatValue, c
         <span className="font-medium text-white">
           {displayValue} / {displayMax}
           <span className={cn(
-            'ml-1.5 text-xs font-semibold px-1.5 py-0.5 rounded-full',
-            percent >= 100 ? 'bg-emerald-500/20 text-emerald-400' :
-            percent >= 50 ? 'bg-blue-500/20 text-blue-400' :
-            'bg-orange-500/20 text-orange-400'
+            'ml-1.5 text-xs font-semibold px-1.5 py-0.5 rounded-full border',
+            badgeColor
           )}>
             {percent}%
           </span>
         </span>
       </div>
-      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+      <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden border border-white/[0.04]">
         <div
           className={cn(
-            'h-full rounded-full transition-all duration-700 ease-out',
-            percent >= 100
-              ? 'bg-gradient-to-r from-emerald-400 to-emerald-500'
-              : percent >= 50
-              ? 'bg-gradient-to-r from-blue-400 to-blue-500'
-              : 'bg-gradient-to-r from-orange-400 to-orange-500'
+            'h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r shadow-lg',
+            barColor,
+            glowColor
           )}
           style={{ width: `${clampedPercent}%` }}
         />

@@ -63,10 +63,10 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'w-full flex items-center justify-between rounded-xl border px-4 py-3 text-sm text-left transition-colors',
+          'w-full flex items-center justify-between rounded-xl border px-4 py-3 text-sm text-left transition-all duration-200',
           open
-            ? 'border-blue-400 bg-white/10 ring-2 ring-blue-400/30'
-            : 'border-white/10 bg-white/5 hover:bg-white/8'
+            ? 'border-blue-400/50 bg-white/[0.1] ring-2 ring-blue-400/20'
+            : 'border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.07] hover:border-white/[0.12]'
         )}
       >
         <span className="flex items-center gap-2">
@@ -77,13 +77,13 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
             {selected?.label || placeholder}
           </span>
         </span>
-        <ChevronDown className={cn('w-4 h-4 text-white/40 transition-transform', open && 'rotate-180')} />
+        <ChevronDown className={cn('w-4 h-4 text-white/40 transition-transform duration-200', open && 'rotate-180')} />
       </button>
 
       {open && typeof document !== 'undefined' && createPortal(
         <div
           style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999 }}
-          className="rounded-xl bg-[#1a1f35] border border-white/15 shadow-2xl overflow-hidden"
+          className="rounded-xl border border-white/[0.12] shadow-2xl shadow-black/40 overflow-hidden backdrop-blur-xl bg-[#0d1225]/90"
         >
           {options.map(opt => (
             <button
@@ -91,10 +91,10 @@ export default function CustomSelect({ value, onChange, options, placeholder = '
               type="button"
               onMouseDown={(e) => { e.preventDefault(); onChange(opt.value); setOpen(false) }}
               className={cn(
-                'w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition-colors',
+                'w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition-all duration-150',
                 opt.value === value
-                  ? 'bg-blue-500/20 text-blue-400'
-                  : 'text-white/70 hover:bg-white/5 hover:text-white'
+                  ? 'bg-blue-500/15 text-blue-400'
+                  : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
               )}
             >
               {opt.color && (

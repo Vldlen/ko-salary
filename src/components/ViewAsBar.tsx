@@ -30,7 +30,7 @@ export default function ViewAsBar({ userRole }: ViewAsBarProps) {
         <span className="text-sm text-white/50">Просмотр:</span>
         {viewAsUser ? (
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-[9px]">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-[9px] shadow-sm shadow-blue-500/20">
               {viewAsUser.full_name.charAt(0)}
             </div>
             <span className="text-sm font-semibold text-white">{viewAsUser.full_name}</span>
@@ -47,16 +47,16 @@ export default function ViewAsBar({ userRole }: ViewAsBarProps) {
       <div className="relative">
         <button
           onClick={() => setShowPicker(!showPicker)}
-          className="flex items-center gap-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 px-3 py-1.5 rounded-lg text-xs font-medium transition"
+          className="flex items-center gap-1.5 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 border border-blue-500/20 hover:border-blue-500/30"
         >
           Выбрать менеджера
-          <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', showPicker && 'rotate-180')} />
+          <ChevronDown className={cn('w-3.5 h-3.5 transition-transform duration-200', showPicker && 'rotate-180')} />
         </button>
 
         {showPicker && (
           <>
             <div className="fixed inset-0 z-30" onClick={() => setShowPicker(false)} />
-            <div className="absolute right-0 top-full mt-2 z-[100] bg-[#1a1f35] rounded-xl shadow-2xl w-72 max-h-80 overflow-y-auto border border-white/15 backdrop-blur-none">
+            <div className="absolute right-0 top-full mt-2 z-[100] rounded-2xl shadow-2xl shadow-black/40 w-72 max-h-80 overflow-y-auto border border-white/[0.12] backdrop-blur-xl bg-[#0d1225]/90">
               {managers.length === 0 ? (
                 <div className="p-4 text-sm text-white/30 text-center">Нет активных менеджеров</div>
               ) : (
@@ -65,11 +65,11 @@ export default function ViewAsBar({ userRole }: ViewAsBarProps) {
                     key={m.id}
                     onClick={() => { selectManager(m); setShowPicker(false) }}
                     className={cn(
-                      'w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-white/5 transition',
+                      'w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-white/[0.06] transition-all duration-150',
                       viewAsUser?.id === m.id && 'bg-blue-500/10'
                     )}
                   >
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-[10px] shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-[10px] shrink-0 shadow-sm shadow-blue-500/20">
                       {m.full_name?.charAt(0)}
                     </div>
                     <div className="min-w-0">

@@ -610,8 +610,8 @@ export default function DealsPage() {
       {/* Payment date popup — вынесен из main для корректного fixed */}
       {paidPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/20" onClick={() => setPaidPopup(null)} />
-          <div className="relative rounded-2xl glass p-6 shadow-xl w-80">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setPaidPopup(null)} />
+          <div className="relative rounded-3xl glass-strong p-6 w-80">
             <h3 className="text-base font-bold text-white mb-1">Дата оплаты</h3>
             <p className="text-xs text-blue-400 mb-4">Укажите дату поступления оплаты</p>
             <input
@@ -639,8 +639,8 @@ export default function DealsPage() {
       {/* Deal form modal — вынесен из main для корректного fixed */}
       {showForm && user?.role === 'manager' && !isViewingAs && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={() => { setShowForm(false); setEditingDeal(null); setForm(EMPTY_FORM) }} />
-          <div className="relative rounded-2xl glass p-6 shadow-xl w-[600px] max-h-[90vh] overflow-y-auto">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setShowForm(false); setEditingDeal(null); setForm(EMPTY_FORM) }} />
+          <div className="relative rounded-3xl glass-strong p-6 w-[600px] max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold text-white">
                 {editingDeal ? 'Редактировать сделку' : 'Новая сделка'}
@@ -853,8 +853,8 @@ export default function DealsPage() {
 
         return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setPartialPopup(null)} />
-          <div className="relative rounded-2xl glass p-6 shadow-xl w-[480px] max-h-[90vh] overflow-y-auto">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setPartialPopup(null)} />
+          <div className="relative rounded-3xl glass-strong p-6 w-[480px] max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-bold text-white mb-1">Записать оплату</h3>
             <p className="text-xs text-white/40 mb-1">{d.client_name}</p>
 

@@ -72,14 +72,14 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
   const sidebarContent = (
     <>
       {/* Logo */}
-      <div className="p-6 border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-            <TrendingUp className="w-4 h-4 text-white" />
+      <div className="p-6 border-b border-white/[0.08] flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+            <TrendingUp className="w-4.5 h-4.5 text-white" />
           </div>
           <div>
             <h1 className="text-lg font-heading font-bold text-white">Пульс</h1>
-            <p className="text-[10px] text-blue-400 uppercase tracking-wider">ком. отдела</p>
+            <p className="text-[10px] text-blue-400/80 uppercase tracking-wider">ком. отдела</p>
           </div>
         </div>
         {/* Close button - mobile only */}
@@ -107,10 +107,10 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
                     href={link.href}
                     onClick={() => setOpen(false)}
                     className={cn(
-                      'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+                      'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
                       isActive
-                        ? 'bg-white/10 text-white shadow-sm'
-                        : 'text-white/50 hover:bg-white/5 hover:text-white/80'
+                        ? 'bg-white/[0.1] text-white shadow-sm shadow-white/5 border border-white/[0.08]'
+                        : 'text-white/50 hover:bg-white/[0.06] hover:text-white/80 border border-transparent'
                     )}
                   >
                     <Icon className={cn('w-5 h-5', isActive ? 'text-blue-400' : '')} />
@@ -124,9 +124,9 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
       </nav>
 
       {/* User */}
-      <div className="p-4 border-t border-white/10">
+      <div className="p-4 border-t border-white/[0.08]">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-orange-500 flex items-center justify-center text-white font-bold text-sm">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 via-indigo-500 to-orange-400 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/20">
             {userName.charAt(0)}
           </div>
           <div className="flex-1 min-w-0">
@@ -159,7 +159,7 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
       {/* Mobile overlay */}
       {open && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-md"
           onClick={() => setOpen(false)}
         />
       )}

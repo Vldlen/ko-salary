@@ -316,7 +316,7 @@ export default function AdminUsersPage() {
 
           {/* Credentials modal — shown after successful creation */}
           {createdCreds && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setCreatedCreds(null)}>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md" onClick={() => setCreatedCreds(null)}>
               <div className="glass-strong rounded-2xl p-6 w-96 shadow-2xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-heading font-bold text-white">Сотрудник создан</h3>
@@ -370,7 +370,7 @@ export default function AdminUsersPage() {
 
           {/* Edit user modal */}
           {editUser && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setEditUser(null)}>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md" onClick={() => setEditUser(null)}>
               <div className="glass-strong rounded-2xl p-6 w-96 shadow-2xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-heading font-bold text-white">Редактировать</h3>
