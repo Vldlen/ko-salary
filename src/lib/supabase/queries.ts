@@ -512,7 +512,9 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
     // Последние 5 сделок для превью
     const recentDeals = deals.slice(0, 5).map((d: any) => ({
       client_name: d.client_name,
-      revenue: Number(d.revenue),
+      revenue: Number(d.revenue || 0),
+      impl_revenue: Number(d.impl_revenue || 0),
+      content_revenue: Number(d.content_revenue || 0),
       status: d.status,
       units: d.units,
       product_type: d.product_type,

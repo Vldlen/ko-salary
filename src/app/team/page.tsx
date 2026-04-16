@@ -712,8 +712,8 @@ export default function TeamPage() {
                                     {m.recent_deals.filter((d: any) => d.status === 'paid').map((d: any, idx: number) => (
                                       <tr key={idx} className="border-b border-white/5 last:border-0">
                                         <td className="px-3 py-2 text-white/70">{d.client_name}</td>
-                                        <td className="px-3 py-2 text-right text-emerald-400 font-medium">{formatMoney(d.revenue)}</td>
-                                        <td className="px-3 py-2 text-right text-white/60">{d.units}</td>
+                                        <td className="px-3 py-2 text-right text-emerald-400 font-medium">{formatMoney(Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0))}</td>
+                                        <td className="px-3 py-2 text-right text-white/60">{Number(d.revenue || 0) > 0 ? d.units : '—'}</td>
                                       </tr>
                                     ))}
                                   </tbody>
@@ -951,7 +951,7 @@ export default function TeamPage() {
                                         <td className="px-3 py-2.5 text-white font-medium">{d.client_name}</td>
                                         <td className="px-3 py-2.5 text-right text-white font-medium">{formatMoney(d.revenue)}</td>
                                         {isBondaCompany && <td className="px-3 py-2.5 text-right text-blue-400">{d.mrr ? formatMoney(d.mrr) : '—'}</td>}
-                                        <td className="px-3 py-2.5 text-center text-white/60">{d.units}</td>
+                                        <td className="px-3 py-2.5 text-center text-white/60">{d.units > 0 ? d.units : '—'}</td>
                                         <td className={cn('px-3 py-2.5 text-center font-medium text-[11px]', stColor)}>{stLabel}</td>
                                         <td className="px-3 py-2.5 text-center text-blue-400">{formatDate(d.planned_payment_date)}</td>
                                         <td className="px-3 py-2.5 text-white/40 truncate max-w-[180px]">{d.notes || ''}</td>
