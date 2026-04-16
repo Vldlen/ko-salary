@@ -29,6 +29,47 @@ function formatDate(dateStr: string | null): string {
   return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`
 }
 
+function ForecastDualBar({ label, fact, forecast, plan, formatValue }: {
+  label: string; fact: number; forecast: number; plan: number; formatValue?: (v: number) => string
+}) {
+  const fmt = formatValue || ((v: number) => String(v))
+  const total = fact + forecast
+  const totalPct = plan > 0 ? Math.round(total / plan * 100) : 0
+  const factPct = plan > 0 ? Math.min(Math.round(fact / plan * 100), 100) : 0
+  const forecastPct = plan > 0 ? Math.min(Math.round(forecast / plan * 100), 100 - factPct) : 0
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between text-sm">
+        <span className="text-white/50">{label}</span>
+        <span className="font-medium text-white">
+          {fmt(fact)} оплач. + {fmt(forecast)} прогноз
+          {plan > 0 && (
+            <span className={cn(
+              'ml-1.5 text-xs font-semibold px-1.5 py-0.5 rounded-full',
+              totalPct >= 100 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'
+            )}>
+              {totalPct}%
+            </span>
+          )}
+        </span>
+      </div>
+      {plan > 0 && (
+        <div className="h-3 bg-white/10 rounded-full overflow-hidden relative">
+          <div
+            className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 absolute left-0 top-0"
+            style={{ width: `${factPct}%` }}
+          />
+          <div
+            className="h-full bg-gradient-to-r from-blue-400/50 to-blue-500/50 absolute top-0"
+            style={{ left: `${factPct}%`, width: `${forecastPct}%` }}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function TeamPage() {
   const supabase = useSupabase()
   const router = useRouter()
@@ -189,6 +230,23 @@ export default function TeamPage() {
   const paidPercent = totalRevTotal > 0 ? Math.round((totalRevFact / totalRevTotal) * 100) : 0
   const totalForecastDeals = filtered.reduce((s, m) => s + (m.forecast_deals?.length || 0), 0)
   const totalUnitsWaiting = filtered.reduce((s, m) => s + m.units_waiting, 0)
+
+  // === ПРОГНОЗ: forecast units & findirs ===
+  // Forecast units from ИННО managers (unpaid deals)
+  const forecastUnitsInno = (isFilterAll ? innoManagers : filtered.filter(isInnoManager))
+    .reduce((s, m) => s + (m.forecast_deals || []).reduce((u: number, d: any) => u + (d.units || 0), 0), 0)
+  const factUnitsInno = isFilterAll ? totalUnitsFactInno : filtered.filter(isInnoManager).reduce((s, m) => s + m.units_fact, 0)
+  const planUnitsInno = isFilterAll ? totalUnitsPlanInno : filtered.filter(isInnoManager).reduce((s, m) => s + m.units_plan, 0)
+
+  // Forecast findirs from БОНДА managers (unpaid findir deals)
+  const forecastFdBonda = (isFilterAll ? bondaManagers : filtered.filter(isBondaManager))
+    .reduce((s, m) => s + (m.forecast_deals || []).filter((d: any) => d.product_type === 'findir').length, 0)
+  const factFdBonda = isFilterAll ? totalFdCountBonda : filtered.filter(isBondaManager).reduce((s, m) => s + m.fd_count, 0)
+  const planFdBonda = isFilterAll ? totalFdPlanBonda : totalFdPlan
+
+  // For filtered single-company views
+  const forecastUnitsFiltered = filtered.reduce((s, m) => s + (m.forecast_deals || []).reduce((u: number, d: any) => u + (d.units || 0), 0), 0)
+  const forecastFdFiltered = filtered.reduce((s, m) => s + (m.forecast_deals || []).filter((d: any) => d.product_type === 'findir').length, 0)
 
   return (
     <MobileRestricted>
@@ -661,47 +719,42 @@ export default function TeamPage() {
                 </div>
               </div>
 
-              {/* Forecast progress bar */}
+              {/* Forecast progress bars */}
               <div className="glass rounded-xl p-5 mb-6">
                 <h2 className="text-sm font-semibold text-white mb-3">Прогресс к плану (факт + прогноз)</h2>
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-white/50">Выручка</span>
-                      <span className="font-medium text-white">
-                        {formatMoney(totalRevFact)} оплач. + {formatMoney(totalRevForecast)} прогноз
-                        {totalPlan > 0 && (
-                          <span className={cn(
-                            'ml-1.5 text-xs font-semibold px-1.5 py-0.5 rounded-full',
-                            Math.round(totalRevTotal / totalPlan * 100) >= 100 ? 'bg-emerald-500/20 text-emerald-400' :
-                            'bg-blue-500/20 text-blue-400'
-                          )}>
-                            {Math.round(totalRevTotal / totalPlan * 100)}%
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                    {totalPlan > 0 && (
-                      <div className="h-3 bg-white/10 rounded-full overflow-hidden relative">
-                        {/* Paid portion */}
-                        <div
-                          className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 absolute left-0 top-0"
-                          style={{ width: `${Math.min(Math.round(totalRevFact / totalPlan * 100), 100)}%` }}
-                        />
-                        {/* Forecast portion */}
-                        <div
-                          className="h-full bg-gradient-to-r from-blue-400/50 to-blue-500/50 absolute top-0"
-                          style={{
-                            left: `${Math.min(Math.round(totalRevFact / totalPlan * 100), 100)}%`,
-                            width: `${Math.min(Math.round(totalRevForecast / totalPlan * 100), 100 - Math.min(Math.round(totalRevFact / totalPlan * 100), 100))}%`
-                          }}
-                        />
-                      </div>
-                    )}
-                    <div className="flex gap-4 text-[10px]">
-                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400"></span> Оплачено</span>
-                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400/50"></span> Прогноз</span>
-                    </div>
+                <div className="space-y-4">
+                  {/* Выручка — always shown */}
+                  <ForecastDualBar
+                    label="Выручка"
+                    fact={totalRevFact}
+                    forecast={totalRevForecast}
+                    plan={totalPlan}
+                    formatValue={formatMoney}
+                  />
+
+                  {/* Лицензии ИННО — shown for Все and ИННО */}
+                  {(isFilterAll || isFilterInno) && (
+                    <ForecastDualBar
+                      label={isFilterAll ? 'Лицензии ИННО' : 'Лицензии'}
+                      fact={isFilterAll ? factUnitsInno : totalUnitsFact}
+                      forecast={isFilterAll ? forecastUnitsInno : forecastUnitsFiltered}
+                      plan={isFilterAll ? planUnitsInno : totalUnitsP}
+                    />
+                  )}
+
+                  {/* ФинДиры БОНДА — shown for Все and БОНДА */}
+                  {(isFilterAll || isFilterBonda) && (
+                    <ForecastDualBar
+                      label={isFilterAll ? 'ФинДиры БОНДА' : 'ФинДиры'}
+                      fact={isFilterAll ? factFdBonda : totalFdCount}
+                      forecast={isFilterAll ? forecastFdBonda : forecastFdFiltered}
+                      plan={isFilterAll ? planFdBonda : totalFdPlan}
+                    />
+                  )}
+
+                  <div className="flex gap-4 text-[10px]">
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400"></span> Оплачено</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400/50"></span> Прогноз</span>
                   </div>
                 </div>
               </div>
