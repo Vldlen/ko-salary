@@ -69,6 +69,48 @@ export function getSubscriptionPeriodLabel(period: string): string {
   return labels[period] || period
 }
 
+// ======== Position helpers ========
+
+/**
+ * Определяет, является ли должность "младшим менеджером".
+ * Единая точка логики — вместо дублирования `.includes('младш')` по всему коду.
+ * TODO: заменить на флаг `is_junior` в таблице positions после миграции БД.
+ */
+export function checkIsJunior(positionName: string | null | undefined): boolean {
+  if (!positionName) return false
+  return positionName.toLowerCase().includes('младш')
+}
+
+// ======== MRR calculation ========
+
+const PERIOD_MONTHS: Record<string, number> = {
+  month: 1,
+  quarter: 3,
+  half_year: 6,
+  year: 12,
+}
+
+/**
+ * Вычисляет MRR (Monthly Recurring Revenue) из суммы и периода подписки.
+ * Работает для ИННО (лицензии) и БОНДА (FinDir, Bonda BI).
+ * Разовые услуги (one_time_service) → MRR = 0.
+ *
+ * @param revenue — сумма оплаты за период
+ * @param subscriptionPeriod — 'month' | 'quarter' | 'half_year' | 'year' | null
+ * @param productType — тип продукта (опционально, для исключения разовых услуг)
+ */
+export function calcMrr(
+  revenue: number,
+  subscriptionPeriod: string | null | undefined,
+  productType?: string | null
+): number {
+  if (!revenue || revenue <= 0) return 0
+  if (productType === 'one_time_service') return 0
+  if (!subscriptionPeriod) return revenue // нет периода — считаем как month
+  const months = PERIOD_MONTHS[subscriptionPeriod] || 1
+  return Math.round(revenue / months)
+}
+
 // ======== Login & Password generation ========
 
 const TRANSLIT: Record<string, string> = {
@@ -119,10 +161,39 @@ export function generateLogin(fullName: string, existingLogins: string[]): strin
 }
 
 /**
- * Генерирует пароль: 6 цифр + 1 латинская буква, например "472915k"
+ * Генерирует криптографически стойкий пароль: 10 символов (буквы + цифры + спецсимвол).
+ * Пример: "kT7x$mR2pN"
  */
 export function generatePassword(): string {
-  const digits = Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join('')
-  const letter = String.fromCharCode(97 + Math.floor(Math.random() * 26)) // a-z
-  return digits + letter
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'  // без I, O (путаются с 1, 0)
+  const lower = 'abcdefghjkmnpqrstuvwxyz'    // без i, l, o
+  const digits = '23456789'                   // без 0, 1
+  const special = '$#@!'
+  const all = upper + lower + digits
+
+  // Криптографически безопасный random (работает и в Node, и в Edge Runtime)
+  const randomBytes = new Uint8Array(12)
+  crypto.getRandomValues(randomBytes)
+
+  // Гарантируем наличие каждого класса символов
+  const pick = (charset: string, byte: number) => charset[byte % charset.length]
+  const parts = [
+    pick(upper, randomBytes[0]),
+    pick(lower, randomBytes[1]),
+    pick(digits, randomBytes[2]),
+    pick(special, randomBytes[3]),
+  ]
+
+  // Остальные 6 символов — из общего набора
+  for (let i = 4; i < 10; i++) {
+    parts.push(pick(all, randomBytes[i]))
+  }
+
+  // Перемешиваем (Fisher-Yates с crypto random)
+  for (let i = parts.length - 1; i > 0; i--) {
+    const j = randomBytes[i + 2] % (i + 1)
+    ;[parts[i], parts[j]] = [parts[j], parts[i]]
+  }
+
+  return parts.join('')
 }

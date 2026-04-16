@@ -4,9 +4,41 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'edge'
 
-function verifyToken(request: NextRequest): boolean {
-  const token = request.nextUrl.searchParams.get('token')
-  return token === process.env.TELEGRAM_SECRET_TOKEN
+/**
+ * Верифицирует HMAC-подпись в URL (вместо прямой передачи SECRET_TOKEN).
+ * Формат sig: "timestamp.hmac_hex" — валидна 5 минут.
+ * Для обратной совместимости также принимает ?token= (legacy).
+ */
+async function verifyToken(request: NextRequest): Promise<boolean> {
+  const SECRET = process.env.TELEGRAM_SECRET_TOKEN
+  if (!SECRET) return false
+
+  // Legacy: прямой токен (для обратной совместимости, можно убрать позже)
+  const legacyToken = request.nextUrl.searchParams.get('token')
+  if (legacyToken === SECRET) return true
+
+  // HMAC-подпись
+  const sig = request.nextUrl.searchParams.get('sig')
+  if (!sig) return false
+
+  const [tsStr, hash] = sig.split('.')
+  if (!tsStr || !hash) return false
+
+  const ts = Number(tsStr)
+  const now = Math.floor(Date.now() / 60_000)
+  // Допускаем ±5 минут
+  if (Math.abs(now - ts) > 5) return false
+
+  const encoder = new TextEncoder()
+  const key = await crypto.subtle.importKey(
+    'raw', encoder.encode(SECRET),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']
+  )
+  const sigBytes = new Uint8Array(hash.match(/.{2}/g)!.map(b => parseInt(b, 16)))
+  // Полная подпись — 32 байта, но мы берём только первые 16 (32 hex chars)
+  const fullSig = await crypto.subtle.sign('HMAC', key, encoder.encode(tsStr))
+  const fullHex = Array.from(new Uint8Array(fullSig)).map(b => b.toString(16).padStart(2, '0')).join('')
+  return fullHex.slice(0, 32) === hash
 }
 
 // Get current time in Moscow timezone (UTC+3)
@@ -362,7 +394,7 @@ function BondaImage({ members, periodLabel }: { members: MemberData[]; periodLab
 }
 
 export async function GET(request: NextRequest) {
-  if (!verifyToken(request)) {
+  if (!(await verifyToken(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

@@ -8,7 +8,7 @@ import Sidebar from '@/components/Sidebar'
 import ViewAsBar from '@/components/ViewAsBar'
 import CustomSelect from '@/components/CustomSelect'
 import DealIcon from '@/components/DealIcon'
-import { formatMoney, getDealStatusLabel, getDealStatusColor, getProductTypeLabel, getSubscriptionPeriodLabel, cn } from '@/lib/utils'
+import { formatMoney, getDealStatusLabel, getDealStatusColor, getProductTypeLabel, getSubscriptionPeriodLabel, cn, calcMrr } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { useViewAs } from '@/lib/view-as-context'
 import { getCurrentUser, getActivePeriod, getDeals, createDeal, updateDeal } from '@/lib/supabase/queries'
@@ -162,12 +162,19 @@ export default function DealsPage() {
         dealData.subscription_period = form.product_type === 'one_time_service' ? null : form.subscription_period
         dealData.amo_link = form.amo_link || null
         dealData.units = 1
-        dealData.mrr = 0
+        dealData.mrr = calcMrr(
+          Number(form.revenue) || 0,
+          form.product_type === 'one_time_service' ? null : form.subscription_period,
+          form.product_type
+        )
         dealData.equipment_margin = 0
       } else {
         dealData.product_type = 'inno_license'
         dealData.subscription_period = form.subscription_period
-        dealData.mrr = Number(form.mrr) || 0
+        // MRR: если менеджер ввёл вручную — используем, иначе считаем автоматом
+        const manualMrr = Number(form.mrr) || 0
+        const autoMrr = calcMrr(Number(form.revenue) || 0, form.subscription_period)
+        dealData.mrr = manualMrr > 0 ? manualMrr : autoMrr
         dealData.units = Number(form.units) || 1
         dealData.equipment_sell_price = Number(form.equipment_sell_price) || 0
         dealData.equipment_buy_price = Number(form.equipment_buy_price) || 0
@@ -575,12 +582,12 @@ export default function DealsPage() {
                           )}
                           <button onClick={() => openEdit(deal)}
                             className="rounded-lg p-2 text-blue-400 hover:bg-white/5 transition-colors"
-                            title="Редактировать">
+                            title="Редактировать" aria-label="Редактировать сделку">
                             <Pencil size={16} />
                           </button>
                           <button onClick={() => handleDelete(deal.id)}
                             className="rounded-lg p-2 text-red-400 hover:bg-red-50/10 transition-colors"
-                            title="Удалить">
+                            title="Удалить" aria-label="Удалить сделку">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -639,7 +646,7 @@ export default function DealsPage() {
                 {editingDeal ? 'Редактировать сделку' : 'Новая сделка'}
               </h2>
               <button onClick={() => { setShowForm(false); setEditingDeal(null); setForm(EMPTY_FORM) }}
-                className="rounded-lg p-2 text-blue-400 hover:bg-white/5">
+                className="rounded-lg p-2 text-blue-400 hover:bg-white/5" aria-label="Закрыть форму">
                 <X size={20} />
               </button>
             </div>
@@ -716,11 +723,18 @@ export default function DealsPage() {
                           placeholder="0" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-white/60 mb-1">MRR</label>
+                        <label className="block text-xs font-medium text-white/60 mb-1">
+                          MRR
+                          {Number(form.revenue) > 0 && !form.mrr && (
+                            <span className="text-blue-400/50 ml-1">
+                              (авто: {formatMoney(calcMrr(Number(form.revenue), form.subscription_period))})
+                            </span>
+                          )}
+                        </label>
                         <input type="number" value={form.mrr}
                           onChange={(e) => setForm({ ...form, mrr: e.target.value })}
                           className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
-                          placeholder="0" />
+                          placeholder={String(calcMrr(Number(form.revenue) || 0, form.subscription_period))} />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-white/60 mb-1">Лицензии</label>

@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
+import { checkIsJunior, calcMrr } from '@/lib/utils'
 
 // ======== Current User & Period ========
 
@@ -104,7 +105,7 @@ export async function getDashboardData(supabase: SupabaseClient, userId: string,
   const salaryResult = salaryRes.data
   const posData = userRes.data?.position as any
   const positionName = (Array.isArray(posData) ? posData[0]?.name : posData?.name) || ''
-  const isJunior = positionName.toLowerCase().includes('младш')
+  const isJunior = checkIsJunior(positionName)
   const allSchemas = Array.isArray(posData) ? posData[0]?.motivation_schemas : posData?.motivation_schemas
   const period = periodRes.data
   const individualPlan = planRes.data
@@ -484,6 +485,15 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
       return s + Number(d.equipment_margin || 0)
     }, 0)
 
+    // MRR: приоритет — ручное поле d.mrr, фоллбэк — авторасчёт из revenue / period
+    const dealMrr = (d: any) => {
+      const manual = Number(d.mrr || 0)
+      if (manual > 0) return manual
+      return calcMrr(Number(d.revenue || 0), d.subscription_period, d.product_type)
+    }
+    const mrrFact = paidDeals.reduce((s: number, d: any) => s + dealMrr(d), 0)
+    const mrrForecast = unpaidDeals.reduce((s: number, d: any) => s + dealMrr(d), 0)
+
     const meetingsNew = meetings.reduce((s: number, m: any) => s + (m.new_completed || 0), 0)
     const meetingsRepeat = meetings.reduce((s: number, m: any) => s + (m.repeat_completed || 0), 0)
     const meetingsFact = meetingsNew + meetingsRepeat
@@ -512,7 +522,7 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
       .map((d: any) => ({
         client_name: d.client_name,
         revenue: dealFullRev(d),
-        mrr: Number(d.mrr || 0),
+        mrr: dealMrr(d),
         units: d.units,
         status: d.status,
         product_type: d.product_type,
@@ -543,6 +553,10 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
       units_fact: unitsFact,
       units_waiting: unitsWaiting,
       units_plan: plan?.units_plan || 0,
+      // MRR
+      mrr_fact: mrrFact,
+      mrr_forecast: mrrForecast,
+      mrr_plan: plan?.mrr_plan || 0,
       // Маржа
       margin_fact: marginFact,
       // Встречи
@@ -761,7 +775,7 @@ export async function getBondaDashboardData(supabase: SupabaseClient, userId: st
   const config = schema?.config || {}
   const baseSalary = schema?.base_salary || 0
   const positionName = (Array.isArray(posData) ? posData[0]?.name : posData?.name) || ''
-  const isJunior = positionName.toLowerCase().includes('младш')
+  const isJunior = checkIsJunior(positionName)
 
   // Import and use bonda calculator
   const { calculateBondaSalary } = await import('@/lib/bonda-calculator')
@@ -859,7 +873,7 @@ export async function getInnoDashboardData(supabase: SupabaseClient, userId: str
   if (!schema) return null
 
   const positionName = (Array.isArray(posData) ? posData[0]?.name : posData?.name) || ''
-  const isJunior = positionName.toLowerCase().includes('младш')
+  const isJunior = checkIsJunior(positionName)
 
   const { calculateSalary } = await import('@/lib/salary-calculator')
 

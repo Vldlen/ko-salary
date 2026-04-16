@@ -1,6 +1,23 @@
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!
 const SECRET_TOKEN = process.env.TELEGRAM_SECRET_TOKEN!
 
+/**
+ * Генерирует одноразовый подписанный токен для URL отчёта.
+ * Вместо SECRET_TOKEN в URL используем HMAC(timestamp) — даже если URL утечёт,
+ * злоумышленник не узнает SECRET_TOKEN и не сможет вызывать webhook.
+ */
+async function generateReportUrlToken(): Promise<string> {
+  const ts = Math.floor(Date.now() / 60_000) // минутная гранулярность
+  const encoder = new TextEncoder()
+  const key = await crypto.subtle.importKey(
+    'raw', encoder.encode(SECRET_TOKEN),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  )
+  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(String(ts)))
+  const hex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
+  return `${ts}.${hex.slice(0, 32)}`
+}
+
 export async function sendPhoto(chatId: string, imageUrl: string, caption: string) {
   const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
     method: 'POST',
@@ -50,7 +67,8 @@ function getBaseUrl(): string {
 
 async function fetchReportData() {
   const baseUrl = getBaseUrl()
-  const res = await fetch(`${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&format=json`)
+  const sig = await generateReportUrlToken()
+  const res = await fetch(`${baseUrl}/api/telegram/team-report?sig=${sig}&format=json`)
   if (!res.ok) {
     throw new Error(`Report API returned ${res.status}: ${res.statusText}`)
   }
@@ -80,7 +98,8 @@ export async function sendTeamReport(chatId: string) {
     const caption = `${emoji} <b>ИННО · Пульс КО</b>\n💰 Факт: ${fmt(totalFact)} / ${fmt(totalPlan)} (${pct}%)\n📊 Прогноз: +${fmt(totalForecast)}`
 
     const cb = Date.now()
-    const imageUrl = `${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&company=inno&_=${cb}`
+    const sig = await generateReportUrlToken()
+    const imageUrl = `${baseUrl}/api/telegram/team-report?sig=${sig}&company=inno&_=${cb}`
 
     try {
       await sendPhoto(chatId, imageUrl, caption)
@@ -97,7 +116,8 @@ export async function sendTeamReport(chatId: string) {
     const caption = `🟣 <b>БОНДА · Пульс КО</b>\n💰 Выручка: ${fmt(totalFact)}\n📊 Прогноз: +${fmt(totalForecast)}`
 
     const cb = Date.now()
-    const imageUrl = `${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&company=bonda&_=${cb}`
+    const sig = await generateReportUrlToken()
+    const imageUrl = `${baseUrl}/api/telegram/team-report?sig=${sig}&company=bonda&_=${cb}`
 
     try {
       await sendPhoto(chatId, imageUrl, caption)
@@ -132,7 +152,8 @@ export async function sendCompanyReport(chatId: string, company: 'inno' | 'bonda
   }
 
   const cb = Date.now()
-  const imageUrl = `${baseUrl}/api/telegram/team-report?token=${SECRET_TOKEN}&company=${company}&_=${cb}`
+  const sig = await generateReportUrlToken()
+  const imageUrl = `${baseUrl}/api/telegram/team-report?sig=${sig}&company=${company}&_=${cb}`
 
   try {
     await sendPhoto(chatId, imageUrl, caption)

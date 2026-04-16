@@ -2,6 +2,7 @@
 export const DEAL_STATUS = {
   NO_INVOICE: 'no_invoice',
   WAITING_PAYMENT: 'waiting_payment',
+  PARTIAL: 'partial',
   PAID: 'paid',
 } as const
 
@@ -10,6 +11,7 @@ export type DealStatus = typeof DEAL_STATUS[keyof typeof DEAL_STATUS]
 export const DEAL_STATUS_LABELS: Record<DealStatus, string> = {
   [DEAL_STATUS.NO_INVOICE]: 'Нет счёта',
   [DEAL_STATUS.WAITING_PAYMENT]: 'Жду оплату',
+  [DEAL_STATUS.PARTIAL]: 'Частично оплачено',
   [DEAL_STATUS.PAID]: 'Оплачено',
 }
 
@@ -34,6 +36,7 @@ export const USER_ROLE = {
   ROP: 'rop',
   DIRECTOR: 'director',
   ADMIN: 'admin',
+  FOUNDER: 'founder',
 } as const
 
 export type UserRoleType = typeof USER_ROLE[keyof typeof USER_ROLE]
@@ -43,6 +46,7 @@ export const USER_ROLE_LABELS: Record<UserRoleType, string> = {
   [USER_ROLE.ROP]: 'РОП',
   [USER_ROLE.DIRECTOR]: 'Директор по продажам',
   [USER_ROLE.ADMIN]: 'Администратор',
+  [USER_ROLE.FOUNDER]: 'Учредитель',
 }
 
 // ======== Месяцы ========

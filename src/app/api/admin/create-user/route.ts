@@ -1,7 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { withApiAuth } from '@/lib/supabase/api-utils'
 import { generateLogin, generatePassword } from '@/lib/utils'
 
 export async function POST(request: NextRequest) {
@@ -16,48 +14,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Для менеджера и РОПа нужна компания и должность' }, { status: 400 })
     }
 
-    // 1. Verify the requesting user is admin/director
-    const cookieStore = cookies()
-    const supabaseSession = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet: any[]) {
-            cookiesToSet.forEach(({ name, value, options }: any) => {
-              try { cookieStore.set(name, value, options) } catch (e) {}
-            })
-          },
-        },
-      }
-    )
+    const auth = await withApiAuth(['admin', 'director'])
+    if (auth instanceof NextResponse) return auth
+    const { supabaseAdmin } = auth
 
-    const { data: { user: sessionUser } } = await supabaseSession.auth.getUser()
-    if (!sessionUser) {
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
-    }
-
-    const { data: adminUser } = await supabaseSession
-      .from('users')
-      .select('role')
-      .eq('id', sessionUser.id)
-      .single()
-
-    if (!adminUser || !['admin', 'director'].includes(adminUser.role)) {
-      return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
-    }
-
-    // 2. Use service role for user creation
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
-
-    // 3. Get existing logins to avoid duplicates
+    // Get existing logins to avoid duplicates
     const { data: existingUsers } = await supabaseAdmin
       .from('users')
       .select('login')
@@ -66,12 +27,12 @@ export async function POST(request: NextRequest) {
       .map((u: any) => u.login)
       .filter(Boolean)
 
-    // 4. Generate login and password
+    // Generate login and password
     const login = generateLogin(full_name, existingLogins)
     const password = generatePassword()
     const fakeEmail = `${login}@pulse.local`
 
-    // 5. Create auth user
+    // Create auth user
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: fakeEmail,
       password,
@@ -87,7 +48,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Не удалось создать пользователя' }, { status: 500 })
     }
 
-    // 6. Create profile in users table
+    // Create profile in users table
     const { data: profileData, error: profileError } = await supabaseAdmin
       .from('users')
       .insert({
@@ -107,7 +68,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: profileError.message }, { status: 500 })
     }
 
-    // 7. Return user with login and password so admin can copy them
+    // Return user with login and password so admin can copy them
     return NextResponse.json({
       user: profileData,
       credentials: { login, password }

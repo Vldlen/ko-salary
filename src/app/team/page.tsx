@@ -9,7 +9,7 @@ import {
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import ProgressBar from '@/components/ProgressBar'
-import { formatMoney, cn, getDealStatusLabel, getDealStatusColor } from '@/lib/utils'
+import { formatMoney, cn, getDealStatusLabel, getDealStatusColor, checkIsJunior } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { getCurrentUser, getActivePeriod, getTeamProgress, getKpiEntries, getKpiApprovals, toggleKpiApproval } from '@/lib/supabase/queries'
 
@@ -248,6 +248,14 @@ export default function TeamPage() {
   const forecastUnitsFiltered = filtered.reduce((s, m) => s + (m.forecast_deals || []).reduce((u: number, d: any) => u + (d.units || 0), 0), 0)
   const forecastFdFiltered = filtered.reduce((s, m) => s + (m.forecast_deals || []).filter((d: any) => d.product_type === 'findir').length, 0)
 
+  // === MRR aggregates (ИННО only) ===
+  const mrrFactInno = (isFilterAll ? innoManagers : filtered.filter(isInnoManager))
+    .reduce((s, m) => s + (m.mrr_fact || 0), 0)
+  const mrrForecastInno = (isFilterAll ? innoManagers : filtered.filter(isInnoManager))
+    .reduce((s, m) => s + (m.mrr_forecast || 0), 0)
+  const mrrPlanInno = (isFilterAll ? innoManagers : filtered.filter(isInnoManager))
+    .reduce((s, m) => s + (m.mrr_plan || 0), 0)
+
   return (
     <MobileRestricted>
     <div className="flex min-h-screen">
@@ -440,7 +448,7 @@ export default function TeamPage() {
                   const meetPct = m.meetings_plan > 0 ? Math.round((m.meetings_fact / m.meetings_plan) * 100) : 0
                   const isExpanded = expandedId === m.id
                   const isBondaCompany = m.company_name?.toUpperCase()?.includes('БОНД') || false
-                  const isJunior = m.position?.toLowerCase()?.includes('младш') || false
+                  const isJunior = checkIsJunior(m.position)
 
                   const statusIcon = revPct >= 100
                     ? { label: 'План выполнен', cls: 'bg-emerald-500/20 text-emerald-400', icon: TrendingUp }
@@ -716,6 +724,11 @@ export default function TeamPage() {
                   <p className="text-[10px] text-white/30 mt-0.5">
                     {paidPercent}% уже оплачено
                   </p>
+                  {(mrrFactInno + mrrForecastInno) > 0 && (
+                    <p className="text-[10px] text-blue-400/60 mt-0.5">
+                      MRR: {formatMoney(mrrFactInno + mrrForecastInno)}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -731,6 +744,17 @@ export default function TeamPage() {
                     plan={totalPlan}
                     formatValue={formatMoney}
                   />
+
+                  {/* MRR ИННО — shown for Все and ИННО */}
+                  {(isFilterAll || isFilterInno) && mrrPlanInno > 0 && (
+                    <ForecastDualBar
+                      label={isFilterAll ? 'MRR ИННО' : 'MRR'}
+                      fact={mrrFactInno}
+                      forecast={mrrForecastInno}
+                      plan={mrrPlanInno}
+                      formatValue={formatMoney}
+                    />
+                  )}
 
                   {/* Лицензии ИННО — shown for Все and ИННО */}
                   {(isFilterAll || isFilterInno) && (

@@ -83,7 +83,7 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
           </div>
         </div>
         {/* Close button - mobile only */}
-        <button onClick={() => setOpen(false)} className="lg:hidden p-1 text-white/50 hover:text-white">
+        <button onClick={() => setOpen(false)} className="lg:hidden p-1 text-white/50 hover:text-white" aria-label="Закрыть меню">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -133,7 +133,7 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
             <p className="text-sm font-medium text-white truncate">{userName}</p>
             <p className="text-xs text-white/40">{roleLabel}</p>
           </div>
-          <button onClick={handleLogout} className="p-1.5 text-white/30 hover:text-red-400 transition" title="Выйти">
+          <button onClick={handleLogout} className="p-1.5 text-white/30 hover:text-red-400 transition" title="Выйти" aria-label="Выйти из аккаунта">
             <LogOut className="w-4 h-4" />
           </button>
         </div>
@@ -145,7 +145,7 @@ function Sidebar({ role, userName, companyName }: SidebarProps) {
     <>
       {/* Mobile header bar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 glass-sidebar px-4 py-3 flex items-center gap-3">
-        <button onClick={() => setOpen(true)} className="p-1 text-white/70 hover:text-white">
+        <button onClick={() => setOpen(true)} className="p-1 text-white/70 hover:text-white" aria-label="Открыть меню">
           <Menu className="w-6 h-6" />
         </button>
         <div className="flex items-center gap-2">
