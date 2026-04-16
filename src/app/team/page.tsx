@@ -436,6 +436,16 @@ export default function TeamPage() {
                     />
                   )}
                   <ProgressBar label="Встречи" value={totalMeetFact} max={totalMeetP} percent={totalMeetP > 0 ? Math.round(totalMeetFact / totalMeetP * 100) : 0} />
+                  {/* MRR ИННО (Факт) */}
+                  {(isFilterAll || isFilterInno) && mrrFactInno > 0 && (
+                    <ProgressBar
+                      label={isFilterAll ? 'MRR ИННО' : 'MRR'}
+                      value={mrrFactInno}
+                      max={mrrPlanInno || undefined}
+                      percent={mrrPlanInno > 0 ? Math.round(mrrFactInno / mrrPlanInno * 100) : undefined}
+                      formatValue={formatMoney}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -745,13 +755,13 @@ export default function TeamPage() {
                     formatValue={formatMoney}
                   />
 
-                  {/* MRR ИННО — shown for Все and ИННО */}
-                  {(isFilterAll || isFilterInno) && mrrPlanInno > 0 && (
+                  {/* MRR ИННО — shown for Все and ИННО when any MRR data exists */}
+                  {(isFilterAll || isFilterInno) && (mrrFactInno + mrrForecastInno) > 0 && (
                     <ForecastDualBar
                       label={isFilterAll ? 'MRR ИННО' : 'MRR'}
                       fact={mrrFactInno}
                       forecast={mrrForecastInno}
-                      plan={mrrPlanInno}
+                      plan={mrrPlanInno || (mrrFactInno + mrrForecastInno)}
                       formatValue={formatMoney}
                     />
                   )}

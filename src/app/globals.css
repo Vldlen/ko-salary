@@ -165,6 +165,22 @@ h1, h2, h3, h4, h5, h6 {
   z-index: 0;
 }
 
+/* Telegram-style icon pattern (money, INNO cloud, BONDA chart) */
+.bg-mesh::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/pattern-bg.svg');
+  background-repeat: repeat;
+  background-size: 320px 320px;
+  opacity: 0.035;
+  pointer-events: none;
+  z-index: 0;
+}
+
 /* ===== Form inputs ===== */
 input, select, textarea {
   color: #e2e8f0;
