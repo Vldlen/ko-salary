@@ -98,9 +98,9 @@ export default function ForecastPage() {
 
   const dealFullRevenue = (d: any) => Number(d.revenue || 0) + Number(d.impl_revenue || 0) + Number(d.content_revenue || 0)
   const forecastRevenue = forecastDeals.reduce((s, d) => s + dealFullRevenue(d), 0)
-  const forecastUnits = forecastDeals.reduce((s, d) => s + (d.units || 0), 0)
+  const forecastUnits = forecastDeals.reduce((s, d) => Number(d.revenue || 0) > 0 ? s + (d.units || 0) : s, 0)
   const paidRevenue = paidDeals.reduce((s, d) => s + dealFullRevenue(d), 0)
-  const paidUnits = paidDeals.reduce((s, d) => s + (d.units || 0), 0)
+  const paidUnits = paidDeals.reduce((s, d) => Number(d.revenue || 0) > 0 ? s + (d.units || 0) : s, 0)
   const totalRevenue = forecastRevenue + paidRevenue
 
   // Group by status (only forecast statuses)
@@ -110,7 +110,7 @@ export default function ForecastPage() {
     color: getDealStatusColor(status),
     deals: deals.filter(d => d.status === status),
     revenue: deals.filter(d => d.status === status).reduce((s, d) => s + dealFullRevenue(d), 0),
-    units: deals.filter(d => d.status === status).reduce((s, d) => s + (d.units || 0), 0),
+    units: deals.filter(d => d.status === status).reduce((s, d) => Number(d.revenue || 0) > 0 ? s + (d.units || 0) : s, 0),
   }))
 
   const showUserColumn = !isViewingAs && user?.role !== 'manager'
@@ -213,9 +213,9 @@ export default function ForecastPage() {
                               <td className="px-4 py-3 text-white/80 font-medium">{deal.user_name || '—'}</td>
                             )}
                             <td className="px-4 py-3 text-white font-medium">{deal.client_name}</td>
-                            <td className="px-4 py-3 text-right text-white font-medium">{formatMoney(deal.revenue)}</td>
+                            <td className="px-4 py-3 text-right text-white font-medium">{formatMoney(dealFullRevenue(deal))}</td>
                             <td className="px-4 py-3 text-right text-blue-400">{deal.mrr ? formatMoney(deal.mrr) : '—'}</td>
-                            <td className="px-4 py-3 text-center text-white/80">{deal.units}</td>
+                            <td className="px-4 py-3 text-center text-white/80">{Number(deal.revenue || 0) > 0 ? deal.units : '—'}</td>
                             <td className="px-4 py-3 text-right text-blue-400">
                               {deal.equipment_margin > 0 ? formatMoney(deal.equipment_margin) : '—'}
                             </td>
