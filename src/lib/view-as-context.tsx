@@ -1,6 +1,21 @@
 'use client'
 
+/**
+ * ViewAs context — админ/комдир/РОП/фаундер могут временно "смотреть глазами" менеджера.
+ *
+ * Безопасность:
+ *   1. /api/admin/managers (источник списка) гейтится withApiAuth(['admin', 'director', 'rop', 'founder'])
+ *      и возвращает только is_active + fired_at IS NULL + deleted_at IS NULL.
+ *   2. Кросс-компанийный read разрешён RLS (миграция 010) для rop/director/admin/founder —
+ *      это намеренное поведение (см. NOTES_VLADLEN.md: пункт #1 аудита закрыт как не-баг).
+ *   3. Кросс-компанийный write для rop — ЗАПРЕЩЁН RLS (миграция 010 §7-9). Плюс UI-кнопки
+ *      редактирования/удаления гейтятся `user.role === 'manager' && !isViewingAs`.
+ *
+ * Если появятся новые edit-хендлеры, добавляй эту проверку обязательно.
+ */
+
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { logger } from '@/lib/logger'
 interface ViewAsUser {
   id: string
   full_name: string
@@ -46,7 +61,7 @@ export function ViewAsProvider({ children }: { children: ReactNode }) {
       setManagers(data.managers || [])
       setManagersLoaded(true)
     } catch (err) {
-      console.error('Failed to load managers:', err)
+      logger.error('Failed to load managers', err)
     }
   }, [managersLoaded])
 

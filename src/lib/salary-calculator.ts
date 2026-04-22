@@ -1,4 +1,5 @@
 import type { Deal, Meeting, MotivationSchema, OneTimePayment } from '@/types/database'
+import { logger } from '@/lib/logger'
 
 interface CalcInput {
   schema: MotivationSchema
@@ -65,7 +66,12 @@ interface CalcResult {
   }
 }
 
-// Default ИННО push-bonus percentages
+// Дефолтные значения ПРИМЕНЯЮТСЯ ТОЛЬКО если в schema.config соответствующий ключ не задан.
+// Когда это происходит — в консоль пишется warning через logger, чтобы админ мог поправить
+// конфигурацию должности вместо молчаливого расчёта по дефолту.
+//
+// Если тебе надо изменить эти числа на прод — правь schema.config у должности в /admin/positions,
+// а НЕ этот файл.
 const DEFAULT_PUSH_PERCENTS = {
   month: 0.50,
   quarter: 0.80,
@@ -73,7 +79,6 @@ const DEFAULT_PUSH_PERCENTS = {
   year: 1.50,
 }
 
-// Default threshold multiplier tiers
 const DEFAULT_THRESHOLD_TIERS = {
   min_percent: 30,
   tiers: [
@@ -123,7 +128,9 @@ export function calculateSalary(input: CalcInput): CalcResult {
     return sum + Number(d.forecast_revenue ?? d.revenue)
   }, 0)
 
-  const revenuePlan = individualPlan?.revenue_plan ?? config.revenue_plan
+  // Coalesce plans к 0 явно: individualPlan может вернуть null, config — undefined.
+  // Все последующие деления защищены `plan > 0 ? ... : 0` на случай plan=0 (новый период без плана).
+  const revenuePlan = Number(individualPlan?.revenue_plan ?? config.revenue_plan ?? 0) || 0
   const revenuePercent = revenuePlan > 0 ? revenueFact / revenuePlan : 0
   const revenueForecastPercent = revenuePlan > 0 ? revenueForecast / revenuePlan : 0
 
@@ -136,13 +143,13 @@ export function calculateSalary(input: CalcInput): CalcResult {
     return sum + d.units
   }, 0)
   const unitsForecast = forecastDeals.reduce((sum, d) => sum + d.units, 0)
-  const unitsPlan = individualPlan?.units_plan ?? config.units_plan
+  const unitsPlan = Number(individualPlan?.units_plan ?? config.units_plan ?? 0) || 0
   const unitsPercent = unitsPlan > 0 ? unitsFact / unitsPlan : 0
   const unitsForecastPercent = unitsPlan > 0 ? unitsForecast / unitsPlan : 0
 
   // --- Meetings ---
   const meetingsFact = meetings.reduce((sum, m) => sum + m.new_completed + m.repeat_completed, 0)
-  const meetingsPlan = config.meetings_plan
+  const meetingsPlan = Number(config.meetings_plan ?? 0) || 0
   const meetingsPercent = meetingsPlan > 0 ? meetingsFact / meetingsPlan : 0
 
   // --- KPI (бинарный, как у БОНДА) ---
@@ -168,7 +175,11 @@ export function calculateSalary(input: CalcInput): CalcResult {
   }
 
   // --- Push-bonus: % от MRR нового клиента по периоду подписки ---
-  const pushPercents = config.push_bonus_percents || DEFAULT_PUSH_PERCENTS
+  let pushPercents = config.push_bonus_percents
+  if (!pushPercents) {
+    logger.warn(`[salary-calc] schema.config.push_bonus_percents не задан — используется дефолт (schema=${schema.id})`)
+    pushPercents = DEFAULT_PUSH_PERCENTS
+  }
   let pushBonusRaw = 0
 
   // Push-bonus считается только для оплаченных лицензий (inno_license или без product_type)
@@ -223,7 +234,11 @@ export function calculateSalary(input: CalcInput): CalcResult {
   const servicesRevenuePlan = revenuePlan // revenue_plan = план по выручке услуг
   const servicesPercent = servicesRevenuePlan > 0 ? implRevenue / servicesRevenuePlan : 0
   const servicesPctInt = Math.round(servicesPercent * 100)
-  const servicesThresholdConfig = config.threshold_multipliers || DEFAULT_THRESHOLD_TIERS
+  let servicesThresholdConfig = config.threshold_multipliers
+  if (!servicesThresholdConfig) {
+    logger.warn(`[salary-calc] schema.config.threshold_multipliers не задан — используется дефолт (schema=${schema.id})`)
+    servicesThresholdConfig = DEFAULT_THRESHOLD_TIERS
+  }
   const { multiplier: servicesMultiplier, label: servicesMultiplierLabel } = getMultiplier(servicesPctInt, servicesThresholdConfig)
 
   // Прогнозный множитель услуг: по прогнозной выручке услуг
@@ -258,6 +273,7 @@ export function calculateSalary(input: CalcInput): CalcResult {
   // Таблица говорит: пороги по оплатам и планам
   // Используем наименьший из двух (units и revenue), если оба плана заданы
   const thresholdConfig = config.threshold_multipliers || DEFAULT_THRESHOLD_TIERS
+  // (warning уже выведен выше при servicesThresholdConfig — не дублируем)
   const unitsPctInt = Math.round(unitsPercent * 100)
   const revPctInt = Math.round(revenuePercent * 100)
 

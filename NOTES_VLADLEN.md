@@ -1,4 +1,75 @@
-# ko-salary — заметки для продолжения (сохранено 2026-04-15)
+# ko-salary — заметки для продолжения (обновлено 2026-04-22)
+
+## Аудит — текущий статус
+
+Все 12 пунктов обработаны. Резюме по каждому ниже.
+
+### ✅ #1 Утечка в /api/admin/managers — не-баг
+РОП/комдир/фаундер видят обе команды умышленно (бизнес-требование).
+
+### ✅ #2 Race condition в частичной оплате
+Фикс: миграция `012_record_payment_rpc.sql` — RPC `record_partial_payment` лочит строку (`SELECT FOR UPDATE`), считает итоговый статус на сервере, атомарно обновляет все поля. `deals/page.tsx` теперь вызывает эту RPC вместо клиентского UPDATE.
+
+### ✅ #3 Определение БОНДА/ИННО по имени
+Фикс: миграция `011_company_type.sql` — добавлен enum `company_type` (`'inno' | 'bonda'`) + колонка `companies.company_type` + backfill по текущим именам. Хелперы `isBondaCompany(company)` / `isInnoCompany(company)` в `lib/utils.ts` (с fallback на имя для переходного периода). Все 8+ сайтов с `.includes('БОНД')` переписаны.
+
+### ✅ #4 Типизация deals/page.tsx
+State и хендлеры типизированы: `User | null`, `Period | null`, `Deal[]`, `Deal | null`. `tsc --noEmit` проходит.
+
+### ✅ #5 Валидация формы сделки
+В `deals/page.tsx` добавлена функция `validateForm()` — проверяет client_name, revenue ≥ 0, units ≥ 0, MRR ≥ 0, цены оборудования ≥ 0, ссылка AMO http(s). Ошибка показывается в форме до сабмита.
+
+### ✅ #6 Деление на ноль в salary-calculator
+Все ответвления `> 0 ? x/y : 0` уже были защищены. Дополнительно — coerce `revenuePlan/unitsPlan/meetingsPlan` к числу через `Number(... ?? 0) || 0`, чтобы undefined из config не просочился.
+
+### ✅ #7 Рассинхрон partial ИННО/БОНДА
+Решается одновременно с #2 — вся логика определения статуса `paid/partial/waiting_payment/no_invoice` теперь внутри RPC `record_partial_payment`, единая точка правды.
+
+### ✅ #8 Индекс motivation_schemas
+Миграция `011_company_type.sql` заодно добавила индексы:
+- `idx_motivation_schemas_position_valid(position_id, valid_from, valid_to)`
+- `idx_deals_period_user_status(period_id, user_id, status)`
+- `idx_deals_paid_at(paid_at) WHERE paid_at IS NOT NULL`
+- `idx_meetings_period_user(period_id, user_id)`
+
+### ✅ #9 console.error с чувствительной инфой
+Введён `lib/logger.ts` — в проде срезает stack traces и redact'ит поля `password/token/secret/authorization/cookie`. В dev и при `window.__KO_DEBUG__ = true` — полный вывод для отладки. Клиентские страницы (deals/meetings/salary/team/dashboard/forecast/view-as-context) переведены на `logger.error`.
+
+### ✅ #10 RLS-гард viewAs для РОПа — не-баг
+Аудит подтвердил: RLS разрешает rop/director/admin/founder **только read** кросс-компанийно (миграция 010). Write для `rop` ограничен — UI-кнопки редактирования дополнительно гейтятся `user.role === 'manager' && !isViewingAs`. Документация добавлена в `lib/view-as-context.tsx`.
+
+### ✅ #11 Ошибки загрузки не показываются юзеру
+Добавлены `toast(..., 'error')` для load-ошибок на страницах deals, dashboard. Alert'ы на CRUD-операциях заменены на toast. Toast-система уже была в `components/Toast.tsx`, просто не использовалась широко.
+
+### ✅ #12 Хардкод-дефолты в schema.config
+`DEFAULT_PUSH_PERCENTS` и `DEFAULT_THRESHOLD_TIERS` в salary-calculator остались (иначе расчёт сломается для schema без конфига), но при использовании дефолта теперь пишется `logger.warn` с ID схемы — админ увидит и поправит должность.
+
+## Что нужно применить в проде
+
+1. Миграция `010_director_visibility_fix.sql` — **УЖЕ ПРИМЕНЕНА** (2026-04-22).
+2. Миграция `011_company_type.sql` — ⚠️ **НУЖНО ПРИМЕНИТЬ** (добавляет company_type + backfill + индексы).
+3. Миграция `012_record_payment_rpc.sql` — ⚠️ **НУЖНО ПРИМЕНИТЬ** (RPC для частичной оплаты).
+
+**Важно:** миграция 011 должна пойти **до** 012 (12 использует enum company_type).
+
+После применения 011 — зайти в Supabase Dashboard → SQL Editor:
+```sql
+SELECT name, company_type FROM companies;
+```
+и убедиться что все юрлица получили тип. Если какой-то NULL — задать руками.
+
+## Чек-лист проверки после деплоя
+
+- [ ] `/team` у комдира показывает обе команды, счётчики > 0
+- [ ] `/team` у РОПа — то же
+- [ ] Менеджер видит только свои сделки/встречи
+- [ ] Создание сделки с revenue=-100 → ошибка валидации, а не запись
+- [ ] Частичная оплата: два клиента открывают popup → только один записывает, статус корректный
+- [ ] В F12 консоли нет `[ko-salary] schema.config.push_bonus_percents не задан` (иначе — поправить должность)
+
+---
+
+## Старые заметки (для истории, до 22.04.2026)
 
 ## Статус аудита
 Прошли по списку улучшений из первичного аудита.
