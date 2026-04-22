@@ -5,7 +5,7 @@ import { SupabaseClient } from '@supabase/supabase-js'
 export async function getUsers(supabase: SupabaseClient, companyId?: string) {
   let query = supabase
     .from('users')
-    .select('*, company:companies(name), position:positions(name)')
+    .select('*, company:companies(name, company_type), position:positions(name)')
     .order('full_name')
 
   if (companyId) {
@@ -94,7 +94,7 @@ export async function getCompanies(supabase: SupabaseClient) {
 export async function getPositions(supabase: SupabaseClient, companyId?: string) {
   let query = supabase
     .from('positions')
-    .select('*, company:companies(name), motivation_schemas(*)')
+    .select('*, company:companies(name, company_type), motivation_schemas(*)')
     .order('name')
 
   if (companyId) {
@@ -125,7 +125,7 @@ export async function createPosition(supabase: SupabaseClient, posData: {
 export async function getMotivationSchemas(supabase: SupabaseClient) {
   const { data, error } = await supabase
     .from('motivation_schemas')
-    .select('*, position:positions(name, company:companies(name))')
+    .select('*, position:positions(name, company:companies(name, company_type))')
     .order('created_at', { ascending: false })
 
   if (error) throw error
@@ -171,7 +171,7 @@ export async function updateMotivationSchema(supabase: SupabaseClient, id: strin
 export async function getPeriods(supabase: SupabaseClient, companyId?: string) {
   let query = supabase
     .from('periods')
-    .select('*, company:companies(name)')
+    .select('*, company:companies(name, company_type)')
     .order('year', { ascending: false })
     .order('month', { ascending: false })
 

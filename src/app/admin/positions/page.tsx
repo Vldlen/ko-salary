@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Loader2, Building2, Plus, X, Save, ChevronDown, ChevronUp, Clock, Briefcase } from 'lucide-react'
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
-import { cn } from '@/lib/utils'
+import { cn, isBondaCompany as isBondaCompanyByObj } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { getCurrentUser } from '@/lib/supabase/queries'
 import {
@@ -64,13 +64,17 @@ const DEFAULT_CONFIG_BONDA: MotivationConfig = {
   bi_percents: { month: 0.5, quarter: 1.0, half_year: 1.5, year: 2.0 },
 }
 
-function getDefaultConfig(companyName?: string): MotivationConfig {
-  if (companyName?.toUpperCase().includes('БОНД')) return DEFAULT_CONFIG_BONDA
+// Принимаем company-объект ({ company_type, name }) — используем company_type при наличии,
+// fallback на имя через централизованный хелпер. Старая сигнатура-строка осталась для обратной совместимости.
+function getDefaultConfig(company?: { company_type?: string | null; name?: string | null } | string | null): MotivationConfig {
+  const obj = typeof company === 'string' ? { name: company } : company
+  if (isBondaCompanyByObj(obj)) return DEFAULT_CONFIG_BONDA
   return DEFAULT_CONFIG_INNO
 }
 
-function isBondaCompany(companyName?: string): boolean {
-  return !!companyName?.toUpperCase().includes('БОНД')
+function isBondaCompany(company?: { company_type?: string | null; name?: string | null } | string | null): boolean {
+  const obj = typeof company === 'string' ? { name: company } : company
+  return isBondaCompanyByObj(obj)
 }
 
 function formatNum(n: number): string {
@@ -218,7 +222,7 @@ export default function AdminPositionsPage() {
         })
       }
 
-      const posDefaults = getDefaultConfig(pos?.company?.name)
+      const posDefaults = getDefaultConfig(pos?.company)
       await createMotivationSchema(supabase, {
         position_id: positionId,
         name: newSchemaForm.name,
@@ -306,9 +310,9 @@ export default function AdminPositionsPage() {
                 const activeSchema = getActiveSchema(pos)
                 const allSchemas = getAllSchemas(pos)
                 const edit = activeSchema ? editConfigs[activeSchema.id] : null
-                const posDefaults = getDefaultConfig(pos.company?.name)
+                const posDefaults = getDefaultConfig(pos.company)
                 const cfg: MotivationConfig = edit?.config || (activeSchema ? { ...posDefaults, ...activeSchema.config } : posDefaults)
-                const isBonda = isBondaCompany(pos.company?.name)
+                const isBonda = isBondaCompany(pos.company)
 
                 return (
                   <div key={pos.id} className="glass rounded-2xl overflow-hidden">

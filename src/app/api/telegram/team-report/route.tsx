@@ -104,7 +104,7 @@ async function getTeamData(): Promise<{ inno: MemberData[]; bonda: MemberData[];
   const [usersRes, dealsRes, kpiEntriesRes, plansRes] = await Promise.all([
     supabase
       .from('users')
-      .select('id, full_name, role, company_id, position_id, company:companies(id, name), position:positions(name)')
+      .select('id, full_name, role, company_id, position_id, company:companies(id, name, company_type), position:positions(name)')
       .eq('is_active', true)
       .in('role', ['manager', 'rop']),
     supabase
@@ -138,7 +138,9 @@ async function getTeamData(): Promise<{ inno: MemberData[]; bonda: MemberData[];
     const plan = plansByUser.get(u.id)
     const companyName = u.company?.name || ''
     const positionName = u.position?.name || ''
-    const isBonda = companyName.toUpperCase().includes('БОНД')
+    // Используем company_type, fallback на имя (миграция 011)
+    const isBonda = u.company?.company_type === 'bonda'
+      || (u.company?.company_type !== 'inno' && companyName.toUpperCase().includes('БОНД'))
     const paid = ud.filter((d: any) => d.status === 'paid' || d.status === 'partial')
     const unpaid = ud.filter((d: any) => d.status !== 'paid' && d.status !== 'partial' && d.status !== 'cancelled')
 

@@ -6,11 +6,13 @@ import Sidebar from '@/components/Sidebar'
 import ViewAsBar from '@/components/ViewAsBar'
 import StatCard from '@/components/StatCard'
 import ProgressBar from '@/components/ProgressBar'
-import { formatMoney, getMonthName, getDealStatusLabel, getDealStatusColor } from '@/lib/utils'
+import { formatMoney, getMonthName, getDealStatusLabel, getDealStatusColor, isBondaCompany } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { useViewAs } from '@/lib/view-as-context'
 import { getCurrentUser, getActivePeriod, getInnoDashboardData, getBondaDashboardData, getPreviousPeriodComparison } from '@/lib/supabase/queries'
+import { logger } from '@/lib/logger'
+import { useToast } from '@/components/Toast'
 import {
   Wallet, TrendingUp, Handshake, CalendarDays,
   Target, BarChart3, ChevronRight, Loader2, Eye
@@ -19,6 +21,7 @@ import {
 export default function DashboardPage() {
   const supabase = useSupabase()
   const router = useRouter()
+  const { toast } = useToast()
   const { viewAsUser, effectiveUserId, effectiveCompanyId, isViewingAs } = useViewAs()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
@@ -35,7 +38,7 @@ export default function DashboardPage() {
         if (!currentUser) { router.push('/login'); return }
         setUser(currentUser)
       } catch (err) {
-        console.error(err)
+        logger.error('Dashboard load error', err)
       } finally {
         setLoading(false)
       }
@@ -58,9 +61,9 @@ export default function DashboardPage() {
       return
     }
 
-    // Detect БОНДА company
-    const companyName = isViewingAs ? viewAsUser?.company?.name : user.company?.name
-    const isBondaUser = companyName?.toUpperCase()?.includes('БОНД') || false
+    // Detect БОНДА company (через company_type, fallback на имя)
+    const company = isViewingAs ? viewAsUser?.company : user.company
+    const isBondaUser = isBondaCompany(company)
 
     async function loadDash() {
       try {
@@ -96,7 +99,8 @@ export default function DashboardPage() {
           setPrevComparison(prevData)
         }
       } catch (err) {
-        console.error(err)
+        logger.error('Dashboard load error', err)
+        toast('Не удалось загрузить данные дашборда. Обнови страницу.', 'error')
       }
     }
     loadDash()

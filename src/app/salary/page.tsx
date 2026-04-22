@@ -6,10 +6,11 @@ import { Loader2, Wallet, TrendingUp, Eye } from 'lucide-react'
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import ViewAsBar from '@/components/ViewAsBar'
-import { formatMoney, getMonthName, cn } from '@/lib/utils'
+import { formatMoney, getMonthName, cn, isBondaCompany } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { useViewAs } from '@/lib/view-as-context'
 import { getCurrentUser, getActivePeriod, getSalaryHistory, getBondaDashboardData, getInnoDashboardData } from '@/lib/supabase/queries'
+import { logger } from '@/lib/logger'
 
 export default function SalaryPage() {
   const supabase = useSupabase()
@@ -31,7 +32,7 @@ export default function SalaryPage() {
         if (!currentUser) { router.push('/login'); return }
         setUser(currentUser)
       } catch (err) {
-        console.error('Salary load error:', err)
+        logger.error('Salary load error', err)
       } finally {
         setLoading(false)
       }
@@ -45,9 +46,9 @@ export default function SalaryPage() {
     const targetUserId = effectiveUserId(user.id)
     const targetCompanyId = effectiveCompanyId(user.company_id)
 
-    // Detect БОНДА
-    const companyName = isViewingAs ? (viewAsUser?.company?.name || '') : (user.company?.name || '')
-    const bonda = companyName.toUpperCase().includes('БОНД')
+    // Detect БОНДА через company_type (с fallback на имя)
+    const company = isViewingAs ? viewAsUser?.company : user.company
+    const bonda = isBondaCompany(company)
     setIsBonda(bonda)
 
     // Admin/director/rop without viewAs — show empty
@@ -81,7 +82,7 @@ export default function SalaryPage() {
           setHistory(historyData)
         }
       } catch (err) {
-        console.error('Salary load error:', err)
+        logger.error('Salary load error', err)
       }
     }
     loadSalary()

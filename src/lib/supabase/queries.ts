@@ -317,6 +317,41 @@ export async function updateDeal(supabase: SupabaseClient, dealId: string, updat
   return data
 }
 
+/**
+ * Атомарно записать частичную/полную оплату.
+ * Вызывает RPC record_partial_payment (миграция 012), которая:
+ *   1. Лочит строку сделки (SELECT FOR UPDATE) — никаких гонок между двумя popup'ами.
+ *   2. Считает итоговый статус на сервере по актуальным суммам.
+ *   3. Обновляет все поля одной транзакцией.
+ *
+ * Передавай NULL для полей, которые не меняешь (тогда используется текущее значение).
+ */
+export async function recordPartialPayment(
+  supabase: SupabaseClient,
+  params: {
+    dealId: string
+    paid_license?: number | null
+    paid_impl?: number | null
+    paid_content?: number | null
+    paid_equipment?: number | null
+    paid_amount?: number | null
+    paid_at?: string | null
+  }
+) {
+  const { data, error } = await supabase.rpc('record_partial_payment', {
+    p_deal_id: params.dealId,
+    p_paid_license: params.paid_license ?? null,
+    p_paid_impl: params.paid_impl ?? null,
+    p_paid_content: params.paid_content ?? null,
+    p_paid_equipment: params.paid_equipment ?? null,
+    p_paid_amount: params.paid_amount ?? null,
+    p_paid_at: params.paid_at ?? null,
+  })
+
+  if (error) throw error
+  return data
+}
+
 // ======== Meetings ========
 
 export async function getMeetings(supabase: SupabaseClient, userId: string, periodId: string) {
@@ -382,7 +417,7 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
   const [usersRes, periodsRes] = await Promise.all([
     supabase
       .from('users')
-      .select('id, full_name, role, position_id, company_id, company:companies(id, name), position:positions(name, motivation_schemas(*))')
+      .select('id, full_name, role, position_id, company_id, company:companies(id, name, company_type), position:positions(name, motivation_schemas(*))')
       .eq('is_active', true)
       .in('role', ['manager', 'rop']),
     supabase
@@ -541,6 +576,7 @@ export async function getTeamProgress(supabase: SupabaseClient, _companyId: stri
       position: user.position?.name || '',
       company_id: user.company?.id || '',
       company_name: user.company?.name || '',
+      company_type: user.company?.company_type || null,
       // Выручка
       revenue_fact: revenueFact,
       revenue_forecast: revenueForecast,

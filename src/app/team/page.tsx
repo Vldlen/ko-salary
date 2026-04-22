@@ -9,9 +9,10 @@ import {
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import ProgressBar from '@/components/ProgressBar'
-import { formatMoney, cn, getDealStatusLabel, getDealStatusColor, checkIsJunior } from '@/lib/utils'
+import { formatMoney, cn, getDealStatusLabel, getDealStatusColor, checkIsJunior, isBondaCompany } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { getCurrentUser, getActivePeriod, getTeamProgress, getKpiEntries, getKpiApprovals, toggleKpiApproval } from '@/lib/supabase/queries'
+import { logger } from '@/lib/logger'
 
 type CompanyFilter = 'all' | string
 type TabView = 'fact' | 'forecast'
@@ -112,7 +113,7 @@ export default function TeamPage() {
         const teamData = await getTeamProgress(supabase, currentUser.company_id, activePeriod?.id || '')
         setTeam(teamData)
       } catch (err) {
-        console.error('Team load error:', err)
+        logger.error('Team load error', err)
       } finally {
         setLoading(false)
       }
@@ -135,7 +136,7 @@ export default function TeamPage() {
       ])
       setKpiData(prev => ({ ...prev, [userId]: { entries, approvals } }))
     } catch (err) {
-      console.error('KPI load error:', err)
+      logger.error('KPI load error', err)
     } finally {
       setKpiLoading(null)
     }
@@ -183,8 +184,8 @@ export default function TeamPage() {
     )
   }
 
-  // === Helper: is БОНДА company ===
-  const isBondaManager = (m: any) => m.company_name?.toUpperCase()?.includes('БОНД') || false
+  // === Helper: is БОНДА company === (через company_type, fallback на имя)
+  const isBondaManager = (m: any) => isBondaCompany({ company_type: m.company_type, name: m.company_name })
   const isInnoManager = (m: any) => !isBondaManager(m)
 
   // === ФАКТ aggregates ===
@@ -479,7 +480,7 @@ export default function TeamPage() {
                   const fdPct = m.findir_plan > 0 ? Math.round((m.fd_count / m.findir_plan) * 100) : 0
                   const meetPct = m.meetings_plan > 0 ? Math.round((m.meetings_fact / m.meetings_plan) * 100) : 0
                   const isExpanded = expandedId === m.id
-                  const isBondaCompany = m.company_name?.toUpperCase()?.includes('БОНД') || false
+                  const isBondaCompany = isBondaManager(m)
                   const isJunior = checkIsJunior(m.position)
 
                   const statusIcon = revPct >= 100
@@ -840,7 +841,7 @@ export default function TeamPage() {
                   .sort((a, b) => b.revenue_forecast - a.revenue_forecast)
                   .map(m => {
                     const isExpanded = expandedId === m.id
-                    const isBondaCompany = m.company_name?.toUpperCase()?.includes('БОНД') || false
+                    const isBondaCompany = isBondaManager(m)
                     const forecastDeals = m.forecast_deals || []
                     const waitingDeals = forecastDeals.filter((d: any) => d.status === 'waiting_payment')
                     const noInvoiceDeals = forecastDeals.filter((d: any) => d.status === 'no_invoice')

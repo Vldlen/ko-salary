@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { getCurrentUser, getTeamProgress } from '@/lib/supabase/queries'
+import { isBondaCompany } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 
 function formatK(n: number): string {
@@ -238,9 +239,9 @@ export default function ReportPreviewPage() {
           _deals: dealsByUser.get(m.id) || [],
         }))
 
-        // Split by company
-        const inno = enriched.filter((m: any) => !m.company_name?.toUpperCase()?.includes('БОНД'))
-        const bonda = enriched.filter((m: any) => m.company_name?.toUpperCase()?.includes('БОНД'))
+        // Split by company (через company_type, fallback на имя)
+        const inno = enriched.filter((m: any) => !isBondaCompany({ company_type: m.company_type, name: m.company_name }))
+        const bonda = enriched.filter((m: any) => isBondaCompany({ company_type: m.company_type, name: m.company_name }))
 
         setInnoManagers(inno)
         setBondaManagers(bonda)

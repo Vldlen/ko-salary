@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
     const { data: users, error } = await supabaseAdmin
       .from('users')
-      .select('id, full_name, company_id, role, is_active, fired_at, deleted_at, company:companies(name), position:positions(name)')
+      .select('id, full_name, company_id, role, is_active, fired_at, deleted_at, company:companies(name, company_type), position:positions(name)')
       .eq('role', 'manager')
       .eq('is_active', true)
       .is('fired_at', null)

@@ -45,6 +45,34 @@ export function getDealStatusColor(status: string): string {
   return colors[status] || 'bg-white/10 text-white/60'
 }
 
+// ======== Company type helpers ========
+
+/**
+ * Определяет, является ли компания БОНДА.
+ *
+ * Использует колонку company_type (добавлена миграцией 011). Если она не задана
+ * (например, миграция ещё не применена или company записан вручную без типа) —
+ * падает назад на проверку имени. Это временный fallback.
+ *
+ * Передавай сюда company-объект ({ company_type, name }), а не только строку.
+ */
+export function isBondaCompany(company: { company_type?: string | null; name?: string | null } | null | undefined): boolean {
+  if (!company) return false
+  if (company.company_type === 'bonda') return true
+  if (company.company_type === 'inno') return false
+  // Legacy fallback — миграция 011 ещё не применена или backfill пропустил.
+  return !!company.name && company.name.toUpperCase().includes('БОНД')
+}
+
+export function isInnoCompany(company: { company_type?: string | null; name?: string | null } | null | undefined): boolean {
+  if (!company) return false
+  if (company.company_type === 'inno') return true
+  if (company.company_type === 'bonda') return false
+  // Legacy fallback
+  const n = (company.name || '').toUpperCase()
+  return n.includes('ИНН') || n.includes('INNO')
+}
+
 // ======== БОНДА helpers ========
 
 export function getProductTypeLabel(type: string): string {

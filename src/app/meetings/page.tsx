@@ -7,10 +7,12 @@ import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
 import ViewAsBar from '@/components/ViewAsBar'
 import CustomSelect from '@/components/CustomSelect'
-import { cn, formatMoney } from '@/lib/utils'
+import { cn, formatMoney, isBondaCompany } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { useViewAs } from '@/lib/view-as-context'
 import { getCurrentUser, getActivePeriod, getMeetings, upsertMeeting, getKpiEntries, createKpiEntry, updateKpiEntry, deleteKpiEntry } from '@/lib/supabase/queries'
+import { logger } from '@/lib/logger'
+import { useToast } from '@/components/Toast'
 
 type MeetingField = 'scheduled' | 'new_completed' | 'repeat_completed' | 'mentor' | 'next_day' | 'rescheduled' | 'invoiced_sum' | 'paid_sum'
 
@@ -79,6 +81,7 @@ const EMPTY_KPI_FORM = {
 export default function MeetingsPage() {
   const supabase = useSupabase()
   const router = useRouter()
+  const { toast } = useToast()
   const { viewAsUser, effectiveUserId, effectiveCompanyId, isViewingAs } = useViewAs()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
@@ -112,7 +115,7 @@ export default function MeetingsPage() {
         if (currentUser.role === 'founder') { router.push('/team'); return }
         setUser(currentUser)
       } catch (err) {
-        console.error('Meetings load error:', err)
+        logger.error('Meetings load error', err)
       } finally {
         setLoading(false)
       }
@@ -160,7 +163,7 @@ export default function MeetingsPage() {
         }
         setCellValues(initial)
       } catch (err) {
-        console.error('Meetings load error:', err)
+        logger.error('Meetings load error', err)
       }
     }
     loadMeetings()
@@ -220,7 +223,7 @@ export default function MeetingsPage() {
         return [...prev, meetingData]
       })
     } catch (err) {
-      console.error('Save error:', err)
+      logger.error('Meeting save error', err)
     } finally {
       setSavingKeys(prev => {
         const next = new Set(prev)
@@ -265,8 +268,9 @@ export default function MeetingsPage() {
   }, [])
 
   // === KPI handlers ===
-  const viewCompName = isViewingAs ? (viewAsUser?.company?.name || '') : (user?.company?.name || '')
-  const isBonda = viewCompName.toUpperCase().includes('БОНД')
+  const viewCompany = isViewingAs ? viewAsUser?.company : user?.company
+  const viewCompName = viewCompany?.name || ''
+  const isBonda = isBondaCompany(viewCompany)
 
   async function handleKpiSave(e: React.FormEvent) {
     e.preventDefault()
@@ -307,7 +311,7 @@ export default function MeetingsPage() {
       const data = await getKpiEntries(supabase, targetUserId, period.id)
       setKpiEntries(data)
     } catch (err: any) {
-      alert(err.message || 'Ошибка удаления')
+      toast(err.message || 'Ошибка удаления', 'error')
     }
   }
 

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Loader2, Target, Save, Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import MobileRestricted from '@/components/MobileRestricted'
 import Sidebar from '@/components/Sidebar'
-import { cn } from '@/lib/utils'
+import { cn, isBondaCompany, isInnoCompany } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { getCurrentUser } from '@/lib/supabase/queries'
 import { getUsers, getCompanies, getPeriods, getIndividualPlans, upsertIndividualPlan } from '@/lib/supabase/admin-queries'
@@ -143,8 +143,8 @@ export default function AdminPlansPage() {
   if (loading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-400" /></div>
 
   const canEditPlans = ['admin', 'director'].includes(currentUser?.role)
-  const innoCompany = companies.find((c: any) => c.name?.toUpperCase().includes('ИНН'))
-  const bondaCompany = companies.find((c: any) => c.name?.toUpperCase().includes('БОНД'))
+  const innoCompany = companies.find((c: any) => isInnoCompany(c))
+  const bondaCompany = companies.find((c: any) => isBondaCompany(c))
 
   const innoUsers = users.filter((u: any) => u.company_id === innoCompany?.id)
   const bondaUsers = users.filter((u: any) => u.company_id === bondaCompany?.id)

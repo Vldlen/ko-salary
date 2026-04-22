@@ -5,9 +5,12 @@ export type PaymentType = 'bonus' | 'deduction'
 export type ProductType = 'findir' | 'bonda_bi' | 'one_time_service' | 'inno_license' | 'inno_implementation' | 'inno_content'
 export type SubscriptionPeriod = 'month' | 'quarter' | 'half_year' | 'year'
 
+export type CompanyType = 'inno' | 'bonda'
+
 export interface Company {
   id: string
   name: string
+  company_type: CompanyType | null
   created_at: string
 }
 

@@ -10,6 +10,7 @@ import { cn, formatMoney, getDealStatusLabel, getDealStatusColor } from '@/lib/u
 import { useSupabase } from '@/lib/supabase/hooks'
 import { useViewAs } from '@/lib/view-as-context'
 import { getCurrentUser, getActivePeriod, getForecastDeals } from '@/lib/supabase/queries'
+import { logger } from '@/lib/logger'
 
 const FORECAST_STATUSES = ['no_invoice', 'waiting_payment']
 
@@ -41,7 +42,7 @@ export default function ForecastPage() {
         if (!currentUser) { router.push('/login'); return }
         setUser(currentUser)
       } catch (err) {
-        console.error('Forecast load error:', err)
+        logger.error('Forecast load error', err)
       } finally {
         setLoading(false)
       }
@@ -78,7 +79,7 @@ export default function ForecastPage() {
 
         setDeals(data)
       } catch (err) {
-        console.error('Forecast load error:', err)
+        logger.error('Forecast load error', err)
       }
     }
     loadForecast()

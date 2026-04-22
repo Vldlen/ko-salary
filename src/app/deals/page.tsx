@@ -8,10 +8,13 @@ import Sidebar from '@/components/Sidebar'
 import ViewAsBar from '@/components/ViewAsBar'
 import CustomSelect from '@/components/CustomSelect'
 import DealIcon from '@/components/DealIcon'
-import { formatMoney, getDealStatusLabel, getDealStatusColor, getProductTypeLabel, getSubscriptionPeriodLabel, cn, calcMrr } from '@/lib/utils'
+import { formatMoney, getDealStatusLabel, getDealStatusColor, getProductTypeLabel, getSubscriptionPeriodLabel, cn, calcMrr, isBondaCompany } from '@/lib/utils'
 import { useSupabase } from '@/lib/supabase/hooks'
 import { useViewAs } from '@/lib/view-as-context'
-import { getCurrentUser, getActivePeriod, getDeals, createDeal, updateDeal } from '@/lib/supabase/queries'
+import { getCurrentUser, getActivePeriod, getDeals, createDeal, updateDeal, recordPartialPayment } from '@/lib/supabase/queries'
+import type { Deal, Period, User } from '@/types/database'
+import { logger } from '@/lib/logger'
+import { useToast } from '@/components/Toast'
 
 const STATUS_FILTERS = [
   { key: 'all', label: 'Все' },
@@ -74,30 +77,31 @@ function calcMargin(sellPrice: string, buyPrice: string): number {
 export default function DealsPage() {
   const supabase = useSupabase()
   const router = useRouter()
+  const { toast } = useToast()
   const { viewAsUser, effectiveUserId, effectiveCompanyId, isViewingAs } = useViewAs()
   const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState<any>(null)
-  const [period, setPeriod] = useState<any>(null)
-  const [deals, setDeals] = useState<any[]>([])
+  const [user, setUser] = useState<User | null>(null)
+  const [period, setPeriod] = useState<Period | null>(null)
+  const [deals, setDeals] = useState<Deal[]>([])
   const [selectedStatus, setSelectedStatus] = useState('all')
 
   // Form state
   const [showForm, setShowForm] = useState(false)
-  const [editingDeal, setEditingDeal] = useState<any>(null)
+  const [editingDeal, setEditingDeal] = useState<Deal | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  // Detect БОНДА company (учитываем viewAs)
-  const viewCompanyName = isViewingAs ? (viewAsUser?.company?.name || '') : (user?.company?.name || '')
-  const isBonda = viewCompanyName.toUpperCase().includes('БОНД')
+  // Detect БОНДА company (учитываем viewAs) — через company_type, fallback на имя внутри хелпера
+  const viewCompany = isViewingAs ? viewAsUser?.company : user?.company
+  const isBonda = isBondaCompany(viewCompany)
 
   // Payment date popup state
   const [paidPopup, setPaidPopup] = useState<{ dealId: string; rect: DOMRect } | null>(null)
   const [paidDate, setPaidDate] = useState(new Date().toISOString().slice(0, 10))
 
   // Partial payment popup state
-  const [partialPopup, setPartialPopup] = useState<{ deal: any } | null>(null)
+  const [partialPopup, setPartialPopup] = useState<{ deal: Deal } | null>(null)
   const [partialForm, setPartialForm] = useState({ license: '', impl: '', content: '', equipment: '', amount: '', paid_at: new Date().toISOString().slice(0, 10) })
 
   // Load current user once
@@ -108,7 +112,7 @@ export default function DealsPage() {
         if (!currentUser) { router.push('/login'); return }
         setUser(currentUser)
       } catch (err) {
-        console.error('Deals load error:', err)
+        logger.error('Deals load error', err)
       } finally {
         setLoading(false)
       }
@@ -118,7 +122,7 @@ export default function DealsPage() {
 
   // Load deals — re-runs when viewAsUser changes
   useEffect(() => {
-    if (!user) return
+    if (!user || !user.company_id) return
     const targetUserId = effectiveUserId(user.id)
     const targetCompanyId = effectiveCompanyId(user.company_id)
 
@@ -137,20 +141,63 @@ export default function DealsPage() {
         const dealsData = await getDeals(supabase, targetUserId, activePeriod.id, selectedStatus)
         setDeals(dealsData)
       } catch (err) {
-        console.error('Deals load error:', err)
+        logger.error('Deals load error', err)
+        toast('Не удалось загрузить сделки. Проверь соединение и обнови страницу.', 'error')
       }
     }
     loadDeals()
   }, [supabase, user, viewAsUser, effectiveUserId, effectiveCompanyId, isViewingAs, selectedStatus])
 
+  function validateForm(): string | null {
+    const name = form.client_name.trim()
+    if (!name) return 'Укажи клиента'
+    if (name.length > 200) return 'Название клиента слишком длинное (макс. 200 символов)'
+
+    const revenue = Number(form.revenue) || 0
+    if (revenue < 0) return 'Сумма не может быть отрицательной'
+    if (revenue > 1_000_000_000) return 'Сумма выглядит подозрительно большой — проверь'
+
+    if (!isBonda) {
+      const units = Number(form.units) || 0
+      if (units < 0) return 'Количество лицензий не может быть отрицательным'
+      if (units > 10_000) return 'Количество лицензий подозрительно большое — проверь'
+
+      const mrr = Number(form.mrr) || 0
+      if (mrr < 0) return 'MRR не может быть отрицательным'
+
+      const sell = Number(form.equipment_sell_price) || 0
+      const buy = Number(form.equipment_buy_price) || 0
+      if (sell < 0 || buy < 0) return 'Цены оборудования не могут быть отрицательными'
+
+      const impl = Number(form.impl_revenue) || 0
+      const content = Number(form.content_revenue) || 0
+      if (impl < 0 || content < 0) return 'Выручка по внедрению/контенту не может быть отрицательной'
+    }
+
+    if (form.amo_link && form.amo_link.trim() && !/^https?:\/\//i.test(form.amo_link.trim())) {
+      return 'Ссылка AMO должна начинаться с http:// или https://'
+    }
+
+    return null
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
+    if (!user || !period) {
+      setError('Данные пользователя ещё не загружены')
+      return
+    }
+    const validationError = validateForm()
+    if (validationError) {
+      setError(validationError)
+      return
+    }
     setSaving(true)
     setError('')
     try {
       const margin = calcMargin(form.equipment_sell_price, form.equipment_buy_price)
       const dealData: Record<string, any> = {
-        client_name: form.client_name,
+        client_name: form.client_name.trim(),
         revenue: Number(form.revenue) || 0,
         status: form.status,
         planned_payment_date: form.planned_payment_date || null,
@@ -209,6 +256,7 @@ export default function DealsPage() {
   }
 
   async function handleDelete(dealId: string) {
+    if (!user || !period) return
     if (!confirm('Удалить сделку?')) return
     try {
       const { error } = await supabase.from('deals').delete().eq('id', dealId)
@@ -217,11 +265,11 @@ export default function DealsPage() {
       const dealsData = await getDeals(supabase, targetUserId, period.id, selectedStatus)
       setDeals(dealsData)
     } catch (err: any) {
-      alert(err.message || 'Ошибка удаления')
+      toast(err.message || 'Ошибка удаления', 'error')
     }
   }
 
-  async function handleStatusChange(dealId: string, newStatus: string, e?: React.MouseEvent, deal?: any) {
+  async function handleStatusChange(dealId: string, newStatus: string, e?: React.MouseEvent, deal?: Deal) {
     if (newStatus === 'paid') {
       // Show date popup
       const rect = (e?.currentTarget as HTMLElement)?.getBoundingClientRect()
@@ -234,18 +282,19 @@ export default function DealsPage() {
       openPartialPayment(deal)
       return
     }
+    if (!user || !period) return
     try {
       await updateDeal(supabase, dealId, { status: newStatus, paid_at: null })
       const targetUserId = effectiveUserId(user.id)
       const dealsData = await getDeals(supabase, targetUserId, period.id, selectedStatus)
       setDeals(dealsData)
     } catch (err: any) {
-      alert(err.message || 'Ошибка смены статуса')
+      toast(err.message || 'Ошибка смены статуса', 'error')
     }
   }
 
   async function confirmPaid() {
-    if (!paidPopup) return
+    if (!paidPopup || !user || !period) return
     try {
       await updateDeal(supabase, paidPopup.dealId, { status: 'paid', paid_at: paidDate })
       const targetUserId = effectiveUserId(user.id)
@@ -253,11 +302,11 @@ export default function DealsPage() {
       setDeals(dealsData)
       setPaidPopup(null)
     } catch (err: any) {
-      alert(err.message || 'Ошибка')
+      toast(err.message || 'Ошибка', 'error')
     }
   }
 
-  async function openPartialPayment(deal: any) {
+  async function openPartialPayment(deal: Deal) {
     setPartialPopup({ deal })
     setPartialForm({
       license: String(Number(deal.paid_license || 0)),
@@ -270,54 +319,32 @@ export default function DealsPage() {
   }
 
   async function confirmPartialPayment() {
-    if (!partialPopup) return
+    if (!partialPopup || !user || !period) return
     const deal = partialPopup.deal
     try {
-      const paidLicense = Math.min(Number(partialForm.license) || 0, Number(deal.revenue || 0))
-      const paidImpl = Math.min(Number(partialForm.impl) || 0, Number(deal.impl_revenue || 0))
-      const paidContent = Math.min(Number(partialForm.content) || 0, Number(deal.content_revenue || 0))
-      const paidEquipment = Math.min(Number(partialForm.equipment) || 0, Number(deal.equipment_sell_price || 0))
-      const paidAmount = Math.min(Number(partialForm.amount) || 0, Number(deal.revenue || 0))
-
-      // Auto-determine status for ИННО
-      const totalDeal = Number(deal.revenue || 0) + Number(deal.impl_revenue || 0) + Number(deal.content_revenue || 0) + Number(deal.equipment_sell_price || 0)
-      const totalPaid = paidLicense + paidImpl + paidContent + paidEquipment
-      // For БОНДА
-      const bondaTotalPaid = paidAmount
-
-      let newStatus: string
-      if (isBonda) {
-        const dealRevenue = Number(deal.revenue || 0)
-        if (bondaTotalPaid <= 0) newStatus = deal.status === 'no_invoice' ? 'no_invoice' : 'waiting_payment'
-        else if (bondaTotalPaid >= dealRevenue) newStatus = 'paid'
-        else newStatus = 'partial'
-      } else {
-        if (totalPaid <= 0) newStatus = deal.status === 'no_invoice' ? 'no_invoice' : 'waiting_payment'
-        else if (paidLicense >= Number(deal.revenue || 0) && paidImpl >= Number(deal.impl_revenue || 0) && paidContent >= Number(deal.content_revenue || 0) && paidEquipment >= Number(deal.equipment_sell_price || 0)) newStatus = 'paid'
-        else newStatus = 'partial'
-      }
-
-      const updates: Record<string, any> = {
-        status: newStatus,
-        paid_license: paidLicense,
-        paid_impl: paidImpl,
-        paid_content: paidContent,
-        paid_equipment: paidEquipment,
-        paid_amount: paidAmount,
+      // Передаём сырые суммы — серверный RPC (record_partial_payment) сам:
+      //   1. Лочит строку (SELECT FOR UPDATE) — защита от гонок,
+      //   2. Clamp'ит значения по revenue/impl_revenue/..,
+      //   3. Считает итоговый status по единой логике ИННО/БОНДА.
+      await recordPartialPayment(supabase, {
+        dealId: deal.id,
+        paid_license: isBonda ? null : (Number(partialForm.license) || 0),
+        paid_impl: isBonda ? null : (Number(partialForm.impl) || 0),
+        paid_content: isBonda ? null : (Number(partialForm.content) || 0),
+        paid_equipment: isBonda ? null : (Number(partialForm.equipment) || 0),
+        paid_amount: isBonda ? (Number(partialForm.amount) || 0) : null,
         paid_at: partialForm.paid_at || null,
-      }
-
-      await updateDeal(supabase, deal.id, updates)
+      })
       const targetUserId = effectiveUserId(user.id)
       const dealsData = await getDeals(supabase, targetUserId, period.id, selectedStatus)
       setDeals(dealsData)
       setPartialPopup(null)
     } catch (err: any) {
-      alert(err.message || 'Ошибка записи оплаты')
+      toast(err.message || 'Ошибка записи оплаты', 'error')
     }
   }
 
-  function openEdit(deal: any) {
+  function openEdit(deal: Deal) {
     setEditingDeal(deal)
     setForm({
       client_name: deal.client_name,
@@ -443,7 +470,7 @@ export default function DealsPage() {
           </div>
 
           {/* Empty prompt for admin without viewAs */}
-          {['admin', 'director', 'rop', 'founder'].includes(user?.role) && !isViewingAs && (
+          {user && ['admin', 'director', 'rop', 'founder'].includes(user.role) && !isViewingAs && (
             <div className="glass rounded-2xl p-12 text-center">
               <Eye className="w-12 h-12 text-white/15 mx-auto mb-4" />
               <h2 className="text-lg font-heading font-bold text-white mb-2">Выберите менеджера</h2>
@@ -510,7 +537,7 @@ export default function DealsPage() {
                             deal.product_type === 'bonda_bi' ? 'bg-cyan-500/20 text-cyan-400' :
                             'bg-orange-500/20 text-orange-400'
                           )}>
-                            {getProductTypeLabel(deal.product_type)}
+                            {getProductTypeLabel(deal.product_type || '')}
                           </span>
                         </td>
                         <td className="px-4 py-4 text-sm font-medium text-white">
